@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "Quickwit",
+  "id": "grafana-quickwit-datasource",
+  "metrics": true,
+  "backend": true,
+  "alerting": true,
+  "annotations": true,
+  "logs": true,
+  "executable": "gpx_quickwit",
+  "category": "logging",
+  "info": {
+    "description": "Quickwit datasource plugin for Grafana",
+    "author": {
+      "name": "Quickwit"
+    },
+    "keywords": ["datasource"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Website",
+        "url": "https://github.com/quickwit/quickwit-datasource"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/quickwit/quickwit-datasource/blob/main/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": "^9.1.2",
+    "plugins": []
+  }
+}
