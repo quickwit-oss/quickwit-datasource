@@ -1,35 +1,54 @@
-import React, { useEffect } from 'react';
-import { Input, InlineField, FieldSet, DataSourceHttpSettings } from '@grafana/ui';
+import React, { useCallback } from 'react';
+import { Input, InlineField, FieldSet, useTheme2 } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
 import { QuickwitOptions } from 'quickwit';
-import { coerceOptions, isValidOptions } from './utils';
+import { coerceOptions } from './utils';
+import { selectors } from '@grafana/e2e-selectors';
+import { css, cx } from '@emotion/css';
 
 interface Props extends DataSourcePluginOptionsEditorProps<QuickwitOptions> {}
 
 export const ConfigEditor = (props: Props) => {
   const { options: originalOptions, onOptionsChange } = props;
   const options = coerceOptions(originalOptions);
-  options.access = 'proxy';
+  const theme = useTheme2();
+  const isValidUrl = /^(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/.test(
+    options.url
+  );
+  const notValidStyle = css`
+    box-shadow: inset 0 0px 5px ${theme.v1.palette.red};
+  `;
 
-  useEffect(() => {
-    if (!isValidOptions(originalOptions)) {
-      onOptionsChange(coerceOptions(originalOptions));
-    }
-
-    // We can't enforce the eslint rule here because we only want to run this once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const inputStyle = cx({ [`width-20`]: true, [notValidStyle]: !isValidUrl });
+  const onSettingsChange = useCallback(
+    (change: Partial<DataSourceSettings<any, any>>) => {
+      onOptionsChange({
+        ...options,
+        ...change,
+      });
+    },
+    [options, onOptionsChange]
+  );
 
   return (
     <>
-      <DataSourceHttpSettings
-        defaultUrl="http://localhost:7280"
-        dataSourceConfig={options}
-        showAccessOptions={false}
-        sigV4AuthToggleEnabled={false}
-        onChange={onOptionsChange}
-      />
-      <QuickwitDetails value={options} onChange={onOptionsChange} />
+      <h3 className="page-heading">HTTP</h3>
+      <div className="gf-form-group">
+        <div className="gf-form">
+          <div>
+            <InlineField label="URL" labelWidth={26} tooltip="Quickwit API URL">
+              <Input
+                className={inputStyle}
+                placeholder="http://localhost:7280/api/v1"
+                value={options.url}
+                aria-label={selectors.components.DataSource.DataSourceHttpSettings.urlInput}
+                onChange={(value) => onSettingsChange({ url: value.currentTarget.value })}
+              />
+            </InlineField>
+          </div>
+        </div>
+      </div>
+      <QuickwitDetails value={options} onChange={onSettingsChange} />
     </>
   );
 };
@@ -47,7 +66,7 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
             <Input
               id="quickwit_index_id"
               value={value.jsonData.index}
-              onChange={indexChangeHandler(value, onChange)}
+              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, index: event.currentTarget.value}})}
               placeholder="otel-logs-v0"
               width={40}
             />
@@ -56,7 +75,7 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
             <Input
               id="quickwit_index_timestamp_field"
               value={value.jsonData.timeField}
-              onChange={jsonDataChangeHandler('timeField', value, onChange)}
+              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, timeField: event.currentTarget.value}})}
               placeholder="timestamp"
               width={40}
             />
@@ -65,7 +84,7 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
             <Input
               id="quickwit_log_message_field"
               value={value.jsonData.logMessageField}
-              onChange={jsonDataChangeHandler('logMessageField', value, onChange)}
+              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, logMessageField: event.currentTarget.value}})}
               placeholder="_source"
               width={40}
             />
@@ -74,7 +93,7 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
             <Input
               id="quickwit_log_level_field"
               value={value.jsonData.logLevelField}
-              onChange={jsonDataChangeHandler('logLevelField', value, onChange)}
+              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, logLevelField: event.currentTarget.value}})}
               placeholder="level"
               width={40}
             />
@@ -84,29 +103,3 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
     </>
   );
 };
-
-const indexChangeHandler =
-  (value: DetailsProps['value'], onChange: DetailsProps['onChange']) =>
-  (event: React.SyntheticEvent<HTMLInputElement | HTMLSelectElement>) => {
-    onChange({
-      ...value,
-      database: '',
-      jsonData: {
-        ...value.jsonData,
-        index: event.currentTarget.value,
-      },
-    });
-  };
-
-// TODO: Use change handlers from @grafana/data
-const jsonDataChangeHandler =
-  (key: keyof QuickwitOptions, value: DetailsProps['value'], onChange: DetailsProps['onChange']) =>
-  (event: React.SyntheticEvent<HTMLInputElement | HTMLSelectElement>) => {
-    onChange({
-      ...value,
-      jsonData: {
-        ...value.jsonData,
-        [key]: event.currentTarget.value,
-      },
-    });
-  };

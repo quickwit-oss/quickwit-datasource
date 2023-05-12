@@ -33,43 +33,32 @@ interface Props {
   value: MetricAggregation;
 }
 
-// If a metric is a Pipeline Aggregation (https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-pipeline.html)
-// it doesn't make sense to show it in the type picker when there is no non-pipeline-aggregation previously selected
-// as they work on the outputs produced from other aggregations rather than from documents or fields.
-// This means we should filter them out from the type picker if there's no other "basic" aggregation before the current one.
-const isBasicAggregation = (metric: MetricAggregation) => !metricAggregationConfig[metric.type].isPipelineAgg;
+const QUICKWIT_SUPPORTED_METRICS = ['count', 'avg', 'sum', 'min', 'max', 'percentiles', 'raw_data', 'logs'];
 
 const getTypeOptions = (
-  previousMetrics: MetricAggregation[],
-  esVersion: null
+  _: MetricAggregation[],
 ): Array<SelectableValue<MetricAggregationType>> => {
-  // we'll include Pipeline Aggregations only if at least one previous metric is a "Basic" one
-  const includePipelineAggregations = previousMetrics.some(isBasicAggregation);
-
   return (
     Object.entries(metricAggregationConfig)
-      // Only showing metrics type supported by the version of ES.
-      // if we cannot determine the version, we assume it is suitable.
-      // .filter(([_, { versionRange = '*' }]) => (esVersion != null ? satisfies(esVersion, versionRange) : true))
-      // Filtering out Pipeline Aggregations if there's no basic metric selected before
-      .filter(([_, config]) => includePipelineAggregations || !config.isPipelineAgg)
+      .filter(([_, config]) => config.impliedQueryType === 'metrics')
       .map(([key, { label }]) => ({
         label,
         value: key as MetricAggregationType,
       }))
+      .filter((option) => {
+        return QUICKWIT_SUPPORTED_METRICS.includes(option.value);
+      })
   );
 };
 
 export const MetricEditor = ({ value }: Props) => {
   const styles = getStyles(useTheme2(), !!value.hide);
-  // const datasource = useDatasource();
   const query = useQuery();
   const dispatch = useDispatch();
   const getFields = useFields(value.type);
 
   const getTypeOptionsAsync = async (previousMetrics: MetricAggregation[]) => {
-    // const dbVersion = await datasource.getDatabaseVersion();
-    return getTypeOptions(previousMetrics, null);
+    return getTypeOptions(previousMetrics);
   };
 
   const loadOptions = useCallback(async () => {

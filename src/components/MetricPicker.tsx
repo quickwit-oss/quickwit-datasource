@@ -16,8 +16,11 @@ const toOption = (metric: MetricAggregation) => ({
   value: metric,
 });
 
-const toOptions = (metrics: MetricAggregation[]): Array<SelectableValue<MetricAggregation>> => metrics.map(toOption);
 
+const toOptions = (metrics: MetricAggregation[]): Array<SelectableValue<MetricAggregation>> => metrics.map(toOption).filter((option) => {
+  console.log("option", option);
+  return true;
+});
 interface Props {
   options: MetricAggregation[];
   onChange: (e: SelectableValue<MetricAggregation>) => void;

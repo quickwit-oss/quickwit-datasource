@@ -132,7 +132,7 @@ export function trackQuery(
     if (shouldNotReportBasedOnRefId(query.refId)) {
       return;
     }
-    reportInteraction('grafana_elasticsearch_query_executed', {
+    reportInteraction('grafana_quickwit_query_executed', {
       app,
       grafana_version: config.buildInfo.version,
       with_lucene_query: query.query ? true : false,
@@ -159,7 +159,7 @@ export function trackAnnotationQuery(annotation: {
   index?: string;
   [key: string]: unknown;
 }): void {
-  reportInteraction('grafana_elasticsearch_annotation_query_executed', {
+  reportInteraction('grafana_quickwit_annotation_query_executed', {
     grafana_version: config.buildInfo.version,
     has_target_query: !!annotation.target?.query,
     has_query: !!annotation.query,

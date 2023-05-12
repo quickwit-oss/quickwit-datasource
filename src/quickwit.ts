@@ -4,7 +4,6 @@ import { DataLinkConfig } from "types";
 export interface QuickwitOptions extends DataSourceJsonData {
     timeField: string;
     interval?: Interval;
-    timeInterval: string;
     logMessageField?: string;
     logLevelField?: string;
     dataLinks?: DataLinkConfig[];

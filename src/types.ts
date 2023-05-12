@@ -1,5 +1,3 @@
-import { DataSourceJsonData } from '@grafana/data';
-
 import {
   BucketAggregationType,
   MetricAggregation,
@@ -48,22 +46,9 @@ export interface MovingAverage<T extends MovingAverageModel = MovingAverageModel
   settings?: MovingAverageModelSettings<T>;
 }
 
-export type Interval = 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+export type QueryType = 'metrics' | 'logs' | 'raw_data' | 'raw_document';
 
-export interface ElasticsearchOptions extends DataSourceJsonData {
-  timeField: string;
-  // we used to have a field named `esVersion` in the past,
-  // please do not use that name in the future.
-  xpack?: boolean;
-  interval?: Interval;
-  timeInterval: string;
-  maxConcurrentShardRequests?: number;
-  logMessageField?: string;
-  logLevelField?: string;
-  dataLinks?: DataLinkConfig[];
-  includeFrozen?: boolean;
-  index?: string;
-}
+export type Interval = 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
 
 interface MetricConfiguration<T extends MetricAggregationType> {
   label: string;
@@ -77,7 +62,7 @@ interface MetricConfiguration<T extends MetricAggregationType> {
    */
   versionRange?: string;
   supportsMultipleBucketPaths: boolean;
-  isSingleMetric?: boolean;
+  impliedQueryType: QueryType;
   hasSettings: boolean;
   hasMeta: boolean;
   defaults: Omit<Extract<MetricAggregation, { type: T }>, 'id' | 'type'>;

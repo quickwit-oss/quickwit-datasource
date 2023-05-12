@@ -8,6 +8,5 @@ export function createDefaultConfigOptions(): DataSourceSettings<QuickwitOptions
     logMessageField: 'test.message',
     logLevelField: 'test.level',
     index: 'test',
-    timeInterval: ''
   });
 }

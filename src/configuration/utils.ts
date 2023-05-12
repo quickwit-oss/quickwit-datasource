@@ -14,13 +14,3 @@ export const coerceOptions = (
     },
   };
 };
-
-export const isValidOptions = (options: DataSourceSettings<QuickwitOptions>): boolean => {
-  return (
-    // timeField should not be empty or nullish
-    !!options.jsonData.timeField &&
-    // maxConcurrentShardRequests should be a number AND greater than 0
-    options.jsonData.logMessageField !== undefined &&
-    options.jsonData.logLevelField !== undefined
-  );
-};

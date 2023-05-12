@@ -9,6 +9,7 @@ import {
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
+  DataSourceWithQueryImportSupport,
   getDefaultTimeRange,
   MetricFindValue,
   QueryFixAction,
@@ -51,7 +52,8 @@ export type ElasticDatasource = QuickwitDataSource;
 export class QuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
   implements
-    DataSourceWithSupplementaryQueriesSupport<ElasticsearchQuery>
+    DataSourceWithSupplementaryQueriesSupport<ElasticsearchQuery>,
+    DataSourceWithQueryImportSupport<ElasticsearchQuery>
 {
   index: string;
   timeField: string;
@@ -100,8 +102,10 @@ export class QuickwitDataSource
           return of({ status: 'success', message: `Index OK. Time field name OK` });
         }),
         catchError((err) => {
-          console.error(err);
-          if (err.message) {
+          if (err.status === 404) {
+            return of({ status: 'error', message: 'Index does not exists.' });
+          }
+          else if (err.message) {
             return of({ status: 'error', message: err.message });
           } else {
             return of({ status: 'error', message: err.status });
@@ -112,6 +116,7 @@ export class QuickwitDataSource
   }
 
   async importFromAbstractQueries(abstractQueries: AbstractQuery[]): Promise<ElasticsearchQuery[]> {
+    console.log("importFromAbstractQueries");
     return abstractQueries.map((abstractQuery) => this.languageProvider.importFromAbstractQuery(abstractQuery));
   }
 
@@ -172,8 +177,6 @@ export class QuickwitDataSource
               size: '0',
               order: 'desc',
               orderBy: '_count',
-              // FIXME: `missing` is not supported by Quickwit.
-              // missing: LogLevel.unknown,
             },
             field: this.logLevelField,
           });
@@ -225,7 +228,7 @@ export class QuickwitDataSource
 
   /**
    * Used in explore when user filters on a given log attribute.
-    */
+   */
   modifyQuery(query: ElasticsearchQuery, action: QueryFixAction): ElasticsearchQuery {
     if (!action.options) {
       return query;
@@ -294,7 +297,6 @@ export class QuickwitDataSource
       datetime: 'date',
       text: 'string',
     };
-    console.log("types", type);
     return from(this.getResource('indexes/' + this.index)).pipe(
       map((index_metadata) => {
         const shouldAddField = (field: Field) => {
