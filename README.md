@@ -39,10 +39,12 @@ datasources:
 ### Prerequisites
 
 You need:
-- Docker compose
-- a Quickwit instance running locally
-- `yarn`
-- go and mage tool
+- [Docker and compose](https://docs.docker.com/compose/install/)
+- [Node.js](https://nodejs.org/en/download)
+- [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable)
+- [golang](https://go.dev/doc/install)
+- [Mage](https://magefile.org/)
+- A Quickwit instance running locally
 
 ### Building
 
@@ -52,6 +54,8 @@ You need:
 $ yarn install
 $ yarn build
 ```
+
+When developing the front, use `yarn dev`.
 
 #### Backend
 
