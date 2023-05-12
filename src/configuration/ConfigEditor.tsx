@@ -61,12 +61,21 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               width={40}
             />
           </InlineField>
+          <InlineField label="Message field name" labelWidth={26} tooltip="">
+            <Input
+              id="quickwit_log_message_field"
+              value={value.jsonData.logMessageField}
+              onChange={jsonDataChangeHandler('logMessageField', value, onChange)}
+              placeholder="_source"
+              width={40}
+            />
+          </InlineField>
           <InlineField label="Log level field" labelWidth={26} tooltip="">
             <Input
               id="quickwit_log_level_field"
               value={value.jsonData.logLevelField}
               onChange={jsonDataChangeHandler('logLevelField', value, onChange)}
-              placeholder="severity_text"
+              placeholder="level"
               width={40}
             />
           </InlineField>

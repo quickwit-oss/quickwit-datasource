@@ -329,16 +329,19 @@ func isRawDocumentQuery(query *Query) bool {
 func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
 	metric := q.Metrics[0]
 	// TODO: FIXME when sort is fixed in quickwit
-	// sort := es.SortOrderDesc
-	// if metric.Settings.Get("sortDirection").MustString() == "asc" {
-	// 	// This is currently used only for log context query
-	// 	sort = es.SortOrderAsc
-	// }
-	// b.Sort(sort, defaultTimeField, "boolean")
+	sort := es.SortOrderDesc
+	if metric.Settings.Get("sortDirection").MustString() == "asc" {
+		// This is currently used only for log context query
+		sort = es.SortOrderAsc
+	}
+	b.Sort(sort, defaultTimeField, "boolean")
+	// TODO: check if sort by _doc is needed.
 	// b.Sort(sort, "_doc", "")
-	b.AddDocValueField(defaultTimeField)
+	// FIXME: not supported in Quickwit
+	// b.AddDocValueField(defaultTimeField)
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
-	b.AddHighlight()
+	// TODO when hightlight is supported in quickwit
+	// b.AddHighlight()
 
 	// This is currently used only for log context query to get
 	// log lines before and after the selected log line
@@ -368,7 +371,8 @@ func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, 
 	metric := q.Metrics[0]
 	b.Sort(es.SortOrderDesc, defaultTimeField, "boolean")
 	b.Sort(es.SortOrderDesc, "_doc", "")
-	b.AddDocValueField(defaultTimeField)
+	// Note: not supported in Quickwit
+	// b.AddDocValueField(defaultTimeField)
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("size").MustString(), defaultSize))
 }
 

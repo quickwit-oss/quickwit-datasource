@@ -10,7 +10,7 @@ type SearchRequest struct {
 	Index       string
 	Interval    time.Duration
 	Size        int
-	Sort        map[string]interface{}
+	Sort        []map[string]map[string]interface{}
 	Query       *Query
 	Aggs        AggArray
 	CustomProps map[string]interface{}
@@ -97,10 +97,11 @@ type QueryStringFilter struct {
 
 // MarshalJSON returns the JSON encoding of the query string filter.
 func (f *QueryStringFilter) MarshalJSON() ([]byte, error) {
+	// FIXME: readd analyze_wildcard when quickwit supports it.
 	root := map[string]interface{}{
 		"query_string": map[string]interface{}{
-			"query":            f.Query,
-			"analyze_wildcard": f.AnalyzeWildcard,
+			"query": f.Query,
+			//			"analyze_wildcard": f.AnalyzeWildcard,
 		},
 	}
 

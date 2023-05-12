@@ -59,10 +59,12 @@ func TestSearchRequest(t *testing.T) {
 			})
 
 			t.Run("Should have correct sorting", func(t *testing.T) {
-				sort, ok := sr.Sort[timeField].(map[string]string)
-				require.True(t, ok)
-				require.Equal(t, "desc", sort["order"])
-				require.Equal(t, "boolean", sort["unmapped_type"])
+				sorts := sr.Sort
+				require.Equal(t, 1, len(sorts))
+				require.Equal(t, "desc", sorts[0]["order"])
+				// require.Equal(t, "terms", aggs[0].Aggregation.Type)
+				// require.Equal(t, "desc", sort[0]["order"])
+				// require.Equal(t, "boolean", sort["unmapped_type"])
 			})
 
 			t.Run("Should have range filter", func(t *testing.T) {
@@ -97,53 +99,54 @@ func TestSearchRequest(t *testing.T) {
 				require.Equal(t, DateFormatEpochMS, timeRangeFilter.Get("format").MustString(""))
 
 				queryStringFilter := json.GetPath("query", "bool", "filter").GetIndex(1).Get("query_string")
-				require.Equal(t, true, queryStringFilter.Get("analyze_wildcard").MustBool(false))
+				// TODO: readd analyze_wildcard when quickwit supports it.
+				// require.Equal(t, true, queryStringFilter.Get("analyze_wildcard").MustBool(false))
 				require.Equal(t, "test", queryStringFilter.Get("query").MustString(""))
 			})
 		})
 	})
 
-	t.Run("When adding doc value field", func(t *testing.T) {
-		b := setup()
-		b.AddDocValueField(timeField)
+	// t.Run("When adding doc value field", func(t *testing.T) {
+	// 	b := setup()
+	// 	b.AddDocValueField(timeField)
 
-		t.Run("should set correct props", func(t *testing.T) {
-			require.Nil(t, b.customProps["fields"])
+	// 	t.Run("should set correct props", func(t *testing.T) {
+	// 		require.Nil(t, b.customProps["fields"])
 
-			scriptFields, ok := b.customProps["script_fields"].(map[string]interface{})
-			require.True(t, ok)
-			require.Equal(t, 0, len(scriptFields))
+	// 		scriptFields, ok := b.customProps["script_fields"].(map[string]interface{})
+	// 		require.True(t, ok)
+	// 		require.Equal(t, 0, len(scriptFields))
 
-			docValueFields, ok := b.customProps["docvalue_fields"].([]string)
-			require.True(t, ok)
-			require.Equal(t, 1, len(docValueFields))
-			require.Equal(t, timeField, docValueFields[0])
-		})
+	// 		docValueFields, ok := b.customProps["docvalue_fields"].([]string)
+	// 		require.True(t, ok)
+	// 		require.Equal(t, 1, len(docValueFields))
+	// 		require.Equal(t, timeField, docValueFields[0])
+	// 	})
 
-		t.Run("When building search request", func(t *testing.T) {
-			sr, err := b.Build()
-			require.Nil(t, err)
+	// 	t.Run("When building search request", func(t *testing.T) {
+	// 		sr, err := b.Build()
+	// 		require.Nil(t, err)
 
-			t.Run("When marshal to JSON should generate correct json", func(t *testing.T) {
-				body, err := json.Marshal(sr)
-				require.Nil(t, err)
-				json, err := simplejson.NewJson(body)
-				require.Nil(t, err)
+	// 		t.Run("When marshal to JSON should generate correct json", func(t *testing.T) {
+	// 			body, err := json.Marshal(sr)
+	// 			require.Nil(t, err)
+	// 			json, err := simplejson.NewJson(body)
+	// 			require.Nil(t, err)
 
-				scriptFields, err := json.Get("script_fields").Map()
-				require.Nil(t, err)
-				require.Equal(t, 0, len(scriptFields))
+	// 			scriptFields, err := json.Get("script_fields").Map()
+	// 			require.Nil(t, err)
+	// 			require.Equal(t, 0, len(scriptFields))
 
-				_, err = json.Get("fields").StringArray()
-				require.Error(t, err)
+	// 			_, err = json.Get("fields").StringArray()
+	// 			require.Error(t, err)
 
-				docValueFields, err := json.Get("docvalue_fields").StringArray()
-				require.Nil(t, err)
-				require.Equal(t, 1, len(docValueFields))
-				require.Equal(t, timeField, docValueFields[0])
-			})
-		})
-	})
+	// 			docValueFields, err := json.Get("docvalue_fields").StringArray()
+	// 			require.Nil(t, err)
+	// 			require.Equal(t, 1, len(docValueFields))
+	// 			require.Equal(t, timeField, docValueFields[0])
+	// 		})
+	// 	})
+	// })
 
 	t.Run("and adding multiple top level aggs", func(t *testing.T) {
 		b := setup()

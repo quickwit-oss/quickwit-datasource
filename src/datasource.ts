@@ -294,10 +294,14 @@ export class QuickwitDataSource
       datetime: 'date',
       text: 'string',
     };
+    console.log("types", type);
     return from(this.getResource('indexes/' + this.index)).pipe(
       map((index_metadata) => {
         const shouldAddField = (field: Field) => {
           const translated_type = typeMap[field.field_mapping.type];
+          if (type?.length === 0) {
+            return true;
+          }
           return type?.includes(translated_type);
         };
 

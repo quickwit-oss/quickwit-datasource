@@ -17,7 +17,7 @@ type SearchRequestBuilder struct {
 	index    string
 	size     int
 	// Currently sort is map, but based in examples it should be an array https://www.elastic.co/guide/en/elasticsearch/reference/current/sort-search-results.html
-	sort         map[string]interface{}
+	sort         []map[string]map[string]interface{}
 	queryBuilder *QueryBuilder
 	aggBuilders  []AggBuilder
 	customProps  map[string]interface{}
@@ -27,7 +27,7 @@ type SearchRequestBuilder struct {
 func NewSearchRequestBuilder(interval time.Duration) *SearchRequestBuilder {
 	builder := &SearchRequestBuilder{
 		interval:    interval,
-		sort:        make(map[string]interface{}),
+		sort:        make([]map[string]map[string]interface{}, 0),
 		customProps: make(map[string]interface{}),
 		aggBuilders: make([]AggBuilder, 0),
 	}
@@ -86,40 +86,42 @@ func (b *SearchRequestBuilder) Sort(order SortOrder, field string, unmappedType 
 		return b
 	}
 
-	props := map[string]string{
+	sort := map[string]map[string]interface{}{}
+	sort[field] = map[string]interface{}{
 		"order": string(order),
 	}
 
-	if unmappedType != "" {
-		props["unmapped_type"] = unmappedType
-	}
+	// FIXME: what is this?
+	// if unmappedType != "" {
+	// 	props["unmapped_type"] = unmappedType
+	// }
 
-	b.sort[field] = props
-
-	return b
-}
-
-// AddDocValueField adds a doc value field to the search request
-func (b *SearchRequestBuilder) AddDocValueField(field string) *SearchRequestBuilder {
-	b.customProps["docvalue_fields"] = []string{field}
-
-	b.customProps["script_fields"] = make(map[string]interface{})
+	b.sort = append(b.sort, sort)
 
 	return b
 }
+
+// // AddDocValueField adds a doc value field to the search request
+// func (b *SearchRequestBuilder) AddDocValueField(field string) *SearchRequestBuilder {
+// 	b.customProps["docvalue_fields"] = []string{field}
+
+// 	b.customProps["script_fields"] = make(map[string]interface{})
+
+// 	return b
+// }
 
 // Add highlights to the search request for log queries
-func (b *SearchRequestBuilder) AddHighlight() *SearchRequestBuilder {
-	b.customProps["highlight"] = map[string]interface{}{
-		"fields": map[string]interface{}{
-			"*": map[string]interface{}{},
-		},
-		"pre_tags":      []string{HighlightPreTagsString},
-		"post_tags":     []string{HighlightPostTagsString},
-		"fragment_size": HighlightFragmentSize,
-	}
-	return b
-}
+// func (b *SearchRequestBuilder) AddHighlight() *SearchRequestBuilder {
+// 	b.customProps["highlight"] = map[string]interface{}{
+// 		"fields": map[string]interface{}{
+// 			"*": map[string]interface{}{},
+// 		},
+// 		"pre_tags":      []string{HighlightPreTagsString},
+// 		"post_tags":     []string{HighlightPostTagsString},
+// 		"fragment_size": HighlightFragmentSize,
+// 	}
+// 	return b
+// }
 
 func (b *SearchRequestBuilder) AddSearchAfter(value interface{}) *SearchRequestBuilder {
 	if b.customProps["search_after"] == nil {

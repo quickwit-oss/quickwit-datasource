@@ -125,13 +125,15 @@ export class ElasticQueryBuilder {
   }
 
   getFiltersAgg(aggDef: Filters) {
-    const filterObj: Record<string, { query_string: { query: string; analyze_wildcard: boolean } }> = {};
+    // TODO: readd analyze_wildcard when Quickwit supports it.
+    // const filterObj: Record<string, { query_string: { query: string; analyze_wildcard: boolean } }> = {};
+    const filterObj: Record<string, { query_string: { query: string } }> = {};
 
     for (let { query, label } of aggDef.settings?.filters || []) {
       filterObj[label || query] = {
         query_string: {
           query: query,
-          analyze_wildcard: true,
+          // analyze_wildcard: true,
         },
       };
     }
@@ -150,7 +152,8 @@ export class ElasticQueryBuilder {
       },
     ];
 
-    query.script_fields = {};
+    // Note: not supported in Quickwit.
+    // query.script_fields = {};
     return query;
   }
 
@@ -176,7 +179,7 @@ export class ElasticQueryBuilder {
         ...query.query.bool.filter,
         {
           query_string: {
-            analyze_wildcard: true,
+            // analyze_wildcard: true,
             query: target.query,
           },
         },
@@ -387,7 +390,7 @@ export class ElasticQueryBuilder {
     if (queryDef.query) {
       query.query.bool.filter.push({
         query_string: {
-          analyze_wildcard: true,
+          // analyze_wildcard: true,
           query: queryDef.query,
         },
       });
@@ -447,7 +450,7 @@ export class ElasticQueryBuilder {
     if (target.query) {
       query.query.bool.filter.push({
         query_string: {
-          analyze_wildcard: true,
+          // analyze_wildcard: true,
           query: target.query,
         },
       });
