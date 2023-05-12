@@ -5,7 +5,6 @@ import { catchError, mergeMap, map, tap } from 'rxjs/operators';
 import {
   AbstractQuery,
   DataFrame,
-  DataLink,
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
@@ -19,7 +18,6 @@ import {
 import { trackQuery } from 'tracking';
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, TermsQuery } from './types';
 import {
-  getDataSourceSrv,
   DataSourceWithBackend,
 } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
@@ -385,52 +383,6 @@ export class QuickwitDataSource
     }
 
     return text;
-  }
-}
-
-/**
- * Modifies dataframe and adds dataLinks from the config.
- * Exported for tests.
- */
-export function enhanceDataFrame(dataFrame: DataFrame, dataLinks: DataLinkConfig[]) {
-  const dataSourceSrv = getDataSourceSrv();
-
-  if (!dataLinks.length) {
-    return;
-  }
-
-  for (const field of dataFrame.fields) {
-    const dataLinkConfig = dataLinks.find((dataLink) => field.name && field.name.match(dataLink.field));
-
-    if (!dataLinkConfig) {
-      continue;
-    }
-
-    let link: DataLink;
-
-    if (dataLinkConfig.datasourceUid) {
-      // @ts-ignore
-      const dsSettings = dataSourceSrv.getInstanceSettings(dataLinkConfig.datasourceUid);
-
-      link = {
-        title: '',
-        url: '',
-        internal: {
-          query: { query: dataLinkConfig.url },
-          datasourceUid: dataLinkConfig.datasourceUid,
-          // @ts-ignore
-          datasourceName: dsSettings?.name ?? 'Data source not found',
-        },
-      };
-    } else {
-      link = {
-        title: '',
-        url: dataLinkConfig.url,
-      };
-    }
-
-    field.config = field.config || {};
-    field.config.links = [...(field.config.links || []), link];
   }
 }
 
