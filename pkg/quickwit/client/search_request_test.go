@@ -61,10 +61,7 @@ func TestSearchRequest(t *testing.T) {
 			t.Run("Should have correct sorting", func(t *testing.T) {
 				sorts := sr.Sort
 				require.Equal(t, 1, len(sorts))
-				require.Equal(t, "desc", sorts[0]["order"])
-				// require.Equal(t, "terms", aggs[0].Aggregation.Type)
-				// require.Equal(t, "desc", sort[0]["order"])
-				// require.Equal(t, "boolean", sort["unmapped_type"])
+				require.Equal(t, "desc", sorts[0]["@timestamp"]["order"])
 			})
 
 			t.Run("Should have range filter", func(t *testing.T) {
@@ -89,14 +86,14 @@ func TestSearchRequest(t *testing.T) {
 				require.Nil(t, err)
 				require.Equal(t, 200, json.Get("size").MustInt(0))
 
-				sort := json.GetPath("sort", timeField)
+				sort := json.GetPath("sort").GetIndex(0).Get(timeField)
 				require.Equal(t, "desc", sort.Get("order").MustString())
-				require.Equal(t, "boolean", sort.Get("unmapped_type").MustString())
 
 				timeRangeFilter := json.GetPath("query", "bool", "filter").GetIndex(0).Get("range").Get(timeField)
 				require.Equal(t, int64(5), timeRangeFilter.Get("gte").MustInt64())
 				require.Equal(t, int64(10), timeRangeFilter.Get("lte").MustInt64())
-				require.Equal(t, DateFormatEpochMS, timeRangeFilter.Get("format").MustString(""))
+				// FIXME: no yet supported by quickwit.
+				// require.Equal(t, DateFormatEpochMS, timeRangeFilter.Get("format").MustString(""))
 
 				queryStringFilter := json.GetPath("query", "bool", "filter").GetIndex(1).Get("query_string")
 				// TODO: readd analyze_wildcard when quickwit supports it.

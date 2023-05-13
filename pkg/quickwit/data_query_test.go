@@ -208,7 +208,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 					{ "type": "date_histogram", "field": "@timestamp", "id": "3" }
 				],
 				"metrics": [
-        {"type": "percentiles", "field": "@value", "id": "1", "settings": { "percents": ["95","99"] } }
+        {"type": "percentiles", "field": "@value", "id": "1", "settings": { "percents": [95,99] } }
 				]
 			}`, from, to)
 			require.NoError(t, err)
@@ -328,12 +328,13 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			require.Equal(t, percentilesAgg.Aggregation.Type, "percentiles")
 			metricAgg := percentilesAgg.Aggregation.Aggregation.(*es.MetricAggregation)
 			require.Equal(t, metricAgg.Field, "@load_time")
-			percents := metricAgg.Settings["percents"].([]interface{})
+
+			percents := metricAgg.Settings["percents"].([]float64)
 			require.Len(t, percents, 4)
-			require.Equal(t, percents[0], "1")
-			require.Equal(t, percents[1], "2")
-			require.Equal(t, percents[2], "3")
-			require.Equal(t, percents[3], "4")
+			require.Equal(t, percents[0], 1.0)
+			require.Equal(t, percents[1], 2.0)
+			require.Equal(t, percents[2], 3.0)
+			require.Equal(t, percents[3], 4.0)
 		})
 
 		t.Run("With filters aggs", func(t *testing.T) {
@@ -1337,22 +1338,23 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			require.Equal(t, sr.Size, 1000)
 		})
 
-		t.Run("With log query should return highlight properties", func(t *testing.T) {
-			c := newFakeClient()
-			_, err := executeElasticsearchDataQuery(c, `{
-				"metrics": [{ "type": "logs", "id": "1" }]
-			}`, from, to)
-			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
-			require.Equal(t, sr.CustomProps["highlight"], map[string]interface{}{
-				"fields": map[string]interface{}{
-					"*": map[string]interface{}{},
-				},
-				"fragment_size": 2147483647,
-				"post_tags":     []string{"@/HIGHLIGHT@"},
-				"pre_tags":      []string{"@HIGHLIGHT@"},
-			})
-		})
+		// Quickwit does not support highlight yet.
+		// t.Run("With log query should return highlight properties", func(t *testing.T) {
+		// 	c := newFakeClient()
+		// 	_, err := executeElasticsearchDataQuery(c, `{
+		// 		"metrics": [{ "type": "logs", "id": "1" }]
+		// 	}`, from, to)
+		// 	require.NoError(t, err)
+		// 	sr := c.multisearchRequests[0].Requests[0]
+		// 	require.Equal(t, sr.CustomProps["highlight"], map[string]interface{}{
+		// 		"fields": map[string]interface{}{
+		// 			"*": map[string]interface{}{},
+		// 		},
+		// 		"fragment_size": 2147483647,
+		// 		"post_tags":     []string{"@/HIGHLIGHT@"},
+		// 		"pre_tags":      []string{"@HIGHLIGHT@"},
+		// 	})
+		// })
 
 		t.Run("With log context query with sortDirection and searchAfter should return correct query", func(t *testing.T) {
 			c := newFakeClient()

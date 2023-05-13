@@ -91,7 +91,7 @@ func (b *SearchRequestBuilder) Sort(order SortOrder, field string, unmappedType 
 		"order": string(order),
 	}
 
-	// FIXME: what is this?
+	// FIXME when quickwit supports unmapped_type
 	// if unmappedType != "" {
 	// 	props["unmapped_type"] = unmappedType
 	// }
@@ -100,28 +100,6 @@ func (b *SearchRequestBuilder) Sort(order SortOrder, field string, unmappedType 
 
 	return b
 }
-
-// // AddDocValueField adds a doc value field to the search request
-// func (b *SearchRequestBuilder) AddDocValueField(field string) *SearchRequestBuilder {
-// 	b.customProps["docvalue_fields"] = []string{field}
-
-// 	b.customProps["script_fields"] = make(map[string]interface{})
-
-// 	return b
-// }
-
-// Add highlights to the search request for log queries
-// func (b *SearchRequestBuilder) AddHighlight() *SearchRequestBuilder {
-// 	b.customProps["highlight"] = map[string]interface{}{
-// 		"fields": map[string]interface{}{
-// 			"*": map[string]interface{}{},
-// 		},
-// 		"pre_tags":      []string{HighlightPreTagsString},
-// 		"post_tags":     []string{HighlightPostTagsString},
-// 		"fragment_size": HighlightFragmentSize,
-// 	}
-// 	return b
-// }
 
 func (b *SearchRequestBuilder) AddSearchAfter(value interface{}) *SearchRequestBuilder {
 	if b.customProps["search_after"] == nil {

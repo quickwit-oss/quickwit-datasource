@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
@@ -41,18 +40,17 @@ const (
 var searchWordsRegex = regexp.MustCompile(regexp.QuoteMeta(es.HighlightPreTagsString) + `(.*?)` + regexp.QuoteMeta(es.HighlightPostTagsString))
 
 func parseResponse(responses []*es.SearchResponse, targets []*Query, configuredFields es.ConfiguredFields) (*backend.QueryDataResponse, error) {
-	logger := log.New()
 	result := backend.QueryDataResponse{
 		Responses: backend.Responses{},
 	}
 	if responses == nil {
 		return &result, nil
 	}
+
 	for i, res := range responses {
 		target := targets[i]
 
 		if res.Error != nil {
-			logger.Info("elastic error response", res)
 			errResult := getErrorFromElasticResponse(res)
 			result.Responses[target.RefID] = backend.DataResponse{
 				Error: errors.New(errResult),
@@ -103,7 +101,6 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 
 	for hitIdx, hit := range res.Hits.Hits {
 		var flattened map[string]interface{}
-		// FIXME: this is probably useless for Quickwit as it returns all the document fields.
 		if hit["_source"] != nil {
 			flattened = flatten(hit["_source"].(map[string]interface{}))
 		}
@@ -125,11 +122,20 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 			}
 		}
 
+		if hit["fields"] != nil {
+			source, ok := hit["fields"].(map[string]interface{})
+			if ok {
+				for k, v := range source {
+					doc[k] = v
+				}
+			}
+		}
+
 		for key := range doc {
 			propNames[key] = true
 		}
 
-		// FIXME: Quickwit does not support highlight. We should replace this by a custom highlighter?é
+		// FIXME: Quickwit does not support highlight. Should we replace this by a custom highlighter?
 		// Process highlight to searchWords
 		if highlights, ok := doc["highlight"].(map[string]interface{}); ok {
 			for _, highlight := range highlights {
@@ -265,8 +271,6 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 
 	for propNameIdx, propName := range propNames {
 		// Special handling for time field
-		// FIXME: Quickwit returns time in nanoseconds by default
-		// Should we convert it to milliseconds?
 		if propName == configuredFields.TimeField {
 			timeVector := make([]*time.Time, size)
 			for i, doc := range docs {
@@ -987,7 +991,7 @@ func getAsTime(j *simplejson.Json) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	return time.UnixMilli(int64(number / 1000000)).UTC(), nil
+	return time.UnixMilli(int64(number)).UTC(), nil
 }
 
 func findAgg(target *Query, aggID string) (*BucketAgg, error) {

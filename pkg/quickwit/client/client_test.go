@@ -81,7 +81,7 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 
 		require.NotNil(t, request)
 		assert.Equal(t, http.MethodPost, request.Method)
-		assert.Equal(t, "/_msearch", request.URL.Path)
+		assert.Equal(t, "/_elastic/_msearch", request.URL.Path)
 		assert.Equal(t, "max_concurrent_shard_requests=6&ignore_throttled=false", request.URL.RawQuery)
 
 		require.NotNil(t, requestBody)
