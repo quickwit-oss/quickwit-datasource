@@ -5,7 +5,7 @@ import { ElasticsearchQuery, Terms, BucketAggregation } from '../../../../types'
 import { removeEmpty } from '../../../../utils';
 import { changeMetricType } from '../../MetricAggregationsEditor/state/actions';
 import { metricAggregationConfig } from '../../MetricAggregationsEditor/utils';
-import { initQuery } from '../../state';
+import { initExploreQuery, initQuery } from '../../state';
 import { bucketAggregationConfig } from '../utils';
 
 import {
@@ -106,7 +106,7 @@ export const createReducer =
       });
     }
 
-    if (initQuery.match(action)) {
+    if (initQuery.match(action) || initExploreQuery.match(action)) {
       if (state?.length || 0 > 0) {
         return state;
       }

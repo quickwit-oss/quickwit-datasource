@@ -1,8 +1,8 @@
 import { Action } from '@reduxjs/toolkit';
-import { defaultMetricAgg } from '../../../../queryDef';
+import { defaultLogsAgg, defaultMetricAgg } from '../../../../queryDef';
 import { ElasticsearchQuery, MetricAggregation } from '../../../../types';
 import { removeEmpty } from '../../../../utils';
-import { initQuery } from '../../state';
+import { initExploreQuery, initQuery } from '../../state';
 import { isMetricAggregationWithMeta, isMetricAggregationWithSettings, isPipelineAggregation } from '../aggregations';
 import { getChildren, metricAggregationConfig } from '../utils';
 
@@ -158,6 +158,13 @@ export const reducer = (state: ElasticsearchQuery['metrics'], action: Action): E
       return state;
     }
     return [defaultMetricAgg('1')];
+  }
+
+  if (initExploreQuery.match(action)) {
+    if (state?.length || 0 > 0) {
+      return state;
+    }
+    return [defaultLogsAgg('3')];
   }
 
   return state;

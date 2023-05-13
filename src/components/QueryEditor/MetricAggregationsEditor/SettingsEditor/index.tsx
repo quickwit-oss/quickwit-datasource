@@ -84,7 +84,7 @@ export const SettingsEditor = ({ metric, previousMetrics }: Props) => {
         </InlineField>
       )}
 
-      {metric.type === 'logs' && <SettingField label="Limit" metric={metric} settingName="limit" placeholder="500" />}
+      {metric.type === 'logs' && <SettingField label="Limit" metric={metric} settingName="limit" placeholder="100" />}
 
       {metric.type === 'cardinality' && (
         <SettingField label="Precision Threshold" metric={metric} settingName="precision_threshold" />

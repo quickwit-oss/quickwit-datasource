@@ -25,6 +25,7 @@ describe('ElasticsearchQueryContext', () => {
     render(
       <ElasticsearchProvider
         query={{ refId: 'A' }}
+        app={undefined}
         onChange={onChange}
         datasource={datasource}
         onRunQuery={onRunQuery}
@@ -57,6 +58,7 @@ describe('ElasticsearchQueryContext', () => {
         <ElasticsearchProvider
           datasource={{} as ElasticDatasource}
           query={query}
+          app={undefined}
           onChange={() => {}}
           onRunQuery={() => {}}
           range={getDefaultTimeRange()}

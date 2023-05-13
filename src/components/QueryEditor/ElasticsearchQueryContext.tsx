@@ -1,6 +1,6 @@
 import React, { Context, createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from 'react';
 
-import { TimeRange } from '@grafana/data';
+import { CoreApp, TimeRange } from '@grafana/data';
 
 import { ElasticDatasource } from '../../datasource';
 import { combineReducers, useStatelessReducer, DispatchContext } from '../../hooks/useStatelessReducer';
@@ -8,7 +8,7 @@ import { ElasticsearchQuery } from '../../types';
 
 import { createReducer as createBucketAggsReducer } from './BucketAggregationsEditor/state/reducer';
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';
-import { aliasPatternReducer, queryReducer, initQuery } from './state';
+import { aliasPatternReducer, queryReducer, initQuery, initExploreQuery } from './state';
 
 const DatasourceContext = createContext<ElasticDatasource | undefined>(undefined);
 const QueryContext = createContext<ElasticsearchQuery | undefined>(undefined);
@@ -16,6 +16,7 @@ const RangeContext = createContext<TimeRange | undefined>(undefined);
 
 interface Props {
   query: ElasticsearchQuery;
+  app: CoreApp | undefined;
   onChange: (query: ElasticsearchQuery) => void;
   onRunQuery: () => void;
   datasource: ElasticDatasource;
@@ -27,6 +28,7 @@ export const ElasticsearchProvider = ({
   onChange,
   onRunQuery,
   query,
+  app,
   datasource,
   range,
 }: PropsWithChildren<Props>) => {
@@ -60,7 +62,11 @@ export const ElasticsearchProvider = ({
   // useStatelessReducer will then call `onChange` with the newly generated query
   useEffect(() => {
     if (shouldRunInit) {
-      dispatch(initQuery());
+      if (app === CoreApp.Explore) {
+        dispatch(initExploreQuery());
+      } else {
+        dispatch(initQuery());
+      }
       setShouldRunInit(false);
     }
   }, [shouldRunInit, dispatch]);

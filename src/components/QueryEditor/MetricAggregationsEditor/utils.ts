@@ -211,7 +211,7 @@ export const metricAggregationConfig: MetricsConfiguration = {
     hasMeta: false,
     defaults: {
       settings: {
-        size: '500',
+        size: '100',
       },
     },
   },
@@ -227,7 +227,7 @@ export const metricAggregationConfig: MetricsConfiguration = {
     hasMeta: false,
     defaults: {
       settings: {
-        size: '500',
+        size: '100',
       },
     },
   },
@@ -243,7 +243,7 @@ export const metricAggregationConfig: MetricsConfiguration = {
     hasMeta: false,
     defaults: {
       settings: {
-        limit: '500',
+        limit: '100',
       },
     },
   },

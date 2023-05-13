@@ -35,7 +35,7 @@ func TestSearchRequest(t *testing.T) {
 			require.Nil(t, err)
 			json, err := simplejson.NewJson(body)
 			require.Nil(t, err)
-			require.Equal(t, 0, json.Get("size").MustInt(500))
+			require.Equal(t, 0, json.Get("size").MustInt(100))
 			require.Nil(t, json.Get("sort").Interface())
 			require.Nil(t, json.Get("aggs").Interface())
 			require.Nil(t, json.Get("query").Interface())

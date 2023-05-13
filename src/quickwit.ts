@@ -11,8 +11,8 @@ export interface QuickwitOptions extends DataSourceJsonData {
 }
 
 export interface LogRowContextOptions {
-direction?: LogRowContextQueryDirection;
-limit?: number;
+    direction?: LogRowContextQueryDirection;
+    limit?: number;
 }
 
 export enum LogRowContextQueryDirection {

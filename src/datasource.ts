@@ -80,7 +80,12 @@ export class QuickwitDataSource
    */
   query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
     const start = new Date();
-    return super.query(request).pipe(tap((response) => trackQuery(response, request, start)));
+    return super.query(request).pipe(tap((response) => trackQuery(response, request, start)))
+      .pipe(map((response) => {
+        console.log("response", response);
+        // if (response.data[0]?.meta.limit = 500;
+        return response;
+      }));
   }
 
     /**
@@ -114,6 +119,7 @@ export class QuickwitDataSource
   }
 
   async importFromAbstractQueries(abstractQueries: AbstractQuery[]): Promise<ElasticsearchQuery[]> {
+    // FIXME: this function does not seem to be used.
     console.log("importFromAbstractQueries");
     return abstractQueries.map((abstractQuery) => this.languageProvider.importFromAbstractQuery(abstractQuery));
   }

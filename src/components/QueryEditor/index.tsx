@@ -20,13 +20,14 @@ import { QueryTypeSelector } from './QueryTypeSelector';
 
 export type ElasticQueryEditorProps = QueryEditorProps<ElasticDatasource, ElasticsearchQuery, QuickwitOptions>;
 
-export const QueryEditor = ({ query, onChange, onRunQuery, datasource, range }: ElasticQueryEditorProps) => {
+export const QueryEditor = ({ query, onChange, onRunQuery, datasource, range, app }: ElasticQueryEditorProps) => {
   return (
     <ElasticsearchProvider
       datasource={datasource}
       onChange={onChange}
       onRunQuery={onRunQuery}
       query={query}
+      app={app}
       range={range || getDefaultTimeRange()}
     >
       <QueryEditorForm value={query} />

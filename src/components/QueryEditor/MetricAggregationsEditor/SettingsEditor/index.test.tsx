@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
-import { getDefaultTimeRange } from '@grafana/data';
+import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
 import { ElasticDatasource } from '../../../../datasource';
 import { ElasticsearchQuery } from '../../../../types';
@@ -13,7 +13,7 @@ describe('Settings Editor', () => {
   describe('Raw Data', () => {
     it('Should correctly render the settings editor and trigger correct state changes', () => {
       const metricId = '1';
-      const initialSize = '500';
+      const initialSize = '100';
       const query: ElasticsearchQuery = {
         refId: 'A',
         query: '',
@@ -34,6 +34,7 @@ describe('Settings Editor', () => {
       const { rerender } = render(
         <ElasticsearchProvider
           query={query}
+          app={CoreApp.Explore}
           datasource={{} as ElasticDatasource}
           onChange={onChange}
           onRunQuery={() => {}}
@@ -69,6 +70,7 @@ describe('Settings Editor', () => {
       rerender(
         <ElasticsearchProvider
           query={onChange.mock.calls[0][0]}
+          app={CoreApp.Explore}
           datasource={{} as ElasticDatasource}
           onChange={onChange}
           onRunQuery={() => {}}
@@ -107,6 +109,7 @@ describe('Settings Editor', () => {
       render(
         <ElasticsearchProvider
           query={query}
+          app={CoreApp.Explore}
           datasource={{} as ElasticDatasource}
           onChange={onChange}
           onRunQuery={() => {}}

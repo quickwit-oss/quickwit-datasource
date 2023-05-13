@@ -1,181 +1,178 @@
-// import { reducerTester } from 'test/core/redux/reducerTester';
+import { reducerTester } from 'dependencies/reducerTester';
+import { BucketAggregation, DateHistogram, ElasticsearchQuery } from '../../../../types';
+import { changeMetricType } from '../../MetricAggregationsEditor/state/actions';
+import { initQuery } from '../../state';
+import { bucketAggregationConfig } from '../utils';
 
-// import { defaultBucketAgg } from 'app/plugins/datasource/elasticsearch/queryDef';
-// import { ElasticsearchQuery } from 'app/plugins/datasource/elasticsearch/types';
+import {
+  addBucketAggregation,
+  changeBucketAggregationField,
+  changeBucketAggregationSetting,
+  changeBucketAggregationType,
+  removeBucketAggregation,
+} from './actions';
+import { createReducer } from './reducer';
+import { defaultBucketAgg } from 'queryDef';
 
-// import { BucketAggregation, DateHistogram } from '../../../../types';
-// import { changeMetricType } from '../../MetricAggregationsEditor/state/actions';
-// import { initQuery } from '../../state';
-// import { bucketAggregationConfig } from '../utils';
+describe('Bucket Aggregations Reducer', () => {
+  it('Should correctly add new aggregations', () => {
+    const firstAggregation: BucketAggregation = {
+      id: '1',
+      type: 'terms',
+      settings: bucketAggregationConfig['terms'].defaultSettings,
+    };
 
-// import {
-//   addBucketAggregation,
-//   changeBucketAggregationField,
-//   changeBucketAggregationSetting,
-//   changeBucketAggregationType,
-//   removeBucketAggregation,
-// } from './actions';
-// import { createReducer } from './reducer';
+    const secondAggregation: BucketAggregation = {
+      id: '1',
+      type: 'terms',
+      settings: bucketAggregationConfig['terms'].defaultSettings,
+    };
 
-// describe('Bucket Aggregations Reducer', () => {
-//   it('Should correctly add new aggregations', () => {
-//     const firstAggregation: BucketAggregation = {
-//       id: '1',
-//       type: 'terms',
-//       settings: bucketAggregationConfig['terms'].defaultSettings,
-//     };
+    reducerTester<ElasticsearchQuery['bucketAggs']>()
+      .givenReducer(createReducer('@timestamp'), [])
+      .whenActionIsDispatched(addBucketAggregation(firstAggregation.id))
+      .thenStateShouldEqual([firstAggregation])
+      .whenActionIsDispatched(addBucketAggregation(secondAggregation.id))
+      .thenStateShouldEqual([firstAggregation, secondAggregation]);
+  });
 
-//     const secondAggregation: BucketAggregation = {
-//       id: '1',
-//       type: 'terms',
-//       settings: bucketAggregationConfig['terms'].defaultSettings,
-//     };
+  it('Should correctly remove aggregations', () => {
+    const firstAggregation: BucketAggregation = {
+      id: '1',
+      type: 'date_histogram',
+    };
 
-//     reducerTester<ElasticsearchQuery['bucketAggs']>()
-//       .givenReducer(createReducer('@timestamp'), [])
-//       .whenActionIsDispatched(addBucketAggregation(firstAggregation.id))
-//       .thenStateShouldEqual([firstAggregation])
-//       .whenActionIsDispatched(addBucketAggregation(secondAggregation.id))
-//       .thenStateShouldEqual([firstAggregation, secondAggregation]);
-//   });
+    const secondAggregation: BucketAggregation = {
+      id: '2',
+      type: 'date_histogram',
+    };
 
-//   it('Should correctly remove aggregations', () => {
-//     const firstAggregation: BucketAggregation = {
-//       id: '1',
-//       type: 'date_histogram',
-//     };
+    reducerTester<ElasticsearchQuery['bucketAggs']>()
+      .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
+      .whenActionIsDispatched(removeBucketAggregation(firstAggregation.id))
+      .thenStateShouldEqual([secondAggregation]);
+  });
 
-//     const secondAggregation: BucketAggregation = {
-//       id: '2',
-//       type: 'date_histogram',
-//     };
+  it("Should correctly change aggregation's type", () => {
+    const firstAggregation: BucketAggregation = {
+      id: '1',
+      type: 'date_histogram',
+    };
+    const secondAggregation: BucketAggregation = {
+      id: '2',
+      type: 'date_histogram',
+    };
 
-//     reducerTester<ElasticsearchQuery['bucketAggs']>()
-//       .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
-//       .whenActionIsDispatched(removeBucketAggregation(firstAggregation.id))
-//       .thenStateShouldEqual([secondAggregation]);
-//   });
+    const expectedSecondAggregation: BucketAggregation = {
+      ...secondAggregation,
+      type: 'histogram',
+      settings: bucketAggregationConfig['histogram'].defaultSettings,
+    };
 
-//   it("Should correctly change aggregation's type", () => {
-//     const firstAggregation: BucketAggregation = {
-//       id: '1',
-//       type: 'date_histogram',
-//     };
-//     const secondAggregation: BucketAggregation = {
-//       id: '2',
-//       type: 'date_histogram',
-//     };
+    reducerTester<ElasticsearchQuery['bucketAggs']>()
+      .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
+      .whenActionIsDispatched(
+        changeBucketAggregationType({ id: secondAggregation.id, newType: expectedSecondAggregation.type })
+      )
+      .thenStateShouldEqual([firstAggregation, expectedSecondAggregation]);
+  });
 
-//     const expectedSecondAggregation: BucketAggregation = {
-//       ...secondAggregation,
-//       type: 'histogram',
-//       settings: bucketAggregationConfig['histogram'].defaultSettings,
-//     };
+  it("Should correctly change aggregation's field", () => {
+    const firstAggregation: BucketAggregation = {
+      id: '1',
+      type: 'date_histogram',
+    };
+    const secondAggregation: BucketAggregation = {
+      id: '2',
+      type: 'date_histogram',
+    };
 
-//     reducerTester<ElasticsearchQuery['bucketAggs']>()
-//       .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
-//       .whenActionIsDispatched(
-//         changeBucketAggregationType({ id: secondAggregation.id, newType: expectedSecondAggregation.type })
-//       )
-//       .thenStateShouldEqual([firstAggregation, expectedSecondAggregation]);
-//   });
+    const expectedSecondAggregation = {
+      ...secondAggregation,
+      field: 'new field',
+    };
 
-//   it("Should correctly change aggregation's field", () => {
-//     const firstAggregation: BucketAggregation = {
-//       id: '1',
-//       type: 'date_histogram',
-//     };
-//     const secondAggregation: BucketAggregation = {
-//       id: '2',
-//       type: 'date_histogram',
-//     };
+    reducerTester<ElasticsearchQuery['bucketAggs']>()
+      .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
+      .whenActionIsDispatched(
+        changeBucketAggregationField({ id: secondAggregation.id, newField: expectedSecondAggregation.field })
+      )
+      .thenStateShouldEqual([firstAggregation, expectedSecondAggregation]);
+  });
 
-//     const expectedSecondAggregation = {
-//       ...secondAggregation,
-//       field: 'new field',
-//     };
+  describe("When changing a metric aggregation's type", () => {
+    it('Should remove and restore bucket aggregations correctly', () => {
+      const initialState: BucketAggregation[] = [
+        {
+          id: '1',
+          type: 'date_histogram',
+        },
+      ];
 
-//     reducerTester<ElasticsearchQuery['bucketAggs']>()
-//       .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
-//       .whenActionIsDispatched(
-//         changeBucketAggregationField({ id: secondAggregation.id, newField: expectedSecondAggregation.field })
-//       )
-//       .thenStateShouldEqual([firstAggregation, expectedSecondAggregation]);
-//   });
+      reducerTester<ElasticsearchQuery['bucketAggs']>()
+        .givenReducer(createReducer('@timestamp'), initialState)
+        // If the new metric aggregation is `isSingleMetric` we should remove all bucket aggregations.
+        .whenActionIsDispatched(changeMetricType({ id: 'Some id', type: 'raw_data' }))
+        .thenStatePredicateShouldEqual((newState) => newState?.length === 0)
+        // Switching back to another aggregation that is NOT `isSingleMetric` should bring back a bucket aggregation
+        .whenActionIsDispatched(changeMetricType({ id: 'Some id', type: 'max' }))
+        .thenStatePredicateShouldEqual((newState) => newState?.length === 1)
+        // When none of the above is true state shouldn't change.
+        .whenActionIsDispatched(changeMetricType({ id: 'Some id', type: 'min' }))
+        .thenStatePredicateShouldEqual((newState) => newState?.length === 1);
+    });
+  });
 
-//   describe("When changing a metric aggregation's type", () => {
-//     it('Should remove and restore bucket aggregations correctly', () => {
-//       const initialState: BucketAggregation[] = [
-//         {
-//           id: '1',
-//           type: 'date_histogram',
-//         },
-//       ];
+  it("Should correctly change aggregation's settings", () => {
+    const firstAggregation: DateHistogram = {
+      id: '1',
+      type: 'date_histogram',
+      settings: {
+        min_doc_count: '0',
+      },
+    };
+    const secondAggregation: DateHistogram = {
+      id: '2',
+      type: 'date_histogram',
+    };
 
-//       reducerTester<ElasticsearchQuery['bucketAggs']>()
-//         .givenReducer(createReducer('@timestamp'), initialState)
-//         // If the new metric aggregation is `isSingleMetric` we should remove all bucket aggregations.
-//         .whenActionIsDispatched(changeMetricType({ id: 'Some id', type: 'raw_data' }))
-//         .thenStatePredicateShouldEqual((newState) => newState?.length === 0)
-//         // Switching back to another aggregation that is NOT `isSingleMetric` should bring back a bucket aggregation
-//         .whenActionIsDispatched(changeMetricType({ id: 'Some id', type: 'max' }))
-//         .thenStatePredicateShouldEqual((newState) => newState?.length === 1)
-//         // When none of the above is true state shouldn't change.
-//         .whenActionIsDispatched(changeMetricType({ id: 'Some id', type: 'min' }))
-//         .thenStatePredicateShouldEqual((newState) => newState?.length === 1);
-//     });
-//   });
+    const expectedSettings: (typeof firstAggregation)['settings'] = {
+      min_doc_count: '1',
+    };
 
-//   it("Should correctly change aggregation's settings", () => {
-//     const firstAggregation: DateHistogram = {
-//       id: '1',
-//       type: 'date_histogram',
-//       settings: {
-//         min_doc_count: '0',
-//       },
-//     };
-//     const secondAggregation: DateHistogram = {
-//       id: '2',
-//       type: 'date_histogram',
-//     };
+    reducerTester<ElasticsearchQuery['bucketAggs']>()
+      .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
+      .whenActionIsDispatched(
+        changeBucketAggregationSetting({
+          bucketAgg: firstAggregation,
+          settingName: 'min_doc_count',
+          newValue: expectedSettings.min_doc_count!,
+        })
+      )
+      .thenStateShouldEqual([{ ...firstAggregation, settings: expectedSettings }, secondAggregation]);
+  });
 
-//     const expectedSettings: (typeof firstAggregation)['settings'] = {
-//       min_doc_count: '1',
-//     };
+  describe('Initialization', () => {
+    it('Correctly adds a default Date Histogram if there is no aggregation', () => {
+      const defaultTimeField = '@timestamp';
 
-//     reducerTester<ElasticsearchQuery['bucketAggs']>()
-//       .givenReducer(createReducer('@timestamp'), [firstAggregation, secondAggregation])
-//       .whenActionIsDispatched(
-//         changeBucketAggregationSetting({
-//           bucketAgg: firstAggregation,
-//           settingName: 'min_doc_count',
-//           newValue: expectedSettings.min_doc_count!,
-//         })
-//       )
-//       .thenStateShouldEqual([{ ...firstAggregation, settings: expectedSettings }, secondAggregation]);
-//   });
+      reducerTester<ElasticsearchQuery['bucketAggs']>()
+        .givenReducer(createReducer(defaultTimeField), [])
+        .whenActionIsDispatched(initQuery())
+        .thenStateShouldEqual([{ ...defaultBucketAgg('2'), field: defaultTimeField }]);
+    });
 
-//   describe('Initialization', () => {
-//     it('Correctly adds a default Date Histogram if there is no aggregation', () => {
-//       const defaultTimeField = '@timestamp';
+    it('Does NOT change aggregations if there is already one', () => {
+      const bucketAgg: DateHistogram = {
+        id: '18',
+        type: 'date_histogram',
+        field: '@my_time_field',
+      };
 
-//       reducerTester<ElasticsearchQuery['bucketAggs']>()
-//         .givenReducer(createReducer(defaultTimeField), [])
-//         .whenActionIsDispatched(initQuery())
-//         .thenStateShouldEqual([{ ...defaultBucketAgg('2'), field: defaultTimeField }]);
-//     });
-
-//     it('Does NOT change aggregations if there is already one', () => {
-//       const bucketAgg: DateHistogram = {
-//         id: '18',
-//         type: 'date_histogram',
-//         field: '@my_time_field',
-//       };
-
-//       reducerTester<ElasticsearchQuery['bucketAggs']>()
-//         .givenReducer(createReducer('@timestamp'), [bucketAgg])
-//         .whenActionIsDispatched(initQuery())
-//         .thenStateShouldEqual([bucketAgg]);
-//     });
-//   });
-// });
+      reducerTester<ElasticsearchQuery['bucketAggs']>()
+        .givenReducer(createReducer('@timestamp'), [bucketAgg])
+        .whenActionIsDispatched(initQuery())
+        .thenStateShouldEqual([bucketAgg]);
+    });
+  });
+});

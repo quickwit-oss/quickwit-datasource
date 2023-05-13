@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	defaultSize = 500
+	defaultSize = 100
 )
 
 type elasticsearchDataQuery struct {

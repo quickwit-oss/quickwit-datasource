@@ -7,6 +7,7 @@ import { ElasticsearchQuery } from '../../types';
  * This means it won't override any existing value in place, but just ensure the query is in a "runnable" state.
  */
 export const initQuery = createAction('init');
+export const initExploreQuery = createAction('init_explore');
 
 export const changeQuery = createAction<ElasticsearchQuery['query']>('change_query');
 
@@ -17,7 +18,7 @@ export const queryReducer = (prevQuery: ElasticsearchQuery['query'], action: Act
     return action.payload;
   }
 
-  if (initQuery.match(action)) {
+  if (initQuery.match(action) || initExploreQuery.match(action)) {
     return prevQuery || '';
   }
 
@@ -29,7 +30,7 @@ export const aliasPatternReducer = (prevAliasPattern: ElasticsearchQuery['alias'
     return action.payload;
   }
 
-  if (initQuery.match(action)) {
+  if (initQuery.match(action) || initExploreQuery.match(action)) {
     return prevAliasPattern || '';
   }
 

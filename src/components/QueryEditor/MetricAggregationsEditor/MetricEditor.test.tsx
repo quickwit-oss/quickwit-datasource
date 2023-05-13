@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React, { PropsWithChildren } from 'react';
 import { from } from 'rxjs';
 
-import { getDefaultTimeRange } from '@grafana/data';
+import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
 import { ElasticDatasource } from '../../../datasource';
 import { defaultBucketAgg } from '../../../queryDef';
@@ -33,6 +33,7 @@ describe('Metric Editor', () => {
       <ElasticsearchProvider
         datasource={{ getFields } as ElasticDatasource}
         query={query}
+        app={undefined}
         range={getDefaultTimeRange()}
         onChange={() => {}}
         onRunQuery={() => {}}
@@ -69,6 +70,7 @@ describe('Metric Editor', () => {
       <ElasticsearchProvider
         datasource={{ getFields } as ElasticDatasource}
         query={query}
+        app={undefined}
         range={getDefaultTimeRange()}
         onChange={() => {}}
         onRunQuery={() => {}}
@@ -104,6 +106,7 @@ describe('Metric Editor', () => {
       <ElasticsearchProvider
         datasource={{} as ElasticDatasource}
         query={query}
+        app={CoreApp.Explore}
         range={getDefaultTimeRange()}
         onChange={() => {}}
         onRunQuery={() => {}}
@@ -120,7 +123,7 @@ describe('Metric Editor', () => {
 
     // we check if the list-of-options is visible by
     // checking for an item to exist
-    expect(await screen.findByText('Extended Stats')).toBeInTheDocument();
+    expect(await screen.findByText('Percentiles')).toBeInTheDocument();
 
     // now we make sure the should-not-be-shown items are not shown
     expect(screen.queryByText('Logs')).toBeNull();

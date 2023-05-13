@@ -30,7 +30,7 @@ export const useDescription = (metric: MetricAggregation): string => {
 
     case 'raw_document':
     case 'raw_data': {
-      const size = metric.settings?.size || 500;
+      const size = metric.settings?.size || 100;
       return `Size: ${size}`;
     }
 
