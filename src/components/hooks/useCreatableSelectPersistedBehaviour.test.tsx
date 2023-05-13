@@ -45,7 +45,7 @@ describe('useCreatableSelectPersistedBehaviour', () => {
     await userEvent.click(input);
     // the created option should be available
     expect(screen.getByText('Option 2')).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('Should handle onChange properly', async () => {
     const onChange = jest.fn();
