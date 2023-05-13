@@ -7,11 +7,21 @@ import {
   DataFrame,
   DataQueryRequest,
   DataQueryResponse,
+  DataSourceApi,
   DataSourceInstanceSettings,
+  DataSourceJsonData,
   DataSourceWithQueryImportSupport,
+  DataSourceWithSupplementaryQueriesSupport,
+  FieldColorModeId,
+  FieldType,
   getDefaultTimeRange,
+  LoadingState,
+  LogLevel,
+  LogsVolumeCustomMetaData,
+  LogsVolumeType,
   MetricFindValue,
   QueryFixAction,
+  ScopedVars,
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
@@ -22,20 +32,9 @@ import {
 } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
 import { ElasticQueryBuilder } from 'QueryBuilder';
-import { LogLevel } from '@grafana/data';
-import { DataQuery } from '@grafana/schema';
-import { DataSourceJsonData } from '@grafana/data';
-import { DataSourceApi } from '@grafana/data';
-import { ScopedVars } from '@grafana/data';
-import { LoadingState } from '@grafana/data';
-import { FieldType } from '@grafana/data';
 import { colors } from '@grafana/ui';
-import { FieldColorModeId } from '@grafana/data';
 
-import { GraphDrawStyle, BarAlignment, StackingMode } from '@grafana/schema';
-import { LogsVolumeCustomMetaData } from '@grafana/data';
-import { LogsVolumeType } from '@grafana/data';
-import { DataSourceWithSupplementaryQueriesSupport } from '@grafana/data';
+import { BarAlignment, DataQuery, GraphDrawStyle, StackingMode } from '@grafana/schema';
 import { metricAggregationConfig } from 'components/QueryEditor/MetricAggregationsEditor/utils';
 import { isMetricAggregationWithField } from 'components/QueryEditor/MetricAggregationsEditor/aggregations';
 import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregationsEditor/utils';
@@ -89,9 +88,9 @@ export class QuickwitDataSource
   }
 
     /**
-   * Checks the plugin health
-   * see public/app/features/datasources/state/actions.ts for what needs to be returned here
-   */
+     * Checks the plugin health
+     * see public/app/features/datasources/state/actions.ts for what needs to be returned here
+     */
   async testDatasource() {
     return lastValueFrom(
       from(this.getResource('indexes/' + this.index)).pipe(
@@ -144,16 +143,16 @@ export class QuickwitDataSource
   }
 
   /**
-    * Returns supplementary query types that data source supports.
-    */
+   * Returns supplementary query types that data source supports.
+   */
   getSupportedSupplementaryQueryTypes(): SupplementaryQueryType[] {
     return [SupplementaryQueryType.LogsVolume];
   }
 
   /**
-    * Returns a supplementary query to be used to fetch supplementary data based on the provided type and original query.
-    * If provided query is not suitable for provided supplementary query type, undefined should be returned.
-    */
+   * Returns a supplementary query to be used to fetch supplementary data based on the provided type and original query.
+   * If provided query is not suitable for provided supplementary query type, undefined should be returned.
+   */
   // FIXME: options should be of type SupplementaryQueryOptions but this type is not public.
   getSupplementaryQuery(options: any, query: ElasticsearchQuery): ElasticsearchQuery | undefined {
     if (!this.getSupportedSupplementaryQueryTypes().includes(options.type)) {
@@ -393,7 +392,7 @@ export class QuickwitDataSource
 }
 
 // Returns a flatten array of fields and nested fields found in the given `FieldMapping` array. 
-function getAllFields(field_mappings: Array<FieldMapping>): Field[] {
+function getAllFields(field_mappings: FieldMapping[]): Field[] {
   const fields: Field[] = [];
   for (const field_mapping of field_mappings) {
     if (field_mapping.type === 'object' && field_mapping.field_mappings !== undefined) {

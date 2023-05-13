@@ -88,7 +88,7 @@ export interface TermsSettings {
 
 export interface Filters extends BaseBucketAggregation {
   settings?: {
-    filters?: Array<Filter>;
+    filters?: Filter[];
   };
   type: 'filters';
 }
@@ -99,7 +99,7 @@ export type Filter = {
 };
 
 export interface FiltersSettings {
-  filters?: Array<Filter>;
+  filters?: Filter[];
 }
 
 export const defaultFiltersSettings: Partial<FiltersSettings> = {
@@ -215,7 +215,7 @@ export interface Percentiles extends MetricAggregationWithField, MetricAggregati
   settings?: {
     script?: InlineScript;
     missing?: string;
-    percents?: Array<string>;
+    percents?: string[];
   };
   type: 'percentiles';
 }
@@ -263,7 +263,7 @@ export interface BasePipelineMetricAggregation extends MetricAggregationWithFiel
 }
 
 export interface PipelineMetricAggregationWithMultipleBucketPaths extends BaseMetricAggregation {
-  pipelineVariables?: Array<PipelineVariable>;
+  pipelineVariables?: PipelineVariable[];
 }
 
 export const defaultPipelineMetricAggregationWithMultipleBucketPaths: Partial<PipelineMetricAggregationWithMultipleBucketPaths> = {
@@ -369,7 +369,7 @@ export interface TopMetrics extends BaseMetricAggregation {
   settings?: {
     order?: string;
     orderBy?: string;
-    metrics?: Array<string>;
+    metrics?: string[];
   };
   type: 'top_metrics';
 }
@@ -386,11 +386,11 @@ export interface Elasticsearch extends DataQuery {
   /**
    * List of bucket aggregations
    */
-  bucketAggs?: Array<BucketAggregation>;
+  bucketAggs?: BucketAggregation[];
   /**
    * List of metric aggregations
    */
-  metrics?: Array<MetricAggregation>;
+  metrics?: MetricAggregation[];
   /**
    * Lucene query
    */
