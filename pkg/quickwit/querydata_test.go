@@ -36,15 +36,9 @@ func (rt *queryDataTestRoundTripper) RoundTrip(req *http.Request) (*http.Respons
 }
 
 // we setup a fake datasource-info
-func newFlowTestDsInfo(body []byte, statusCode int, requestCallback func(req *http.Request) error) *es.DatasourceInfo {
+func newFlowTestDsInfo(body []byte, statusCode int, configuredFields es.ConfiguredFields, requestCallback func(req *http.Request) error) *es.DatasourceInfo {
 	client := http.Client{
 		Transport: &queryDataTestRoundTripper{body: body, statusCode: statusCode, requestCallback: requestCallback},
-	}
-
-	configuredFields := es.ConfiguredFields{
-		TimeField:       "testtime",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
 	}
 
 	return &es.DatasourceInfo{
@@ -111,7 +105,7 @@ type queryDataTestResult struct {
 	requestBytes []byte
 }
 
-func queryDataTestWithResponseCode(queriesBytes []byte, responseStatusCode int, responseBytes []byte) (queryDataTestResult, error) {
+func queryDataTestWithResponseCode(queriesBytes []byte, responseStatusCode int, responseBytes []byte, configuredFields es.ConfiguredFields) (queryDataTestResult, error) {
 	queries, err := newFlowTestQueries(queriesBytes)
 	if err != nil {
 		return queryDataTestResult{}, err
@@ -120,7 +114,7 @@ func queryDataTestWithResponseCode(queriesBytes []byte, responseStatusCode int, 
 	requestBytesStored := false
 	var requestBytes []byte
 
-	dsInfo := newFlowTestDsInfo(responseBytes, responseStatusCode, func(req *http.Request) error {
+	dsInfo := newFlowTestDsInfo(responseBytes, responseStatusCode, configuredFields, func(req *http.Request) error {
 		requestBytes, err = io.ReadAll(req.Body)
 
 		bodyCloseError := req.Body.Close()
@@ -153,5 +147,11 @@ func queryDataTestWithResponseCode(queriesBytes []byte, responseStatusCode int, 
 }
 
 func queryDataTest(queriesBytes []byte, responseBytes []byte) (queryDataTestResult, error) {
-	return queryDataTestWithResponseCode(queriesBytes, 200, responseBytes)
+	configuredFields := es.ConfiguredFields{
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
+	}
+	return queryDataTestWithResponseCode(queriesBytes, 200, responseBytes, configuredFields)
 }

@@ -61,6 +61,11 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		return nil, errors.New("elasticsearch time field name is required")
 	}
 
+	timeOutputFormat, ok := jsonData["timeOutputFormat"].(string)
+	if !ok {
+		return nil, errors.New("timeOutputFormat cannot be cast to string")
+	}
+
 	logLevelField, ok := jsonData["logLevelField"].(string)
 	if !ok {
 		logLevelField = ""
@@ -114,9 +119,10 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 	}
 
 	configuredFields := es.ConfiguredFields{
-		TimeField:       timeField,
-		LogLevelField:   logLevelField,
-		LogMessageField: logMessageField,
+		TimeField:        timeField,
+		TimeOutputFormat: timeOutputFormat,
+		LogLevelField:    logLevelField,
+		LogMessageField:  logMessageField,
 	}
 
 	model := es.DatasourceInfo{

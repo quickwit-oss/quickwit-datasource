@@ -99,7 +99,7 @@ func TestProcessLogsResponse(t *testing.T) {
 			logsFrame := frames[0]
 
 			meta := logsFrame.Meta
-			require.Equal(t, map[string]interface{}{"searchWords": []string{"hello", "message"}}, meta.Custom)
+			require.Equal(t, map[string]interface{}{"searchWords": []string{"hello", "message"}, "limit": 100}, meta.Custom)
 			require.Equal(t, data.VisTypeLogs, string(meta.PreferredVisualization))
 
 			logsFieldMap := make(map[string]*data.Field)
@@ -213,6 +213,7 @@ func TestProcessLogsResponse(t *testing.T) {
 		frames := result.response.Responses["A"].Frames
 		require.Len(t, frames, 1)
 	})
+
 	t.Run("Log query with nested fields", func(t *testing.T) {
 		targets := map[string]string{
 			"A": `{
@@ -402,6 +403,7 @@ func TestProcessLogsResponse(t *testing.T) {
 
 		require.Equal(t, map[string]interface{}{
 			"searchWords": []string{"hello", "message"},
+			"limit":       100,
 		}, customMeta)
 	})
 }
@@ -3371,9 +3373,10 @@ func parseTestResponse(tsdbQueries map[string]string, responseBody string) (*bac
 	from := time.Date(2018, 5, 15, 17, 50, 0, 0, time.UTC)
 	to := time.Date(2018, 5, 15, 17, 55, 0, 0, time.UTC)
 	configuredFields := es.ConfiguredFields{
-		TimeField:       "@timestamp",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "@timestamp",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
 	}
 	timeRange := backend.TimeRange{
 		From: from,

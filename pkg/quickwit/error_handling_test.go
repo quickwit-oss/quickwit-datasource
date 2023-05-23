@@ -3,6 +3,7 @@ package quickwit
 import (
 	"testing"
 
+	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +38,13 @@ func TestErrorAvgMissingField(t *testing.T) {
 	  }
 	`)
 
-	result, err := queryDataTestWithResponseCode(query, 400, response)
+	configuredFields := es.ConfiguredFields{
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
+	}
+	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
 	require.NoError(t, err)
 
 	// FIXME: we should return the received error message
@@ -65,7 +72,13 @@ func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
 	{ "error": "No ElasticsearchException found", "status": 400 }
 	`)
 
-	result, err := queryDataTestWithResponseCode(query, 400, response)
+	configuredFields := es.ConfiguredFields{
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
+	}
+	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
 	require.NoError(t, err)
 
 	// FIXME: we should return the received error message
@@ -107,7 +120,13 @@ func TestErrorTooManyDateHistogramBuckets(t *testing.T) {
 	}
 	`)
 
-	result, err := queryDataTestWithResponseCode(query, 200, response)
+	configuredFields := es.ConfiguredFields{
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
+	}
+	result, err := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 	require.NoError(t, err)
 
 	require.Len(t, result.response.Responses, 1)
@@ -139,7 +158,13 @@ func TestNonElasticError(t *testing.T) {
 	// to access the database for some reason.
 	response := []byte(`Access to the database is forbidden`)
 
-	_, err := queryDataTestWithResponseCode(query, 403, response)
+	configuredFields := es.ConfiguredFields{
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
+	}
+	_, err := queryDataTestWithResponseCode(query, 403, response, configuredFields)
 	// FIXME: we should return something better.
 	// currently it returns the error-message about being unable to decode JSON
 	// it is not 100% clear what we should return to the browser

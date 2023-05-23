@@ -54,6 +54,10 @@ func (e *elasticsearchDataQuery) execute() (*backend.QueryDataResponse, error) {
 		return &backend.QueryDataResponse{}, err
 	}
 
+	if res.Status == 404 {
+		return &backend.QueryDataResponse{}, fmt.Errorf("/_msearch endpoint not found, please check your Quickwit version")
+	}
+
 	return parseResponse(res.Responses, queries, e.client.GetConfiguredFields())
 }
 
@@ -67,9 +71,7 @@ func (e *elasticsearchDataQuery) processQuery(q *Query, ms *es.MultiSearchReques
 	b := ms.Search(q.Interval)
 	b.Size(0)
 	filters := b.Query().Bool().Filter()
-	// Quickwit only supports epoch nanoseconds.
-	// FIXME when it's possible to set the format of date in the range filter.
-	filters.AddDateRangeFilter(defaultTimeField, to*1000000, from*1000000, es.DateFormatEpochMS)
+	filters.AddDateRangeFilter(defaultTimeField, to, from)
 	filters.AddQueryStringFilter(q.RawQuery, true)
 
 	if isLogsQuery(q) {
@@ -152,8 +154,7 @@ func addDateHistogramAgg(aggBuilder es.AggBuilder, bucketAgg *BucketAgg, timeFro
 	aggBuilder.DateHistogram(bucketAgg.ID, field, func(a *es.DateHistogramAgg, b es.AggBuilder) {
 		a.FixedInterval = bucketAgg.Settings.Get("interval").MustString("auto")
 		a.MinDocCount = bucketAgg.Settings.Get("min_doc_count").MustInt(0)
-		// FIXME: rollback nanoseconds when it's fixed in tantivy
-		a.ExtendedBounds = &es.ExtendedBounds{Min: timeFrom * 1000000, Max: timeTo * 1000000}
+		a.ExtendedBounds = &es.ExtendedBounds{Min: timeFrom, Max: timeTo}
 		// a.Format = bucketAgg.Settings.Get("format").MustString(es.DateFormatEpochMS)
 
 		if a.FixedInterval == "auto" {
@@ -328,43 +329,17 @@ func isRawDocumentQuery(query *Query) bool {
 
 func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
 	metric := q.Metrics[0]
-	// TODO: FIXME when sort is fixed in quickwit
 	sort := es.SortOrderDesc
 	if metric.Settings.Get("sortDirection").MustString() == "asc" {
 		// This is currently used only for log context query
 		sort = es.SortOrderAsc
 	}
 	b.Sort(sort, defaultTimeField, "boolean")
-	// TODO: check if sort by _doc is needed.
+	// FIXME: check if sort by _doc is needed.
 	// b.Sort(sort, "_doc", "")
-	// FIXME: not supported in Quickwit
-	// b.AddDocValueField(defaultTimeField)
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
 	// TODO when hightlight is supported in quickwit
 	// b.AddHighlight()
-
-	// This is currently used only for log context query to get
-	// log lines before and after the selected log line
-	searchAfter := metric.Settings.Get("searchAfter").MustArray()
-	for _, value := range searchAfter {
-		b.AddSearchAfter(value)
-	}
-
-	// For log query, we add a date histogram aggregation
-	aggBuilder := b.Agg()
-	q.BucketAggs = append(q.BucketAggs, &BucketAgg{
-		Type:  dateHistType,
-		Field: defaultTimeField,
-		ID:    "1",
-		Settings: simplejson.NewFromAny(map[string]interface{}{
-			"interval": "auto",
-		}),
-	})
-	bucketAgg := q.BucketAggs[0]
-	bucketAgg.Settings = simplejson.NewFromAny(
-		bucketAgg.generateSettingsForDSL(),
-	)
-	_ = addDateHistogramAgg(aggBuilder, bucketAgg, from, to, defaultTimeField)
 }
 
 func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {

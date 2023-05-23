@@ -122,3 +122,13 @@ func describeMetric(metricType, field string) string {
 	}
 	return text + " " + field
 }
+
+const (
+	Iso8601         string = "iso8601"
+	Rfc2822         string = "rfc2822"
+	Rfc3339         string = "rfc3339"
+	TimestampSecs   string = "unix_timestamp_secs"
+	TimestampMillis string = "unix_timestamp_millis"
+	TimestampMicros string = "unix_timestamp_micros"
+	TimestampNanos  string = "unix_timestamp_nanos"
+)

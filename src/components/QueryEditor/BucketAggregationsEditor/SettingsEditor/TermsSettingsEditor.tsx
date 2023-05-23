@@ -78,7 +78,7 @@ export const TermsSettingsEditor = ({ bucketAgg }: Props) => {
         />
       </InlineField>
 
-      <InlineField label="Missing" {...inlineFieldProps}>
+      {/* <InlineField label="Missing" {...inlineFieldProps}>
         <Input
           id={`${baseId}-missing`}
           onBlur={(e) =>
@@ -86,7 +86,7 @@ export const TermsSettingsEditor = ({ bucketAgg }: Props) => {
           }
           defaultValue={bucketAgg.settings?.missing || bucketAggregationConfig.terms.defaultSettings?.missing}
         />
-      </InlineField>
+      </InlineField> */}
     </>
   );
 };

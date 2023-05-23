@@ -80,6 +80,15 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               width={40}
             />
           </InlineField>
+          <InlineField label="Timestamp field output format" labelWidth={26} tooltip="">
+            <Input
+              id="quickwit_index_timestamp_field_output_format"
+              value={value.jsonData.timeOutputFormat}
+              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, timeOutputFormat: event.currentTarget.value}})}
+              placeholder="unix_timestamp_millisecs"
+              width={40}
+            />
+          </InlineField>
           <InlineField label="Message field name" labelWidth={26} tooltip="">
             <Input
               id="quickwit_log_message_field"

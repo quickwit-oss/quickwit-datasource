@@ -13,12 +13,18 @@ import { isBucketAggregationWithField } from './aggregations';
 import { changeBucketAggregationField, changeBucketAggregationType } from './state/actions';
 import { bucketAggregationConfig } from './utils';
 
+const QUICKWIT_SUPPORTED_BUCKET_AGGREGATIONS = [
+  'date_histogram',
+  'terms',
+  'histogram'
+];
+
 const bucketAggOptions: Array<SelectableValue<BucketAggregationType>> = Object.entries(bucketAggregationConfig).map(
   ([key, { label }]) => ({
     label,
     value: key as BucketAggregationType,
   })
-);
+).filter(({ value }) => QUICKWIT_SUPPORTED_BUCKET_AGGREGATIONS.includes(value));
 
 const toOption = (bucketAgg: BucketAggregation) => ({
   label: bucketAggregationConfig[bucketAgg.type].label,

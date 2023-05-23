@@ -68,3 +68,17 @@ $ mage -v
 ```bash
 $ docker-compose up grafana
 ```
+
+### Testing
+
+#### Frontend
+
+```bash
+$ npm run test
+```
+
+#### Backend
+
+```bash
+$ go test -v ./pkg/...
+```

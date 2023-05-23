@@ -35,8 +35,8 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			require.Equal(t, sr.Aggs[0].Key, "2")
 			dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 			require.Equal(t, dateHistogramAgg.Field, "@timestamp")
-			require.Equal(t, dateHistogramAgg.ExtendedBounds.Min, fromMs*1000000)
-			require.Equal(t, dateHistogramAgg.ExtendedBounds.Max, toMs*1000000)
+			require.Equal(t, dateHistogramAgg.ExtendedBounds.Min, fromMs)
+			require.Equal(t, dateHistogramAgg.ExtendedBounds.Max, toMs)
 		})
 		t.Run("Should clean settings from null values (from frontend tests)", func(t *testing.T) {
 			c := newFakeClient()
@@ -1320,8 +1320,8 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			require.Equal(t, firstLevel.Aggregation.Type, "date_histogram")
 
 			hAgg := firstLevel.Aggregation.Aggregation.(*es.DateHistogramAgg)
-			require.Equal(t, hAgg.ExtendedBounds.Max, toMs*1000000)
-			require.Equal(t, hAgg.ExtendedBounds.Min, fromMs*1000000)
+			require.Equal(t, hAgg.ExtendedBounds.Max, toMs)
+			require.Equal(t, hAgg.ExtendedBounds.Min, fromMs)
 			require.Equal(t, hAgg.Field, "@timestamp")
 			//require.Equal(t, hAgg.Format, es.DateFormatEpochMS)
 			require.Equal(t, hAgg.FixedInterval, "$__interval_msms")

@@ -13,21 +13,26 @@
   "info": {
     "description": "Quickwit datasource plugin for Grafana",
     "author": {
-      "name": "Quickwit"
+      "name": "Quickwit",
+      "url": "https://quickwit.io"
     },
-    "keywords": ["datasource"],
+    "keywords": ["datasource", "logs", "log management", "log observability", "log analytics", "quickwit"],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
     },
     "links": [
       {
-        "name": "Website",
+        "name": "GitHub",
         "url": "https://github.com/quickwit/quickwit-datasource"
       },
       {
         "name": "License",
         "url": "https://github.com/quickwit/quickwit-datasource/blob/main/LICENSE"
+      },
+      {
+        "name": "Website",
+        "url": "https://quickwit.io"
       }
     ],
     "screenshots": [],

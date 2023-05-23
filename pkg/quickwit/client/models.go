@@ -117,6 +117,15 @@ type RangeFilter struct {
 	Format string
 }
 
+// RangeFilter represents a range search filter
+type DateRangeFilter struct {
+	Filter
+	Key    string
+	Gte    string
+	Lte    string
+	Format string
+}
+
 // DateFormatEpochMS represents a date format of epoch milliseconds (epoch_millis)
 const DateFormatEpochMS = "epoch_millis"
 
@@ -130,12 +139,19 @@ func (f *RangeFilter) MarshalJSON() ([]byte, error) {
 			},
 		},
 	}
+	return json.Marshal(root)
+}
 
-	// TOOD: Quickwit does not support format yet
-	// if f.Format != "" {
-	// 	root["range"][f.Key]["format"] = f.Format
-	// }
-
+// MarshalJSON returns the JSON encoding of the query string filter.
+func (f *DateRangeFilter) MarshalJSON() ([]byte, error) {
+	root := map[string]map[string]map[string]interface{}{
+		"range": {
+			f.Key: {
+				"lte": f.Lte,
+				"gte": f.Gte,
+			},
+		},
+	}
 	return json.Marshal(root)
 }
 

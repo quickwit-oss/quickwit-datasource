@@ -12,6 +12,7 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"golang.org/x/exp/slices"
 
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
@@ -161,7 +162,7 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 	frames := data.Frames{}
 	frame := data.NewFrame("", fields...)
 	setPreferredVisType(frame, data.VisTypeLogs)
-	setSearchWords(frame, searchWords)
+	setLogsCustomMeta(frame, searchWords, stringToIntWithDefaultValue(target.Metrics[0].Settings.Get("limit").MustString(), defaultSize))
 	frames = append(frames, frame)
 
 	queryRes.Frames = frames
@@ -274,11 +275,10 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 		if propName == configuredFields.TimeField {
 			timeVector := make([]*time.Time, size)
 			for i, doc := range docs {
-				timeInt, ok := doc[configuredFields.TimeField].(float64)
-				if !ok {
+				timeValue, err := ParseToTime(doc[configuredFields.TimeField], configuredFields.TimeOutputFormat)
+				if err != nil {
 					continue
 				}
-				timeValue := time.Unix(0, int64(timeInt))
 				timeVector[i] = &timeValue
 			}
 			field := data.NewField(configuredFields.TimeField, nil, timeVector)
@@ -317,6 +317,43 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 	}
 
 	return allFields
+}
+
+// Parses a value into Time given a timeOutputFormat. The conversion
+// only works with float64 as this is what we get when parsing a response.
+// TODO: understand why we get a float64?
+func ParseToTime(value interface{}, timeOutputFormat string) (time.Time, error) {
+	if timeOutputFormat == Iso8601 || timeOutputFormat == Rfc3339 {
+		value_string := value.(string)
+		timeValue, err := time.Parse(time.RFC3339, value_string)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return timeValue, nil
+	} else if timeOutputFormat == Rfc2822 {
+		value_string := value.(string)
+		timeValue, err := time.Parse(time.RFC822Z, value_string)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return timeValue, nil
+	} else if slices.Contains([]string{TimestampSecs, TimestampMillis, TimestampMicros, TimestampNanos}, timeOutputFormat) {
+		typed_value, ok := value.(float64)
+		if !ok {
+			return time.Time{}, errors.New("parse time only accepts float64 with timestamp based format")
+		}
+		int64_value := int64(typed_value)
+		if timeOutputFormat == TimestampSecs {
+			return time.Unix(int64_value, 0), nil
+		} else if timeOutputFormat == TimestampMillis {
+			return time.Unix(0, int64_value*1_000_000), nil
+		} else if timeOutputFormat == TimestampMicros {
+			return time.Unix(0, int64_value*1_000), nil
+		} else if timeOutputFormat == TimestampNanos {
+			return time.Unix(0, int64_value), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("timeOutputFormat not supported yet %s", timeOutputFormat)
 }
 
 func processBuckets(aggs map[string]interface{}, target *Query,
@@ -1121,7 +1158,7 @@ func setPreferredVisType(frame *data.Frame, visType data.VisType) {
 	frame.Meta.PreferredVisualization = visType
 }
 
-func setSearchWords(frame *data.Frame, searchWords map[string]bool) {
+func setLogsCustomMeta(frame *data.Frame, searchWords map[string]bool, limit int) {
 	i := 0
 	searchWordsList := make([]string, len(searchWords))
 	for searchWord := range searchWords {
@@ -1140,6 +1177,7 @@ func setSearchWords(frame *data.Frame, searchWords map[string]bool) {
 
 	frame.Meta.Custom = map[string]interface{}{
 		"searchWords": searchWordsList,
+		"limit":       limit,
 	}
 }
 

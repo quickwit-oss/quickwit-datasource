@@ -47,7 +47,7 @@ func TestSearchRequest(t *testing.T) {
 		b.Size(200)
 		b.Sort(SortOrderDesc, timeField, "boolean")
 		filters := b.Query().Bool().Filter()
-		filters.AddDateRangeFilter(timeField, 10, 5, DateFormatEpochMS)
+		filters.AddDateRangeFilter(timeField, 1684398201000, 1684308201000)
 		filters.AddQueryStringFilter("test", true)
 
 		t.Run("When building search request", func(t *testing.T) {
@@ -65,11 +65,10 @@ func TestSearchRequest(t *testing.T) {
 			})
 
 			t.Run("Should have range filter", func(t *testing.T) {
-				f, ok := sr.Query.Bool.Filters[0].(*RangeFilter)
+				f, ok := sr.Query.Bool.Filters[0].(*DateRangeFilter)
 				require.True(t, ok)
-				require.Equal(t, int64(5), f.Gte)
-				require.Equal(t, int64(10), f.Lte)
-				require.Equal(t, "epoch_millis", f.Format)
+				require.Equal(t, "2023-05-17T09:23:21+02:00", f.Gte)
+				require.Equal(t, "2023-05-18T10:23:21+02:00", f.Lte)
 			})
 
 			t.Run("Should have query string filter", func(t *testing.T) {
@@ -90,8 +89,8 @@ func TestSearchRequest(t *testing.T) {
 				require.Equal(t, "desc", sort.Get("order").MustString())
 
 				timeRangeFilter := json.GetPath("query", "bool", "filter").GetIndex(0).Get("range").Get(timeField)
-				require.Equal(t, int64(5), timeRangeFilter.Get("gte").MustInt64())
-				require.Equal(t, int64(10), timeRangeFilter.Get("lte").MustInt64())
+				require.Equal(t, "2023-05-17T09:23:21+02:00", timeRangeFilter.Get("gte").MustString())
+				require.Equal(t, "2023-05-18T10:23:21+02:00", timeRangeFilter.Get("lte").MustString())
 				// FIXME: no yet supported by quickwit.
 				// require.Equal(t, DateFormatEpochMS, timeRangeFilter.Get("format").MustString(""))
 

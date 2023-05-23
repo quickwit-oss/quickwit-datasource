@@ -30,9 +30,10 @@ type DatasourceInfo struct {
 }
 
 type ConfiguredFields struct {
-	TimeField       string
-	LogMessageField string
-	LogLevelField   string
+	TimeField        string
+	TimeOutputFormat string
+	LogMessageField  string
+	LogLevelField    string
 }
 
 // Client represents a client which can interact with elasticsearch api
@@ -146,7 +147,7 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 		return nil, err
 	}
 
-	c.logger.Debug("Executing request", "url", req.URL.String(), "method", method)
+	c.logger.Info("Executing request", "url", req.URL.String(), "method", method)
 
 	req.Header.Set("Content-Type", "application/x-ndjson")
 

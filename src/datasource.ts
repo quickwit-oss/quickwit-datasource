@@ -389,6 +389,16 @@ export class QuickwitDataSource
 
     return text;
   }
+
+  /**
+   * Returns false if the query should be skipped
+   */
+  filterQuery(query: ElasticsearchQuery): boolean {
+    if (query.hide) {
+      return false;
+    }
+    return true;
+  }
 }
 
 // Returns a flatten array of fields and nested fields found in the given `FieldMapping` array. 
