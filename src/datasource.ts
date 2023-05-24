@@ -224,7 +224,7 @@ export class QuickwitDataSource
       {
         range: request.range,
         targets: request.targets,
-        extractLevel: (dataFrame: any) => getLogLevelFromKey(dataFrame.name || ''),
+        extractLevel: (dataFrame: any) => getLogLevelFromKey(dataFrame || ''),
       }
     );
   }
@@ -599,11 +599,11 @@ function getIntervalInfo(scopedVars: ScopedVars, timespanMs: number): { interval
 }
 
 // Copy/pasted from grafana/data as it is deprecated there.
-function getLogLevelFromKey(key: string | number): LogLevel {
-  const level = (LogLevel as any)[key.toString().toLowerCase()];
+function getLogLevelFromKey(dataframe: DataFrame): LogLevel {
+  const name = dataframe.fields[1].config.displayNameFromDS || ``;
+  const level = (LogLevel as any)[name.toString().toLowerCase()];
   if (level) {
     return level;
   }
-
   return LogLevel.unknown;
 }
