@@ -107,12 +107,7 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 		}
 
 		doc := map[string]interface{}{
-			"_id":       hit["_id"],
-			"_type":     hit["_type"],
-			"_index":    hit["_index"],
-			"sort":      hit["sort"],
-			"highlight": hit["highlight"],
-			"_source":   flattened,
+			"_source": flattened,
 		}
 
 		for k, v := range flattened {
@@ -179,13 +174,7 @@ func processRawDataResponse(res *es.SearchResponse, target *Query, configuredFie
 			flattened = flatten(hit["_source"].(map[string]interface{}))
 		}
 
-		doc := map[string]interface{}{
-			"_id":       hit["_id"],
-			"_type":     hit["_type"],
-			"_index":    hit["_index"],
-			"sort":      hit["sort"],
-			"highlight": hit["highlight"],
-		}
+		doc := map[string]interface{}{}
 
 		for k, v := range flattened {
 			doc[k] = v
@@ -212,13 +201,7 @@ func processRawDataResponse(res *es.SearchResponse, target *Query, configuredFie
 func processRawDocumentResponse(res *es.SearchResponse, target *Query, queryRes *backend.DataResponse) error {
 	docs := make([]map[string]interface{}, len(res.Hits.Hits))
 	for hitIdx, hit := range res.Hits.Hits {
-		doc := map[string]interface{}{
-			"_id":       hit["_id"],
-			"_type":     hit["_type"],
-			"_index":    hit["_index"],
-			"sort":      hit["sort"],
-			"highlight": hit["highlight"],
-		}
+		doc := map[string]interface{}{}
 
 		if hit["_source"] != nil {
 			source, ok := hit["_source"].(map[string]interface{})

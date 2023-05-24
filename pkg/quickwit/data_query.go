@@ -345,7 +345,7 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
 	metric := q.Metrics[0]
 	b.Sort(es.SortOrderDesc, defaultTimeField, "boolean")
-	b.Sort(es.SortOrderDesc, "_doc", "")
+	// b.Sort(es.SortOrderDesc, "_doc", "")
 	// Note: not supported in Quickwit
 	// b.AddDocValueField(defaultTimeField)
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("size").MustString(), defaultSize))

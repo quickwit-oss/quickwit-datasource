@@ -99,7 +99,6 @@ func TestProcessLogsResponse(t *testing.T) {
 			logsFrame := frames[0]
 
 			meta := logsFrame.Meta
-			require.Equal(t, map[string]interface{}{"searchWords": []string{"hello", "message"}, "limit": 100}, meta.Custom)
 			require.Equal(t, data.VisTypeLogs, string(meta.PreferredVisualization))
 
 			logsFieldMap := make(map[string]*data.Field)
@@ -121,13 +120,6 @@ func TestProcessLogsResponse(t *testing.T) {
 
 			require.Contains(t, logsFieldMap, "_source")
 			require.Equal(t, data.FieldTypeNullableJSON, logsFieldMap["_source"].Type())
-
-			requireStringAt(t, "fdsfs", logsFieldMap["_id"], 0)
-			requireStringAt(t, "kdospaidopa", logsFieldMap["_id"], 1)
-			requireStringAt(t, "_doc", logsFieldMap["_type"], 0)
-			requireStringAt(t, "_doc", logsFieldMap["_type"], 1)
-			requireStringAt(t, "mock-index", logsFieldMap["_index"], 0)
-			requireStringAt(t, "mock-index", logsFieldMap["_index"], 1)
 
 			actualJson1, err := json.Marshal(logsFieldMap["_source"].At(0).(*json.RawMessage))
 			require.NoError(t, err)
@@ -312,7 +304,7 @@ func TestProcessLogsResponse(t *testing.T) {
 		require.Len(t, dataframes, 1)
 		frame := dataframes[0]
 
-		require.Equal(t, 16, len(frame.Fields))
+		require.Equal(t, 11, len(frame.Fields))
 		// Fields have the correct length
 		require.Equal(t, 2, frame.Fields[0].Len())
 		// First field is timeField
@@ -321,90 +313,18 @@ func TestProcessLogsResponse(t *testing.T) {
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
 		require.Equal(t, "line", frame.Fields[1].Name)
 		// Correctly renames lvl field to level
-		require.Equal(t, "level", frame.Fields[10].Name)
+		require.Equal(t, "level", frame.Fields[6].Name)
 		// Correctly uses string types
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
 		// Correctly detects float64 types
-		require.Equal(t, data.FieldTypeNullableFloat64, frame.Fields[7].Type())
+		require.Equal(t, data.FieldTypeNullableFloat64, frame.Fields[4].Type())
 		// Correctly detects json types
-		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[8].Type())
+		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[2].Type())
 		// Correctly flattens fields
-		require.Equal(t, "nested.field.double_nested", frame.Fields[12].Name)
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[12].Type())
+		require.Equal(t, "nested.field.double_nested", frame.Fields[8].Name)
+		require.Equal(t, data.FieldTypeNullableString, frame.Fields[8].Type())
 		// Correctly detects type even if first value is null
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[15].Type())
-	})
-
-	t.Run("Log query with highlight", func(t *testing.T) {
-		targets := map[string]string{
-			"A": `{
-					"metrics": [{ "type": "logs" }]
-				}`,
-		}
-
-		response := `{
-  			"responses":[
-  			  {
-  			    "hits":{
-  			      "total":{
-  			        "value":109,
-  			        "relation":"eq"
-  			      },
-  			      "max_score":null,
-  			      "hits":[
-  			        {
-  			          "_index":"logs-2023.02.08",
-  			          "_id":"GB2UMYYBfCQ-FCMjayJa",
-  			          "_score":null,
-									"highlight": {
-										"line": [
-					  					"@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"
-										],
-										"duplicated": ["@HIGHLIGHT@hello@/HIGHLIGHT@"]
-				  				},
-  			          "_source":{
-  			            "@timestamp":"2023-02-08T15:10:55.830Z",
-  			            "line":"log text  [479231733]"
-									}
-  			        },
-  			        {
-  			          "_index":"logs-2023.02.08",
-  			          "_id":"GB2UMYYBfCQ-FCMjayJa",
-  			          "_score":null,
-									"highlight": {
-										"line": [
-					  					"@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"
-										],
-										"duplicated": ["@HIGHLIGHT@hello@/HIGHLIGHT@"]
-				  				},
-  			          "_source":{
-  			            "@timestamp":"2023-02-08T15:10:55.830Z",
-  			            "line":"log text  [479231733]"
-									}
-  			        }
-  			      ]
-  			    },
-  			    "status":200
-  			  }
-  			]
-			}`
-
-		result, err := parseTestResponse(targets, response)
-		require.NoError(t, err)
-		require.Len(t, result.Responses, 1)
-
-		queryRes := result.Responses["A"]
-		require.NotNil(t, queryRes)
-		dataframes := queryRes.Frames
-		require.Len(t, dataframes, 1)
-		frame := dataframes[0]
-
-		customMeta := frame.Meta.Custom
-
-		require.Equal(t, map[string]interface{}{
-			"searchWords": []string{"hello", "message"},
-			"limit":       100,
-		}, customMeta)
+		require.Equal(t, data.FieldTypeNullableString, frame.Fields[10].Type())
 	})
 }
 
@@ -507,7 +427,7 @@ func TestProcessRawDataResponse(t *testing.T) {
 		require.Len(t, dataframes, 1)
 		frame := dataframes[0]
 
-		require.Equal(t, 15, len(frame.Fields))
+		require.Equal(t, 10, len(frame.Fields))
 		// Fields have the correct length
 		require.Equal(t, 2, frame.Fields[0].Len())
 		// First field is timeField
@@ -515,14 +435,12 @@ func TestProcessRawDataResponse(t *testing.T) {
 		// Correctly uses string types
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
 		// Correctly detects float64 types
-		require.Equal(t, data.FieldTypeNullableFloat64, frame.Fields[5].Type())
-		// Correctly detects json types
-		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[6].Type())
+		require.Equal(t, data.FieldTypeNullableFloat64, frame.Fields[2].Type())
 		// Correctly flattens fields
-		require.Equal(t, "nested.field.double_nested", frame.Fields[11].Name)
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[11].Type())
+		require.Equal(t, "nested.field.double_nested", frame.Fields[7].Name)
+		require.Equal(t, data.FieldTypeNullableString, frame.Fields[7].Type())
 		// Correctly detects type even if first value is null
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[14].Type())
+		require.Equal(t, data.FieldTypeNullableString, frame.Fields[9].Type())
 	})
 
 	t.Run("Raw data query filterable fields", func(t *testing.T) {
