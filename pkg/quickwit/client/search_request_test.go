@@ -67,8 +67,8 @@ func TestSearchRequest(t *testing.T) {
 			t.Run("Should have range filter", func(t *testing.T) {
 				f, ok := sr.Query.Bool.Filters[0].(*DateRangeFilter)
 				require.True(t, ok)
-				require.Equal(t, "2023-05-17T09:23:21+02:00", f.Gte)
-				require.Equal(t, "2023-05-18T10:23:21+02:00", f.Lte)
+				require.Equal(t, "2023-05-17T07:23:21Z", f.Gte)
+				require.Equal(t, "2023-05-18T08:23:21Z", f.Lte)
 			})
 
 			t.Run("Should have query string filter", func(t *testing.T) {
@@ -89,8 +89,8 @@ func TestSearchRequest(t *testing.T) {
 				require.Equal(t, "desc", sort.Get("order").MustString())
 
 				timeRangeFilter := json.GetPath("query", "bool", "filter").GetIndex(0).Get("range").Get(timeField)
-				require.Equal(t, "2023-05-17T09:23:21+02:00", timeRangeFilter.Get("gte").MustString())
-				require.Equal(t, "2023-05-18T10:23:21+02:00", timeRangeFilter.Get("lte").MustString())
+				require.Equal(t, "2023-05-17T07:23:21Z", timeRangeFilter.Get("gte").MustString())
+				require.Equal(t, "2023-05-18T08:23:21Z", timeRangeFilter.Get("lte").MustString())
 				// FIXME: no yet supported by quickwit.
 				// require.Equal(t, DateFormatEpochMS, timeRangeFilter.Get("format").MustString(""))
 

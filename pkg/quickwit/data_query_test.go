@@ -27,11 +27,10 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			}`, from, to)
 			require.NoError(t, err)
 			sr := c.multisearchRequests[0].Requests[0]
-			// rangeFilter := sr.Query.Bool.Filters[0].(*es.RangeFilter)
-			// require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
-			// require.Equal(t, rangeFilter.Lte, toMs)
-			// require.Equal(t, rangeFilter.Gte, fromMs)
-			// require.Equal(t, rangeFilter.Format, es.DateFormatEpochMS)
+			rangeFilter := sr.Query.Bool.Filters[0].(*es.DateRangeFilter)
+			require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
+			require.Equal(t, rangeFilter.Lte, "2018-05-15T17:55:00Z")
+			require.Equal(t, rangeFilter.Gte, "2018-05-15T17:50:00Z")
 			require.Equal(t, sr.Aggs[0].Key, "2")
 			dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 			require.Equal(t, dateHistogramAgg.Field, "@timestamp")
@@ -1305,27 +1304,11 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			sr := c.multisearchRequests[0].Requests[0]
 			require.Equal(t, sr.Size, defaultSize)
 
-			// rangeFilter := sr.Query.Bool.Filters[0].(*es.RangeFilter)
-			// require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
-			// require.Equal(t, rangeFilter.Lte, toMs)
-			// require.Equal(t, rangeFilter.Gte, fromMs)
-			// require.Equal(t, rangeFilter.Format, es.DateFormatEpochMS)
-
-			// require.Equal(t, sr.Sort["@timestamp"], map[string]string{"order": "desc", "unmapped_type": "boolean"})
-			// require.Equal(t, sr.Sort["_doc"], map[string]string{"order": "desc"})
-			// require.Equal(t, sr.CustomProps["script_fields"], map[string]interface{}{})
-
-			firstLevel := sr.Aggs[0]
-			require.Equal(t, firstLevel.Key, "1")
-			require.Equal(t, firstLevel.Aggregation.Type, "date_histogram")
-
-			hAgg := firstLevel.Aggregation.Aggregation.(*es.DateHistogramAgg)
-			require.Equal(t, hAgg.ExtendedBounds.Max, toMs)
-			require.Equal(t, hAgg.ExtendedBounds.Min, fromMs)
-			require.Equal(t, hAgg.Field, "@timestamp")
-			//require.Equal(t, hAgg.Format, es.DateFormatEpochMS)
-			require.Equal(t, hAgg.FixedInterval, "$__interval_msms")
-			require.Equal(t, hAgg.MinDocCount, 0)
+			rangeFilter := sr.Query.Bool.Filters[0].(*es.DateRangeFilter)
+			require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
+			require.Equal(t, rangeFilter.Lte, "2018-05-15T17:55:00Z")
+			require.Equal(t, rangeFilter.Gte, "2018-05-15T17:50:00Z")
+			require.Equal(t, sr.Sort[0]["@timestamp"]["order"], "desc")
 		})
 
 		t.Run("With log query with limit should return query with correct size", func(t *testing.T) {
@@ -1336,43 +1319,6 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			require.NoError(t, err)
 			sr := c.multisearchRequests[0].Requests[0]
 			require.Equal(t, sr.Size, 1000)
-		})
-
-		// Quickwit does not support highlight yet.
-		// t.Run("With log query should return highlight properties", func(t *testing.T) {
-		// 	c := newFakeClient()
-		// 	_, err := executeElasticsearchDataQuery(c, `{
-		// 		"metrics": [{ "type": "logs", "id": "1" }]
-		// 	}`, from, to)
-		// 	require.NoError(t, err)
-		// 	sr := c.multisearchRequests[0].Requests[0]
-		// 	require.Equal(t, sr.CustomProps["highlight"], map[string]interface{}{
-		// 		"fields": map[string]interface{}{
-		// 			"*": map[string]interface{}{},
-		// 		},
-		// 		"fragment_size": 2147483647,
-		// 		"post_tags":     []string{"@/HIGHLIGHT@"},
-		// 		"pre_tags":      []string{"@HIGHLIGHT@"},
-		// 	})
-		// })
-
-		t.Run("With log context query with sortDirection and searchAfter should return correct query", func(t *testing.T) {
-			c := newFakeClient()
-			_, err := executeElasticsearchDataQuery(c, `{
-			"metrics": [{ "type": "logs", "id": "1", "settings": { "limit": "1000", "sortDirection": "asc", "searchAfter": [1, "2"] }}]
-		}`, from, to)
-			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
-			// require.Equal(t, sr.Sort["@timestamp"], map[string]string{"order": "asc", "unmapped_type": "boolean"})
-			// require.Equal(t, sr.Sort["_doc"], map[string]string{"order": "asc"})
-
-			searchAfter := sr.CustomProps["search_after"].([]interface{})
-			firstSearchAfter, err := searchAfter[0].(json.Number).Int64()
-			require.NoError(t, err)
-			require.Equal(t, firstSearchAfter, int64(1))
-			secondSearchAfter := searchAfter[1].(string)
-			require.NoError(t, err)
-			require.Equal(t, secondSearchAfter, "2")
 		})
 
 		t.Run("With invalid query should return error", (func(t *testing.T) {

@@ -245,8 +245,8 @@ func (b *FilterQueryBuilder) Build() ([]Filter, error) {
 // AddDateRangeFilter adds a new time range filter
 func (b *FilterQueryBuilder) AddDateRangeFilter(timeField string, lteMillisecs int64, gteMillisecs int64) *FilterQueryBuilder {
 	// Quickwit only supports datetime range filter with datetime formatted as RFC3339
-	lteTime := time.Unix(0, lteMillisecs*int64(time.Millisecond))
-	gteTime := time.Unix(0, gteMillisecs*int64(time.Millisecond))
+	lteTime := time.Unix(0, lteMillisecs*int64(time.Millisecond)).UTC()
+	gteTime := time.Unix(0, gteMillisecs*int64(time.Millisecond)).UTC()
 	lteRfc3339 := lteTime.Format(time.RFC3339Nano)
 	gteRfc3339 := gteTime.Format(time.RFC3339Nano)
 	b.filters = append(b.filters, &DateRangeFilter{
