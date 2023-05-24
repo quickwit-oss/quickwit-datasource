@@ -24,18 +24,35 @@
     "links": [
       {
         "name": "GitHub",
-        "url": "https://github.com/quickwit/quickwit-datasource"
+        "url": "https://github.com/quickwit-oss/quickwit-datasource"
       },
       {
         "name": "License",
-        "url": "https://github.com/quickwit/quickwit-datasource/blob/main/LICENSE"
+        "url": "https://github.com/quickwit-oss/quickwit-datasource/blob/main/LICENSE"
       },
       {
         "name": "Website",
         "url": "https://quickwit.io"
       }
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "name": "Log Explorer",
+        "path": "img/screenshot-explorer-view.png"
+      },
+      {
+        "name": "Log Explorer with query",
+        "path": "img/screenshot-explorer-view-with-query.png"
+      },
+      {
+        "name": "Log Explorer with raw query",
+        "path": "img/screenshot-explorer-view-with-raw-query.png"
+      },
+      {
+        "name": "Dashboard",
+        "path": "img/screenshot-dashboard-view.png"
+      }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
