@@ -44,7 +44,7 @@ docker run --rm -p 3000:3000 \
 --name grafana-enterprise grafana/grafana-enterprise
 ```
 
-If you run a local Quickwit instance and you are on Linux, add the argument `--add-host=host.docker.internal:host-gateway` to the `docker run` command. You will later be able to use `host.docker.internal` in the Quickwit API URL.
+If you are running a local Quickwit instance on Linux, add the `--network=host` argument to the `docker run` command. This will allow Grafana to access services on the host machine. You can later use `http://localhost:7280/api/v1` in the Quickwit API URL when configuring the data source.
 
 If you want to keep the authentication, remove environment variables `GF_AUTH_DISABLE_LOGIN_FORM`, `GF_AUTH_ANONYMOUS_ENABLED` and `GF_AUTH_ANONYMOUS_ORG_ROLE`.
 
