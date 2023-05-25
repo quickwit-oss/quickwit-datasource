@@ -23,12 +23,6 @@ curl https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.1.
 ```bash
 mkdir -p grafana-storage/plugins
 unzip quickwit-quickwit-datasource-0.1.0.zip -d grafana/plugins
-docker run --rm -p 3000:3000 -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=quickwit-quickwit-datasource -v ${PWD}/grafana-storage:/var/lib/grafana --name grafana-enterprise grafana/grafana-enterprise
-```
-
-If you want to bypass the authentication, add the following environment variables to the `docker run` command:
-
-```bash
 docker run --rm -p 3000:3000 \
 -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=quickwit-quickwit-datasource \
 -e GF_AUTH_DISABLE_LOGIN_FORM=true \
@@ -37,6 +31,8 @@ docker run --rm -p 3000:3000 \
 -v ${PWD}/grafana-storage:/var/lib/grafana \
 --name grafana-enterprise grafana/grafana-enterprise
 ```
+
+If you want to keep the authentication, remove environment variables `GF_AUTH_DISABLE_LOGIN_FORM`, `GF_AUTH_ANONYMOUS_ENABLED` and `GF_AUTH_ANONYMOUS_ORG_ROLE`.
 
 You're all set!
 
