@@ -1,8 +1,6 @@
 # Quickwit data source for Grafana
 
-<img alt="Grafana Explorer Screenshot" src="src/img/screenshot-explorer-view-with-query.png" width="400" >
-
-<img alt="Grafana Dashboard Screenshot" src="src/img/screenshot-dashboard-view.png" width="400" >
+<img alt="Grafana Explorer Screenshot" src="src/img/screenshot-explorer-view-with-query.png" width="400" ><img alt="Grafana Dashboard Screenshot" src="src/img/screenshot-dashboard-view.png" width="400" >
 
 The Quickwit data source plugin allows you to query and visualize Quickwit data from within Grafana.
 
