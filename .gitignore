@@ -9,6 +9,9 @@ node_modules/
 
 # Grafana storage
 grafana/storage
+grafana/plugins
+grafana-storage
+quickwit-quickwit-datasource*
 
 # Runtime data
 pids
