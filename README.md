@@ -58,7 +58,7 @@ locally, please check out the [Plugin management docs](https://grafana.com/docs/
 ## Configuration
 
 To configure the Quickwit datasource, you need to provide the following information:
-- The Quickwit API URL with the `/api/v1` suffix. If you have a Quickwiit local instance, set the host to `http://host.docker.internal:7280/api/v1`
+- The Quickwit API URL with the `/api/v1` suffix. If you have a Quickwit local instance, set the host to `http://host.docker.internal:7280/api/v1` on macOS or `http://localhost:7280/api/v1` on Linux.
 - The index name.
 - The timestamp field name.
 - The output format of the timestamp field: only `unix_timestamp_secs`, `unix_timestamp_millis`, `unix_timestamp_micros`, `unix_timestamp_nanos`, `iso8601` and `rfc3339` are supported.
