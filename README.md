@@ -15,14 +15,19 @@ Grafana v9.5 is recommended as the data source was only tested on this version.
 ### Download the latest release (0.1.0)
 
 ```bash
-curl https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.1.0/quickwit-quickwit-datasource-0.1.0.zip
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.1.0/quickwit-quickwit-datasource-0.1.0.zip
 ```
 
-### Start Grafana with the plugin
+### Unzip into the plugins directory
 
 ```bash
 mkdir -p grafana-storage/plugins
-unzip quickwit-quickwit-datasource-0.1.0.zip -d grafana/plugins
+unzip quickwit-quickwit-datasource-0.1.0.zip -d grafana-storage/plugins
+```
+
+### Start Grafana
+
+```bash
 docker run --rm -p 3000:3000 \
 -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=quickwit-quickwit-datasource \
 -e GF_AUTH_DISABLE_LOGIN_FORM=true \
@@ -31,6 +36,8 @@ docker run --rm -p 3000:3000 \
 -v ${PWD}/grafana-storage:/var/lib/grafana \
 --name grafana-enterprise grafana/grafana-enterprise
 ```
+
+If you run a local Quickwit instance and you are on Linux, add the argument `--add-host=host.docker.internal:host-gateway` to the `docker run` command. You will later be able to use `host.docker.internal` in the Quickwit API URL.
 
 If you want to keep the authentication, remove environment variables `GF_AUTH_DISABLE_LOGIN_FORM`, `GF_AUTH_ANONYMOUS_ENABLED` and `GF_AUTH_ANONYMOUS_ORG_ROLE`.
 
@@ -44,7 +51,7 @@ locally, please check out the [Plugin management docs](https://grafana.com/docs/
 ## Configuration
 
 To configure the Quickwit datasource, you need to provide the following information:
-- The Quickwit API URL with the `/api/v1` suffix.
+- The Quickwit API URL with the `/api/v1` suffix. If you have a Quickwiit local instance, set the host to `http://host.docker.internal:7280`
 - The index name.
 - The timestamp field name.
 - The output format of the timestamp field: only `unix_timestamp_secs`, `unix_timestamp_millis`, `unix_timestamp_micros`, `unix_timestamp_nanos`, `iso8601` and `rfc3339` are supported.
