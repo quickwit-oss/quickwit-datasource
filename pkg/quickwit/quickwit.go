@@ -42,7 +42,7 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 
 	// Set SigV4 service namespace
 	if httpCliOpts.SigV4 != nil {
-		httpCliOpts.SigV4.Service = "es"
+		httpCliOpts.SigV4.Service = "quicwkit"
 	}
 
 	httpCli, err := httpclient.New(httpCliOpts)
@@ -50,15 +50,13 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		return nil, err
 	}
 
-	// we used to have a field named `esVersion`, please do not use this name in the future.
-
 	timeField, ok := jsonData["timeField"].(string)
 	if !ok {
 		return nil, errors.New("timeField cannot be cast to string")
 	}
 
 	if timeField == "" {
-		return nil, errors.New("elasticsearch time field name is required")
+		return nil, errors.New("a time field name is required")
 	}
 
 	timeOutputFormat, ok := jsonData["timeOutputFormat"].(string)
@@ -74,16 +72,6 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 	logMessageField, ok := jsonData["logMessageField"].(string)
 	if !ok {
 		logMessageField = ""
-	}
-
-	interval, ok := jsonData["interval"].(string)
-	if !ok {
-		interval = ""
-	}
-
-	timeInterval, ok := jsonData["timeInterval"].(string)
-	if !ok {
-		timeInterval = ""
 	}
 
 	index, ok := jsonData["index"].(string)
@@ -108,16 +96,6 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		maxConcurrentShardRequests = 256
 	}
 
-	includeFrozen, ok := jsonData["includeFrozen"].(bool)
-	if !ok {
-		includeFrozen = false
-	}
-
-	xpack, ok := jsonData["xpack"].(bool)
-	if !ok {
-		xpack = false
-	}
-
 	configuredFields := es.ConfiguredFields{
 		TimeField:        timeField,
 		TimeOutputFormat: timeOutputFormat,
@@ -132,10 +110,6 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		Database:                   index,
 		MaxConcurrentShardRequests: int64(maxConcurrentShardRequests),
 		ConfiguredFields:           configuredFields,
-		Interval:                   interval,
-		TimeInterval:               timeInterval,
-		IncludeFrozen:              includeFrozen,
-		XPack:                      xpack,
 	}
 	return &QuickwitDatasource{dsInfo: model}, nil
 }

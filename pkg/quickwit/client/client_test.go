@@ -51,12 +51,9 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 		ds := DatasourceInfo{
 			URL:                        ts.URL,
 			HTTPClient:                 ts.Client(),
-			Database:                   "[metrics-]YYYY.MM.DD",
+			Database:                   "my-index",
 			ConfiguredFields:           configuredFields,
-			Interval:                   "Daily",
 			MaxConcurrentShardRequests: 6,
-			IncludeFrozen:              true,
-			XPack:                      true,
 		}
 
 		from := time.Date(2018, 5, 15, 17, 50, 0, 0, time.UTC)
@@ -82,7 +79,7 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 		require.NotNil(t, request)
 		assert.Equal(t, http.MethodPost, request.Method)
 		assert.Equal(t, "/_elastic/_msearch", request.URL.Path)
-		assert.Equal(t, "max_concurrent_shard_requests=6&ignore_throttled=false", request.URL.RawQuery)
+		assert.Equal(t, "max_concurrent_shard_requests=6", request.URL.RawQuery)
 
 		require.NotNil(t, requestBody)
 
@@ -96,7 +93,7 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 		jBody, err := simplejson.NewJson(bodyBytes)
 		require.NoError(t, err)
 
-		assert.Equal(t, []string{"metrics-2018.05.15"}, jHeader.Get("index").MustStringArray())
+		assert.Equal(t, "my-index", jHeader.Get("index").MustString())
 		assert.True(t, jHeader.Get("ignore_unavailable").MustBool(false))
 		assert.Equal(t, "query_then_fetch", jHeader.Get("search_type").MustString())
 		assert.Empty(t, jHeader.Get("max_concurrent_shard_requests"))

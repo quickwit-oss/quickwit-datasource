@@ -22,11 +22,7 @@ type DatasourceInfo struct {
 	URL                        string
 	Database                   string
 	ConfiguredFields           ConfiguredFields
-	Interval                   string
-	TimeInterval               string
 	MaxConcurrentShardRequests int64
-	IncludeFrozen              bool
-	XPack                      bool
 }
 
 type ConfiguredFields struct {
@@ -43,27 +39,17 @@ type Client interface {
 	MultiSearch() *MultiSearchRequestBuilder
 }
 
-// NewClient creates a new elasticsearch client
+// NewClient creates a new Quickwit client
 var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.TimeRange) (Client, error) {
-	ip, err := newIndexPattern(ds.Interval, ds.Database)
-	if err != nil {
-		return nil, err
-	}
-
-	indices, err := ip.GetIndices(timeRange)
-	if err != nil {
-		return nil, err
-	}
-
 	logger := log.New()
-	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "indices", strings.Join(indices, ", "))
+	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "index", ds.Database)
 
 	return &baseClientImpl{
 		logger:           logger,
 		ctx:              ctx,
 		ds:               ds,
 		configuredFields: ds.ConfiguredFields,
-		indices:          indices,
+		index:            ds.Database,
 		timeRange:        timeRange,
 	}, nil
 }
@@ -72,7 +58,7 @@ type baseClientImpl struct {
 	ctx              context.Context
 	ds               *DatasourceInfo
 	configuredFields ConfiguredFields
-	indices          []string
+	index            string
 	timeRange        backend.TimeRange
 	logger           log.Logger
 }
@@ -116,9 +102,6 @@ func (c *baseClientImpl) encodeBatchRequests(requests []*multiRequest) ([]byte, 
 		body := string(reqBody)
 		body = strings.ReplaceAll(body, "$__interval_ms", strconv.FormatInt(r.interval.Milliseconds(), 10))
 		body = strings.ReplaceAll(body, "$__interval", r.interval.String())
-
-		// FIXME: to remove when plugin is ready.
-		c.logger.Info("Encoded request", "body", string(body))
 
 		payload.WriteString(body + "\n")
 	}
@@ -170,7 +153,6 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 
 	multiRequests := c.createMultiSearchRequests(r.Requests)
 	queryParams := c.getMultiSearchQueryParameters()
-	c.logger.Info("createMultiSearchRequests", multiRequests)
 	clientRes, err := c.executeBatchRequest("_elastic/_msearch", queryParams, multiRequests)
 	if err != nil {
 		return nil, err
@@ -210,7 +192,7 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 			header: map[string]interface{}{
 				"search_type":        "query_then_fetch",
 				"ignore_unavailable": true,
-				"index":              c.indices,
+				"index":              c.index,
 			},
 			body:     searchReq,
 			interval: searchReq.Interval,
@@ -230,11 +212,6 @@ func (c *baseClientImpl) getMultiSearchQueryParameters() string {
 		maxConcurrentShardRequests = 5
 	}
 	qs = append(qs, fmt.Sprintf("max_concurrent_shard_requests=%d", maxConcurrentShardRequests))
-
-	if c.ds.IncludeFrozen && c.ds.XPack {
-		qs = append(qs, "ignore_throttled=false")
-	}
-
 	return strings.Join(qs, "&")
 }
 

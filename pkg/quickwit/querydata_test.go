@@ -42,15 +42,11 @@ func newFlowTestDsInfo(body []byte, statusCode int, configuredFields es.Configur
 	}
 
 	return &es.DatasourceInfo{
-		Interval:                   "Daily",
 		Database:                   "[testdb-]YYYY.MM.DD",
 		ConfiguredFields:           configuredFields,
-		TimeInterval:               "1s",
 		URL:                        "http://localhost:9200",
 		HTTPClient:                 &client,
 		MaxConcurrentShardRequests: 42,
-		IncludeFrozen:              false,
-		XPack:                      true,
 	}
 }
 

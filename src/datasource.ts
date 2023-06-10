@@ -26,7 +26,7 @@ import {
   TimeRange,
 } from '@grafana/data';
 import { trackQuery } from 'tracking';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, TermsQuery } from './types';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, TermsQuery } from './types';
 import {
   DataSourceWithBackend,
 } from '@grafana/runtime';
@@ -54,6 +54,7 @@ export class QuickwitDataSource
 {
   index: string;
   timeField: string;
+  timeOutputFormat: string;
   logMessageField?: string;
   logLevelField?: string;
   queryBuilder: ElasticQueryBuilder;
@@ -65,6 +66,7 @@ export class QuickwitDataSource
     const settingsData = instanceSettings.jsonData || ({} as QuickwitOptions);
     this.index = settingsData.index || '';
     this.timeField = settingsData.timeField || '';
+    this.timeOutputFormat = settingsData.timeOutputFormat || '';
     this.logMessageField = settingsData.logMessageField || '';
     this.logLevelField = settingsData.logLevelField || '';
     this.queryBuilder = new ElasticQueryBuilder({
@@ -81,8 +83,6 @@ export class QuickwitDataSource
     const start = new Date();
     return super.query(request).pipe(tap((response) => trackQuery(response, request, start)))
       .pipe(map((response) => {
-        console.log("response", response);
-        // if (response.data[0]?.meta.limit = 500;
         return response;
       }));
   }
@@ -94,11 +94,12 @@ export class QuickwitDataSource
   async testDatasource() {
     return lastValueFrom(
       from(this.getResource('indexes/' + this.index)).pipe(
-        mergeMap((index_metadata) => {
-          if (index_metadata.index_config.doc_mapping.timestamp_field !== this.timeField) {
+        mergeMap((indexMetadata) => {
+          let error = this.validateIndexConfig(indexMetadata);
+          if (error) {
             return of({
               status: 'error',
-              message: 'No timestamp field named ' + this.timeField + ' found',
+              message: error,
             });
           }
           return of({ status: 'success', message: `Index OK. Time field name OK` });
@@ -115,6 +116,30 @@ export class QuickwitDataSource
         })
       )
     );
+  }
+
+  validateIndexConfig(indexMetadata: IndexMetadata): string | undefined {
+    // Check timestamp field.
+    if (this.timeField === '') {
+      return `Time field must not be empty`;
+    }
+    if (indexMetadata.index_config.doc_mapping.timestamp_field !== this.timeField) {
+      return `No timestamp field named '${this.timeField}' found`;
+    }
+    let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
+    let timestampField = fields.find((field) => field.json_path === this.timeField);
+    // Should never happen.
+    if (timestampField === undefined) {
+      return `No field named '${this.timeField}' found in the doc mapping. This should never happen.`;
+    }
+    if (timestampField.field_mapping.output_format !== this.timeOutputFormat) {
+      return `Timestamp output format is declared as '${timestampField.field_mapping.output_format}' in the doc mapping, not '${this.timeOutputFormat}'.`;
+    }
+    const supportedTimestampOutputFormats = ['unix_timestamp_secs', 'unix_timestamp_millis', 'unix_timestamp_micros', 'unix_timestamp_nanos', 'iso8601', 'rfc3339'];
+    if (!supportedTimestampOutputFormats.includes(this.timeOutputFormat)) {
+      return `Timestamp output format '${this.timeOutputFormat} is not yet supported.`;
+    }
+    return;
   }
 
   async importFromAbstractQueries(abstractQueries: AbstractQuery[]): Promise<ElasticsearchQuery[]> {

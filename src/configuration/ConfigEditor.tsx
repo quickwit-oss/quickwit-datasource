@@ -1,25 +1,14 @@
 import React, { useCallback } from 'react';
-import { Input, InlineField, FieldSet, useTheme2 } from '@grafana/ui';
+import { DataSourceHttpSettings, Input, InlineField, FieldSet } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
 import { QuickwitOptions } from 'quickwit';
 import { coerceOptions } from './utils';
-import { selectors } from '@grafana/e2e-selectors';
-import { css, cx } from '@emotion/css';
 
 interface Props extends DataSourcePluginOptionsEditorProps<QuickwitOptions> {}
 
 export const ConfigEditor = (props: Props) => {
   const { options: originalOptions, onOptionsChange } = props;
   const options = coerceOptions(originalOptions);
-  const theme = useTheme2();
-  const isValidUrl = /^(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/.test(
-    options.url
-  );
-  const notValidStyle = css`
-    box-shadow: inset 0 0px 5px ${theme.v1.palette.red};
-  `;
-
-  const inputStyle = cx({ [`width-20`]: true, [notValidStyle]: !isValidUrl });
   const onSettingsChange = useCallback(
     (change: Partial<DataSourceSettings<any, any>>) => {
       onOptionsChange({
@@ -32,22 +21,11 @@ export const ConfigEditor = (props: Props) => {
 
   return (
     <>
-      <h3 className="page-heading">HTTP</h3>
-      <div className="gf-form-group">
-        <div className="gf-form">
-          <div>
-            <InlineField label="URL" labelWidth={26} tooltip="Quickwit API URL">
-              <Input
-                className={inputStyle}
-                placeholder="http://localhost:7280/api/v1"
-                value={options.url}
-                aria-label={selectors.components.DataSource.DataSourceHttpSettings.urlInput}
-                onChange={(value) => onSettingsChange({ url: value.currentTarget.value })}
-              />
-            </InlineField>
-          </div>
-        </div>
-      </div>
+      <DataSourceHttpSettings
+        defaultUrl="http://localhost:7280/api/v1"
+        dataSourceConfig={options}
+        onChange={onOptionsChange}
+      />
       <QuickwitDetails value={options} onChange={onSettingsChange} />
     </>
   );
@@ -62,7 +40,7 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
     <>
       <div className="gf-form-group">
         <FieldSet label="Index settings">
-          <InlineField label="Index ID" labelWidth={26} tooltip="Index ID">
+          <InlineField label="Index ID" labelWidth={26} tooltip="Index ID. Required.">
             <Input
               id="quickwit_index_id"
               value={value.jsonData.index}
@@ -71,7 +49,7 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               width={40}
             />
           </InlineField>
-          <InlineField label="Timestamp field" labelWidth={26} tooltip="">
+          <InlineField label="Timestamp field" labelWidth={26} tooltip="Timestamp field of your index. Required.">
             <Input
               id="quickwit_index_timestamp_field"
               value={value.jsonData.timeField}
@@ -80,7 +58,7 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               width={40}
             />
           </InlineField>
-          <InlineField label="Timestamp field output format" labelWidth={26} tooltip="">
+          <InlineField label="Timestamp output format" labelWidth={26} tooltip="If you don't remember the output format, check the datasource and the error message will give you a hint.">
             <Input
               id="quickwit_index_timestamp_field_output_format"
               value={value.jsonData.timeOutputFormat}
@@ -89,16 +67,16 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               width={40}
             />
           </InlineField>
-          <InlineField label="Message field name" labelWidth={26} tooltip="">
+          <InlineField label="Message field name" labelWidth={26} tooltip="Field used to display a log line in the Explore view">
             <Input
               id="quickwit_log_message_field"
               value={value.jsonData.logMessageField}
               onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, logMessageField: event.currentTarget.value}})}
-              placeholder="_source"
+              placeholder="body.message"
               width={40}
             />
           </InlineField>
-          <InlineField label="Log level field" labelWidth={26} tooltip="">
+          <InlineField label="Log level field" labelWidth={26} tooltip="The log level field must be a fast field">
             <Input
               id="quickwit_log_level_field"
               value={value.jsonData.logLevelField}
