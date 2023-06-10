@@ -692,6 +692,12 @@ func processAggregationDocs(esAgg *simplejson.Json, aggDef *BucketAgg, target *Q
 	frames := data.Frames{}
 	fields := createFields(queryResult.Frames, propKeys)
 
+	// In some cases, there is no buckets. In this case
+	// we don't want to override the dataframe with an empty one.
+	if len(esAgg.Get("buckets").MustArray()) == 0 {
+		return nil
+	}
+
 	for _, v := range esAgg.Get("buckets").MustArray() {
 		bucket := simplejson.NewFromAny(v)
 		var values []interface{}

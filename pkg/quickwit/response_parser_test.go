@@ -994,7 +994,7 @@ func TestProcessBuckets(t *testing.T) {
 				"A": `{
 				"metrics": [
 					{
-						"type": "max",
+						"type": "count",
 						"field": "counter",
 						"id": "1"
 					}
@@ -1011,7 +1011,7 @@ func TestProcessBuckets(t *testing.T) {
 								"key": "val3",
 								"3": {
 									"buckets": [
-										{ "key": "info", "1": { "value": "299" } }, { "key": "error", "1": {"value": "300"} }
+										{ "key": "info", "doc_count": 299 }, { "key": "error", "doc_count": 10 }
 									]
 								}
 							},
@@ -1019,7 +1019,7 @@ func TestProcessBuckets(t *testing.T) {
 								"key": "val2",
 								"3": {
 									"buckets": [
-										{"key": "info", "1": {"value": "300"}}, {"key": "error", "1": {"value": "298"} }
+										{"key": "info", "doc_count": 300}, {"key": "error", "doc_count": 298 }
 									]
 								}
 							},
@@ -1027,7 +1027,6 @@ func TestProcessBuckets(t *testing.T) {
 								"key": "val1",
 								"3": {
 									"buckets": [
-										{"key": "info", "1": {"value": "299"}}, {"key": "error", "1": {"value": "296"} }
 									]
 								}
 							}
@@ -1042,7 +1041,7 @@ func TestProcessBuckets(t *testing.T) {
 			assert.Len(t, result.Responses, 1)
 			frames := result.Responses["A"].Frames
 			require.Len(t, frames, 1)
-			requireFrameLength(t, frames[0], 6)
+			requireFrameLength(t, frames[0], 4)
 			require.Len(t, frames[0].Fields, 3)
 
 			f1 := frames[0].Fields[0]
@@ -1051,28 +1050,22 @@ func TestProcessBuckets(t *testing.T) {
 
 			require.Equal(t, "label", f1.Name)
 			require.Equal(t, "level", f2.Name)
-			require.Equal(t, "Max", f3.Name)
+			require.Equal(t, "Count", f3.Name)
 
 			requireStringAt(t, "val3", f1, 0)
 			requireStringAt(t, "val3", f1, 1)
 			requireStringAt(t, "val2", f1, 2)
 			requireStringAt(t, "val2", f1, 3)
-			requireStringAt(t, "val1", f1, 4)
-			requireStringAt(t, "val1", f1, 5)
 
 			requireStringAt(t, "info", f2, 0)
 			requireStringAt(t, "error", f2, 1)
 			requireStringAt(t, "info", f2, 2)
 			requireStringAt(t, "error", f2, 3)
-			requireStringAt(t, "info", f2, 4)
-			requireStringAt(t, "error", f2, 5)
 
 			requireFloatAt(t, 299, f3, 0)
-			requireFloatAt(t, 300, f3, 1)
+			requireFloatAt(t, 10, f3, 1)
 			requireFloatAt(t, 300, f3, 2)
 			requireFloatAt(t, 298, f3, 3)
-			requireFloatAt(t, 299, f3, 4)
-			requireFloatAt(t, 296, f3, 5)
 		})
 
 		t.Run("Terms agg without date histogram", func(t *testing.T) {
