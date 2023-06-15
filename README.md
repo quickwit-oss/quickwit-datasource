@@ -22,7 +22,7 @@ Grafana v9.5 is recommended as the data source was only tested on this version.
 ### Download the latest release (0.2.0)
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.1.0/quickwit-quickwit-datasource-0.2.0.zip
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.0/quickwit-quickwit-datasource-0.2.0.zip
 ```
 
 ### Unzip into the plugins directory
