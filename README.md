@@ -76,10 +76,10 @@ apiVersion: 1
 
 datasources:
   - name: Quickwit
-    type: quickwit
-    database: 'hdfs-logs'
+    type: quickwit-quickwit-datasource
     url: http://localhost:7280/api/v1
     jsonData:
+      index: 'hdfs-logs'
       timeField: timestamp
       timeOutputFormat: unix_timestamp_secs
       logMessageField: body
