@@ -37,16 +37,13 @@ unzip quickwit-quickwit-datasource-0.2.0.zip -d grafana-storage/plugins
 ```bash
 docker run --rm -p 3000:3000 \
 -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=quickwit-quickwit-datasource \
--e GF_AUTH_DISABLE_LOGIN_FORM=true \
--e GF_AUTH_ANONYMOUS_ENABLED=true \
--e GF_AUTH_ANONYMOUS_ORG_ROLE=Admin \
 -v ${PWD}/grafana-storage:/var/lib/grafana \
 --name grafana-enterprise grafana/grafana-enterprise
 ```
 
 If you are running a local Quickwit instance on Linux, add the `--network=host` argument to the `docker run` command. This will allow Grafana to access services on the host machine. You can later use `http://localhost:7280/api/v1` in the Quickwit API URL when configuring the data source.
 
-If you want to keep the authentication, remove environment variables `GF_AUTH_DISABLE_LOGIN_FORM`, `GF_AUTH_ANONYMOUS_ENABLED` and `GF_AUTH_ANONYMOUS_ORG_ROLE`.
+The default username and password are `admin` and `admin`.
 
 You're all set!
 
