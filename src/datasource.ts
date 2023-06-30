@@ -28,7 +28,7 @@ import {
 import { trackQuery } from 'tracking';
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, TermsQuery } from './types';
 import {
-  DataSourceWithBackend,
+  DataSourceWithBackend, getTemplateSrv, TemplateSrv,
 } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
 import { ElasticQueryBuilder } from 'QueryBuilder';
@@ -61,7 +61,10 @@ export class QuickwitDataSource
   dataLinks: DataLinkConfig[];
   languageProvider: ElasticsearchLanguageProvider;
 
-  constructor(instanceSettings: DataSourceInstanceSettings<QuickwitOptions>) {
+  constructor(
+    instanceSettings: DataSourceInstanceSettings<QuickwitOptions>,
+    private readonly templateSrv: TemplateSrv = getTemplateSrv()
+    ) {
     super(instanceSettings);
     const settingsData = instanceSettings.jsonData || ({} as QuickwitOptions);
     this.index = settingsData.index || '';
@@ -423,6 +426,66 @@ export class QuickwitDataSource
       return false;
     }
     return true;
+  }
+
+  metricFindQuery(query: string, options?: { range: TimeRange }): Promise<MetricFindValue[]> {
+    const range = options?.range;
+    const parsedQuery = JSON.parse(query);
+    if (query) {
+      if (parsedQuery.find === 'fields') {
+        parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
+        return lastValueFrom(this.getFields(parsedQuery.type, range));
+      }
+
+      if (parsedQuery.find === 'terms') {
+        parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
+        parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);
+        console.log(parsedQuery);
+        return lastValueFrom(this.getTerms(parsedQuery, range));
+      }
+    }
+
+    return Promise.resolve([]);
+  }
+
+  interpolateLuceneQuery(queryString: string, scopedVars?: ScopedVars) {
+    return this.templateSrv.replace(queryString, scopedVars, 'lucene');
+  }
+
+  interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}): ElasticsearchQuery[] {
+    return queries.map((q) => this.applyTemplateVariables(q, scopedVars));
+  }
+
+  // Used when running queries through backend
+  applyTemplateVariables(query: ElasticsearchQuery, scopedVars: ScopedVars): ElasticsearchQuery {
+    // We need a separate interpolation format for lucene queries, therefore we first interpolate any
+    // lucene query string and then everything else
+    const interpolateBucketAgg = (bucketAgg: BucketAggregation): BucketAggregation => {
+      if (bucketAgg.type === 'filters') {
+        return {
+          ...bucketAgg,
+          settings: {
+            ...bucketAgg.settings,
+            filters: bucketAgg.settings?.filters?.map((filter) => ({
+              ...filter,
+              query: this.interpolateLuceneQuery(filter.query, scopedVars) || '*',
+            })),
+          },
+        };
+      }
+
+      return bucketAgg;
+    };
+
+    const expandedQuery = {
+      ...query,
+      datasource: this.getRef(),
+      query: this.interpolateLuceneQuery(query.query || '', scopedVars),
+      bucketAggs: query.bucketAggs?.map(interpolateBucketAgg),
+    };
+
+    const finalQuery = JSON.parse(this.templateSrv.replace(JSON.stringify(expandedQuery), scopedVars));
+    return finalQuery;
   }
 }
 

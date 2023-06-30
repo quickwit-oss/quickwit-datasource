@@ -14,7 +14,8 @@ export class ElasticQueryBuilder {
     filter[this.timeField] = {
       gte: '$timeFrom',
       lte: '$timeTo',
-      format: 'epoch_millis',
+      // FIXME when Quickwit supports format.
+      // format: 'epoch_millis',
     };
 
     return filter;
