@@ -19,17 +19,17 @@ Grafana v9.5 is recommended as the data source was only tested on this version.
 
 ## Installation
 
-### Download the latest release (0.2.0)
+### Download the latest release (0.2.1)
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.0/quickwit-quickwit-datasource-0.2.0.zip
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.1/quickwit-quickwit-datasource-0.2.1.zip
 ```
 
 ### Unzip into the plugins directory
 
 ```bash
 mkdir -p grafana-storage/plugins
-unzip quickwit-quickwit-datasource-0.2.0.zip -d grafana-storage/plugins
+unzip quickwit-quickwit-datasource-0.2.1.zip -d grafana-storage/plugins
 ```
 
 ### Start Grafana
