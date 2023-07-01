@@ -147,7 +147,6 @@ export class QuickwitDataSource
 
   async importFromAbstractQueries(abstractQueries: AbstractQuery[]): Promise<ElasticsearchQuery[]> {
     // FIXME: this function does not seem to be used.
-    console.log("importFromAbstractQueries");
     return abstractQueries.map((abstractQuery) => this.languageProvider.importFromAbstractQuery(abstractQuery));
   }
 
@@ -432,24 +431,23 @@ export class QuickwitDataSource
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
-      if (parsedQuery.find === 'fields') {
-        parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-        return lastValueFrom(this.getFields(parsedQuery.type, range));
-      }
-
+      // Interpolation of variables with a list of values for which we don't
+      // know the field name is not supported yet.
+      // if (parsedQuery.find === 'fields') {
+      //   parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
+      //   return lastValueFrom(this.getFields(parsedQuery.type, range));
+      // }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);
-        console.log(parsedQuery);
         return lastValueFrom(this.getTerms(parsedQuery, range));
       }
     }
-
     return Promise.resolve([]);
   }
 
   interpolateLuceneQuery(queryString: string, scopedVars?: ScopedVars) {
-    return this.templateSrv.replace(queryString, scopedVars, 'lucene');
+    return this.templateSrv.replace(queryString, scopedVars, formatQuery);
   }
 
   interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}): ElasticsearchQuery[] {
@@ -694,4 +692,41 @@ function getLogLevelFromKey(dataframe: DataFrame): LogLevel {
     return level;
   }
   return LogLevel.unknown;
+}
+
+function formatQuery(value: string | string[], variable: any): string {
+  if (typeof value === 'string') {
+    return luceneEscape(value);
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return '__empty__';
+    }
+    const fieldName = JSON.parse(variable.query).field;
+    const quotedValues =  value.map((val) => '"' + luceneEscape(val) + '"');
+    // Quickwit query language does not support fieldName:(value1 OR value2 OR....)
+    // like lucene does.
+    // When we know the fieldName, we can directly generate a query
+    // fieldName:value1 OR fieldName:value2 OR ...
+    // But when we don't know the fieldName, the simplest is to generate a query
+    // with the IN operator. Unfortunately, IN operator does not work on JSON field.
+    // TODO: fix that by using doing a regex on queryString to find the fieldName.
+    // Note that variable.id gives the name of the template variable to interpolate,
+    // so if we have `fieldName:${variable.id}` in the queryString, we can isolate
+    // the fieldName.
+    if (typeof fieldName !== 'string') {
+      return 'IN [' + quotedValues.join(' ') + ']';
+    }
+    return quotedValues.join(' OR ' + fieldName + ':');
+  } else {
+    return luceneEscape(`${value}`);
+  }
+}
+
+function luceneEscape(value: string) {
+  if (isNaN(+value) === false) {
+    return value;
+  }
+
+  return value.replace(/([\!\*\+\-\=<>\s\&\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, '\\$1');
 }
