@@ -83,6 +83,8 @@ datasources:
       logLevelField: severity_text
 ```
 
+## Template variables
+
 ## Learn more
 
 * Set up alerting; refer to [Alerts overview](https://grafana.com/docs/grafana/latest/alerting/).
