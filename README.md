@@ -8,14 +8,15 @@ The Quickwit data source plugin allows you to query and visualize Quickwit data 
 
 ## Special thanks and a note on the license
 
-This plugin is heavily inspired by the `elasticsearch` plugin available on the [Grafana repository](https://github.com/grafana/). So first of all, huge thanks to the Grafana team for open-sourcing all their work.
+This plugin is **heavily** inspired by the `elasticsearch` plugin available on the [Grafana repository](https://github.com/grafana/). First of all, huge thanks to the Grafana team for open-sourcing all their work.
 
-Also, we choose to put the plugin under `AGPL-3.0` as the Grafana repository is under this same license.
+It's more or less a fork of this plugin to adapt the code to Quickwit API. See [LICENSING](LICENSING.md) for details on the license and the changes made.
 
+The license for this project is [AGPL-3.0](LICENSE.md), and a [notice](NOTICE.md) was added to respect the Grafana Labs license.
 
 ## Version compatibility
 
-Grafana v9.5 is recommended as the data source was only tested on this version.
+We recommand Grafana v9.5 or v10.
 
 ## Installation
 
