@@ -3,7 +3,7 @@ package quickwit
 import (
 	"time"
 
-	"github.com/grafana/grafana/pkg/components/simplejson"
+	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
 
 // Query represents the time series query model of the datasource

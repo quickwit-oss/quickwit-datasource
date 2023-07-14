@@ -3,7 +3,6 @@ module github.com/quickwit-oss/quickwit-datasource
 go 1.19
 
 require (
-	github.com/grafana/grafana v6.1.6+incompatible
 	github.com/grafana/grafana-plugin-sdk-go v0.162.0
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc
@@ -13,7 +12,6 @@ require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect

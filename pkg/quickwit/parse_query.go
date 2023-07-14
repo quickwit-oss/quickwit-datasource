@@ -3,7 +3,7 @@ package quickwit
 import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 
-	"github.com/grafana/grafana/pkg/components/simplejson"
+	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
 
 func parseQuery(tsdbQuery []backend.DataQuery) ([]*Query, error) {

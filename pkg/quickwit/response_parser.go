@@ -14,8 +14,8 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"golang.org/x/exp/slices"
 
-	"github.com/grafana/grafana/pkg/components/simplejson"
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
+	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
 
 const (

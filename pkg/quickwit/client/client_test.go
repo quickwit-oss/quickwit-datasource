@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grafana/grafana/pkg/components/simplejson"
+	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
 
 func TestClient_ExecuteMultisearch(t *testing.T) {

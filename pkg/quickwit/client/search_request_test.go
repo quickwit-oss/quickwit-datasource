@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/grafana/grafana/pkg/components/simplejson"
+	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
 
 func TestSearchRequest(t *testing.T) {
