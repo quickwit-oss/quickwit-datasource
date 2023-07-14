@@ -11,7 +11,7 @@
   "executable": "gpx_quickwit",
   "category": "logging",
   "info": {
-    "description": "Quickwit is an OSS, Cloud-Native search engine on objec storage. This plugin allows you to visualize logs and build dashboards on top of Quickwit.",
+    "description": "Quickwit is an OSS, Cloud-Native search engine on object storage. This plugin allows you to visualize logs and build dashboards on top of Quickwit.",
     "author": {
       "name": "Quickwit",
       "url": "https://quickwit.io"
@@ -57,7 +57,7 @@
     "updated": "%TODAY%"
   },
   "dependencies": {
-    "grafanaDependency": "^9.5",
+    "grafanaDependency": ">=9.5",
     "plugins": []
   }
 }
