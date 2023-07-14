@@ -1,6 +1,6 @@
 import { cloneDeep, first as _first, map as _map, groupBy } from 'lodash';
 import { Observable, lastValueFrom, from, isObservable, of } from 'rxjs';
-import { catchError, mergeMap, map, tap } from 'rxjs/operators';
+import { catchError, mergeMap, map } from 'rxjs/operators';
 
 import {
   AbstractQuery,
@@ -25,7 +25,6 @@ import {
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { trackQuery } from 'tracking';
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, TermsQuery } from './types';
 import {
   DataSourceWithBackend, getTemplateSrv, TemplateSrv,
@@ -79,16 +78,15 @@ export class QuickwitDataSource
     this.languageProvider = new ElasticsearchLanguageProvider(this);
   }
 
-  /**
-   * Ideally final -- any other implementation may not work as expected
-   */
-  query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
-    const start = new Date();
-    return super.query(request).pipe(tap((response) => trackQuery(response, request, start)))
-      .pipe(map((response) => {
-        return response;
-      }));
-  }
+  // /**
+  //  * Ideally final -- any other implementation may not work as expected
+  //  */
+  // query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
+  //   return super.query(request)
+  //     .pipe(map((response) => {
+  //       return response;
+  //     }));
+  // }
 
     /**
      * Checks the plugin health
