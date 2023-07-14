@@ -93,6 +93,18 @@ export class QuickwitDataSource
      * see public/app/features/datasources/state/actions.ts for what needs to be returned here
      */
   async testDatasource() {
+    if (this.index === '' ) {
+      return {
+        status: 'error',
+        message: 'Cannot save datasource, `index` is required',
+      };
+    }
+    if (this.timeField === '' ) {
+      return {
+        status: 'error',
+        message: 'Cannot save datasource, `timeField` is required',
+      };
+    }
     return lastValueFrom(
       from(this.getResource('indexes/' + this.index)).pipe(
         mergeMap((indexMetadata) => {

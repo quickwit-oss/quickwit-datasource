@@ -8,7 +8,6 @@ export const coerceOptions = (
     ...options,
     jsonData: {
       ...options.jsonData,
-      timeField: options.jsonData.timeField || 'timestamp',
       logMessageField: options.jsonData.logMessageField || '',
       logLevelField: options.jsonData.logLevelField || '',
     },
