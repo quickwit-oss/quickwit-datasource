@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.3
+
+### Fixed
+
+- Add licensing and notice files to respect Grafana Labs license
+- Various cleanup: remove console.log, dependency on Grafana simplejson
+- Update src/README.md
+
+## 0.2.2
+
+### Fixed
+
+- Fix bug on template variable depending on another template variable
+- Fix bug when template variable is used with multiple values
+
+## 0.2.1
+
+### What's Changed
+* Add support for template variables
+* Update provisioning datasource guide by @hoangphuocbk in https://github.com/quickwit-oss/quickwit-datasource/pull/13
+
+### New Contributors
+* @hoangphuocbk made their first contribution in https://github.com/quickwit-oss/quickwit-datasource/pull/13
+
 ## 0.2.0
 
 ### Added

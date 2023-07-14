@@ -20,17 +20,17 @@ We recommand Grafana v9.5 or v10.
 
 ## Installation
 
-### Download the latest release (0.2.1)
+### Download the latest release (0.2.3)
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.1/quickwit-quickwit-datasource-0.2.1.zip
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.3/quickwit-quickwit-datasource-0.2.3.zip
 ```
 
 ### Unzip into the plugins directory
 
 ```bash
 mkdir -p grafana-storage/plugins
-unzip quickwit-quickwit-datasource-0.2.1.zip -d grafana-storage/plugins
+unzip quickwit-quickwit-datasource-0.2.3.zip -d grafana-storage/plugins
 ```
 
 ### Start Grafana
