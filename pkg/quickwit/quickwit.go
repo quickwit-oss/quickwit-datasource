@@ -28,7 +28,7 @@ type QuickwitDatasource struct {
 
 // Creates a Quickwit datasource.
 func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	qwlog.Info("Initializing new data source instance")
+	qwlog.Debug("Initializing new data source instance")
 
 	jsonData := map[string]interface{}{}
 	err := json.Unmarshal(settings.JSONData, &jsonData)
