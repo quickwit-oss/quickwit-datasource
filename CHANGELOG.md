@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4
+
+### What's Changed
+
+- Pluing is now signed
+
 ## 0.2.3
 
 ### Fixed
