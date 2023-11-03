@@ -4,7 +4,10 @@
 
 The Quickwit data source plugin allows you to query and visualize Quickwit data from within Grafana.
 
-**The plugin is not yet signed by the Grafana team and is not yet available on the Grafana catalog. In the meantime, you can download the latest version and follow the [installation guide](#installation)!**
+It is available for installation directly from the
+[Grafana catalog](https://grafana.com/grafana/plugins/quickwit-quickwit-datasource/)
+or you can download the latest version and follow the
+[installation guide](#installation).
 
 ## Special thanks and a note on the license
 
