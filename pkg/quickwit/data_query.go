@@ -340,6 +340,13 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
 	// TODO when hightlight is supported in quickwit
 	// b.AddHighlight()
+
+	// This is currently used only for log context query to get
+	// log lines before and after the selected log line
+	searchAfter := metric.Settings.Get("searchAfter").MustArray()
+	for _, value := range searchAfter {
+		b.AddSearchAfter(value)
+	}
 }
 
 func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {

@@ -101,11 +101,11 @@ func (b *SearchRequestBuilder) Sort(order SortOrder, field string, unmappedType 
 	return b
 }
 
-func (b *SearchRequestBuilder) AddSearchAfter(value interface{}) *SearchRequestBuilder {
+func (b *SearchRequestBuilder) AddSearchAfter(value any) *SearchRequestBuilder {
 	if b.customProps["search_after"] == nil {
-		b.customProps["search_after"] = []interface{}{value}
+		b.customProps["search_after"] = []any{value}
 	} else {
-		b.customProps["search_after"] = append(b.customProps["search_after"].([]interface{}), value)
+		b.customProps["search_after"] = append(b.customProps["search_after"].([]any), value)
 	}
 
 	return b

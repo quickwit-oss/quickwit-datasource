@@ -14,14 +14,20 @@ You need:
 
 ### Building
 
+### All the stack
+
+```shell
+./build_and_start.sh
+```
+
 #### Frontend
 
 ```bash
-$ yarn install
-$ yarn build
+$ npm install
+$ npm run build
 ```
 
-When developing the front, use `yarn dev`.
+When developing the front, use `npm run dev`.
 
 #### Backend
 
@@ -48,7 +54,6 @@ $ npm run test
 ```bash
 $ go test -v ./pkg/...
 ```
-
 
 ## Release
 
