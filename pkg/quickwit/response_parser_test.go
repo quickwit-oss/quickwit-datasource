@@ -304,7 +304,7 @@ func TestProcessLogsResponse(t *testing.T) {
 		require.Len(t, dataframes, 1)
 		frame := dataframes[0]
 
-		require.Equal(t, 11, len(frame.Fields))
+		require.Equal(t, 12, len(frame.Fields))
 		// Fields have the correct length
 		require.Equal(t, 2, frame.Fields[0].Len())
 		// First field is timeField
@@ -324,7 +324,7 @@ func TestProcessLogsResponse(t *testing.T) {
 		require.Equal(t, "nested.field.double_nested", frame.Fields[8].Name)
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[8].Type())
 		// Correctly detects type even if first value is null
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[10].Type())
+		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[10].Type())
 	})
 }
 
