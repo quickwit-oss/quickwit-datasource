@@ -434,8 +434,7 @@ export class QuickwitDataSource
 
   private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions) => {
     const direction = options?.direction || LogRowContextQueryDirection.Backward;
-    const searchAfterNs = row.dataFrame.fields.find((f) => f.name === 'sort')?.values.get(row.rowIndex) ?? [row.timeEpochNs]
-    const searchAfterMs = [Math.round(searchAfterNs[0]/1000000)]
+    const searchAfter = row.dataFrame.fields.find((f) => f.name === 'sort')?.values.get(row.rowIndex) ?? [row.timeEpochNs]
 
     const logQuery: Logs = {
       type: 'logs',
@@ -445,7 +444,7 @@ export class QuickwitDataSource
         // Sorting of results in the context query
         sortDirection: direction === LogRowContextQueryDirection.Backward ? 'desc' : 'asc',
         // Used to get the next log lines before/after the current log line using sort field of selected log line
-        searchAfter: searchAfterMs,
+        searchAfter: searchAfter,
       },
     };
 
