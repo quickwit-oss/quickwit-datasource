@@ -16,4 +16,4 @@ jobs:
       - name: Build plugin
         run: npm run build
       - name: Compatibility check
-        run: npx @grafana/levitate@latest is-compatible --path src/module.ts --target @grafana/data,@grafana/ui,@grafana/runtime
+        run: npx @grafana/levitate@latest is-compatible --path src/module.ts --target @grafana/data@9.5.1,@grafana/ui@9.5.1,@grafana/runtime@9.5.1
