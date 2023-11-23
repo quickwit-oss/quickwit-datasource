@@ -190,7 +190,6 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 	for _, searchReq := range searchRequests {
 		mr := multiRequest{
 			header: map[string]interface{}{
-				"search_type":        "query_then_fetch",
 				"ignore_unavailable": true,
 				"index":              c.index,
 			},

@@ -82,8 +82,7 @@ package quickwit
 // 	queryHeader := []byte(`
 // 	{
 // 		"ignore_unavailable": true,
-// 		"index": ["testdb-2022.11.14"],
-// 		"search_type": "query_then_fetch"
+// 		"index": ["testdb-2022.11.14"]
 // 	}
 // 	`)
 

@@ -95,7 +95,6 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 
 		assert.Equal(t, "my-index", jHeader.Get("index").MustString())
 		assert.True(t, jHeader.Get("ignore_unavailable").MustBool(false))
-		assert.Equal(t, "query_then_fetch", jHeader.Get("search_type").MustString())
 		assert.Empty(t, jHeader.Get("max_concurrent_shard_requests"))
 		assert.False(t, jHeader.Get("ignore_throttled").MustBool())
 
