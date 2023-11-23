@@ -1,7 +1,6 @@
 import { cloneDeep, first as _first, map as _map, groupBy } from 'lodash';
 import { Observable, lastValueFrom, from, isObservable, of } from 'rxjs';
 import { catchError, mergeMap, map } from 'rxjs/operators';
-import { intervalMap } from './IntervalMap';
 
 import {
   AbstractQuery,
@@ -32,7 +31,7 @@ import {
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, Logs, TermsQuery, Interval } from './types';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, Logs, TermsQuery } from './types';
 import { DataSourceWithBackend, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
 import { LogRowContextOptions, LogRowContextQueryDirection, QuickwitOptions } from 'quickwit';
 import { ElasticQueryBuilder } from 'QueryBuilder';
@@ -65,7 +64,6 @@ export class QuickwitDataSource
   queryBuilder: ElasticQueryBuilder;
   dataLinks: DataLinkConfig[];
   languageProvider: ElasticsearchLanguageProvider;
-  intervalPattern?: Interval;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<QuickwitOptions>,
@@ -457,7 +455,7 @@ export class QuickwitDataSource
       query: '',
     };
 
-    const timeRange = createContextTimeRange(row.timeEpochMs, direction, this.intervalPattern);
+    const timeRange = createContextTimeRange(row.timeEpochMs, direction);
     const range = {
       from: timeRange.from,
       to: timeRange.to,
@@ -820,35 +818,19 @@ function luceneEscape(value: string) {
   return value.replace(/([\!\*\+\-\=<>\s\&\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, '\\$1');
 }
 
-function createContextTimeRange(rowTimeEpochMs: number, direction: string, intervalPattern: Interval | undefined) {
+function createContextTimeRange(rowTimeEpochMs: number, direction: string) {
   const offset = 7;
   // For log context, we want to request data from 7 subsequent/previous indices
-  if (intervalPattern) {
-    const intervalInfo = intervalMap[intervalPattern];
-    if (direction === LogRowContextQueryDirection.Forward) {
-      return {
-        from: dateTime(rowTimeEpochMs).utc(),
-        to: dateTime(rowTimeEpochMs).add(offset, intervalInfo.amount).utc().startOf(intervalInfo.startOf),
-      };
-    } else {
-      return {
-        from: dateTime(rowTimeEpochMs).subtract(offset, intervalInfo.amount).utc().startOf(intervalInfo.startOf),
-        to: dateTime(rowTimeEpochMs).utc(),
-      };
-    }
-    // If we don't have an interval pattern, we can't do this, so we just request data from 7h before/after
+  if (direction === LogRowContextQueryDirection.Forward) {
+    return {
+      from: dateTime(rowTimeEpochMs).utc(),
+      to: dateTime(rowTimeEpochMs).add(offset, 'hours').utc(),
+    };
   } else {
-    if (direction === LogRowContextQueryDirection.Forward) {
-      return {
-        from: dateTime(rowTimeEpochMs).utc(),
-        to: dateTime(rowTimeEpochMs).add(offset, 'hours').utc(),
-      };
-    } else {
-      return {
-        from: dateTime(rowTimeEpochMs).subtract(offset, 'hours').utc(),
-        to: dateTime(rowTimeEpochMs).utc(),
-      };
-    }
+    return {
+      from: dateTime(rowTimeEpochMs).subtract(offset, 'hours').utc(),
+      to: dateTime(rowTimeEpochMs).utc(),
+    };
   }
 }
 
