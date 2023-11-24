@@ -6,7 +6,6 @@ import {
   BaseMetricAggregation,
   MetricAggregationWithField,
   MetricAggregationWithMissingSupport,
-  MetricAggregationWithInlineScript,
   PipelineMetricAggregation,
   MetricAggregationWithSettings,
 } from '../../../types';
@@ -61,10 +60,6 @@ export const isMetricAggregationWithSettings = (
 export const isMetricAggregationWithMeta = (
   metric: BaseMetricAggregation | MetricAggregationWithMeta
 ): metric is MetricAggregationWithMeta => metricAggregationConfig[metric.type].hasMeta;
-
-export const isMetricAggregationWithInlineScript = (
-  metric: BaseMetricAggregation | MetricAggregationWithInlineScript
-): metric is MetricAggregationWithInlineScript => metricAggregationConfig[metric.type].supportsInlineScript;
 
 export const METRIC_AGGREGATION_TYPES: MetricAggregationType[] = [
   'count',

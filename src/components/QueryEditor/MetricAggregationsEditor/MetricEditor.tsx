@@ -15,10 +15,9 @@ import { segmentStyles } from '../styles';
 import { SettingsEditor } from './SettingsEditor';
 import {
   isMetricAggregationWithField,
-  isMetricAggregationWithInlineScript,
   isMetricAggregationWithSettings,
   isPipelineAggregation,
-  isPipelineAggregationWithMultipleBucketPaths,
+  isPipelineAggregationWithMultipleBucketPaths
 } from './aggregations';
 import { changeMetricField, changeMetricType } from './state/actions';
 import { getStyles } from './styles';
@@ -64,13 +63,8 @@ export const MetricEditor = ({ value }: Props) => {
   const loadOptions = useCallback(async () => {
     const remoteFields = await getFields();
 
-    // Metric aggregations that have inline script support don't require a field to be set.
-    if (isMetricAggregationWithInlineScript(value)) {
-      return [{ label: 'None' }, ...remoteFields];
-    }
-
     return remoteFields;
-  }, [getFields, value]);
+  }, [getFields]);
 
   const previousMetrics = query.metrics!.slice(
     0,
