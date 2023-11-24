@@ -44,11 +44,8 @@ func TestErrorAvgMissingField(t *testing.T) {
 		LogMessageField:  "line",
 		LogLevelField:    "lvl",
 	}
-	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
-	require.NoError(t, err)
-
-	// FIXME: we should return the received error message
-	require.Len(t, result.response.Responses, 0)
+	_, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
+	require.Error(t, err)
 }
 
 func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
@@ -78,11 +75,8 @@ func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
 		LogMessageField:  "line",
 		LogLevelField:    "lvl",
 	}
-	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
-	require.NoError(t, err)
-
-	// FIXME: we should return the received error message
-	require.Len(t, result.response.Responses, 0)
+	_, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
+	require.Error(t, err)
 }
 
 func TestErrorTooManyDateHistogramBuckets(t *testing.T) {
