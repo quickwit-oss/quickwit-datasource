@@ -166,6 +166,13 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 
 	c.logger.Debug("Received multisearch response", "code", res.StatusCode, "status", res.Status, "content-length", res.ContentLength)
 
+	if res.StatusCode >= 400 {
+		jsonResponseBody, _ := json.Marshal(res.Body)
+		jsonQueryParam, _ := json.Marshal(queryParams)
+		jsonRequestBody, _ := json.Marshal(r.Requests)
+		c.logger.Error("Error on multisearch: statusCode = " + strconv.Itoa(res.StatusCode) + ", responseBody = " + string(jsonResponseBody) + ", queryParam = " + string(jsonQueryParam) + ", requestBody = " + string(jsonRequestBody))
+	}
+
 	start := time.Now()
 	c.logger.Debug("Decoding multisearch json response")
 
@@ -190,7 +197,6 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 	for _, searchReq := range searchRequests {
 		mr := multiRequest{
 			header: map[string]interface{}{
-				"search_type":        "query_then_fetch",
 				"ignore_unavailable": true,
 				"index":              c.index,
 			},

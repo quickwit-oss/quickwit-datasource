@@ -335,17 +335,23 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 		sort = es.SortOrderAsc
 	}
 	b.Sort(sort, defaultTimeField, "boolean")
-	// FIXME: check if sort by _doc is needed.
-	// b.Sort(sort, "_doc", "")
+	b.Sort(sort, "_doc", "")
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
 	// TODO when hightlight is supported in quickwit
 	// b.AddHighlight()
+
+	// This is currently used only for log context query to get
+	// log lines before and after the selected log line
+	searchAfter := metric.Settings.Get("searchAfter").MustArray()
+	for _, value := range searchAfter {
+		b.AddSearchAfter(value)
+	}
 }
 
 func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
 	metric := q.Metrics[0]
 	b.Sort(es.SortOrderDesc, defaultTimeField, "boolean")
-	// b.Sort(es.SortOrderDesc, "_doc", "")
+	b.Sort(es.SortOrderDesc, "_doc", "")
 	// Note: not supported in Quickwit
 	// b.AddDocValueField(defaultTimeField)
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("size").MustString(), defaultSize))

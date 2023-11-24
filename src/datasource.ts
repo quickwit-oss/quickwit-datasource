@@ -4,32 +4,36 @@ import { catchError, mergeMap, map } from 'rxjs/operators';
 
 import {
   AbstractQuery,
+  CoreApp,
   DataFrame,
+  DataQueryError,
   DataQueryRequest,
   DataQueryResponse,
   DataSourceApi,
   DataSourceInstanceSettings,
   DataSourceJsonData,
+  DataSourceWithLogsContextSupport,
   DataSourceWithQueryImportSupport,
   DataSourceWithSupplementaryQueriesSupport,
+  dateTime,
   FieldColorModeId,
   FieldType,
   getDefaultTimeRange,
   LoadingState,
   LogLevel,
+  LogRowModel,
   LogsVolumeCustomMetaData,
   LogsVolumeType,
   MetricFindValue,
   QueryFixAction,
+  rangeUtil,
   ScopedVars,
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, TermsQuery } from './types';
-import {
-  DataSourceWithBackend, getTemplateSrv, TemplateSrv,
-} from '@grafana/runtime';
-import { QuickwitOptions } from 'quickwit';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, Logs, TermsQuery } from './types';
+import { DataSourceWithBackend, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
+import { LogRowContextOptions, LogRowContextQueryDirection, QuickwitOptions } from 'quickwit';
 import { ElasticQueryBuilder } from 'QueryBuilder';
 import { colors } from '@grafana/ui';
 
@@ -39,7 +43,7 @@ import { isMetricAggregationWithField } from 'components/QueryEditor/MetricAggre
 import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregationsEditor/utils';
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
-
+import { ReactNode } from 'react';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
@@ -48,6 +52,7 @@ export type ElasticDatasource = QuickwitDataSource;
 export class QuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
   implements
+    DataSourceWithLogsContextSupport,
     DataSourceWithSupplementaryQueriesSupport<ElasticsearchQuery>,
     DataSourceWithQueryImportSupport<ElasticsearchQuery>
 {
@@ -427,6 +432,77 @@ export class QuickwitDataSource
     return text;
   }
 
+  private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions) => {
+    const direction = options?.direction || LogRowContextQueryDirection.Backward;
+    const searchAfter = row.dataFrame.fields.find((f) => f.name === 'sort')?.values.get(row.rowIndex) ?? [row.timeEpochNs]
+
+    const logQuery: Logs = {
+      type: 'logs',
+      id: '1',
+      settings: {
+        limit: options?.limit ? options?.limit.toString() : '10',
+        // Sorting of results in the context query
+        sortDirection: direction === LogRowContextQueryDirection.Backward ? 'desc' : 'asc',
+        // Used to get the next log lines before/after the current log line using sort field of selected log line
+        searchAfter: searchAfter,
+      },
+    };
+
+    const query: ElasticsearchQuery = {
+      refId: `log-context-${row.dataFrame.refId}-${direction}`,
+      metrics: [logQuery],
+      query: '',
+    };
+
+    const timeRange = createContextTimeRange(row.timeEpochMs, direction);
+    const range = {
+      from: timeRange.from,
+      to: timeRange.to,
+      raw: timeRange,
+    };
+
+    const interval = rangeUtil.calculateInterval(range, 1);
+
+    const contextRequest: DataQueryRequest<ElasticsearchQuery> = {
+      requestId: `log-context-request-${row.dataFrame.refId}-${options?.direction}`,
+      targets: [query],
+      interval: interval.interval,
+      intervalMs: interval.intervalMs,
+      range,
+      scopedVars: {},
+      timezone: 'UTC',
+      app: CoreApp.Explore,
+      startTime: Date.now(),
+      hideFromInspector: true,
+    };
+    return contextRequest;
+  };
+
+  getLogRowContext = async (row: LogRowModel, options?: LogRowContextOptions): Promise<{ data: DataFrame[] }> => {
+    const contextRequest = this.makeLogContextDataRequest(row, options);
+
+    return lastValueFrom(
+      this.query(contextRequest).pipe(
+        catchError((err) => {
+          const error: DataQueryError = {
+            message: 'Error during context query. Please check JS console logs.',
+            status: err.status,
+            statusText: err.statusText,
+          };
+          throw error;
+        })
+      )
+    );
+  };
+
+  showContextToggle(row?: LogRowModel | undefined): boolean {
+    return true;
+  }
+
+  getLogRowContextUi?(row: LogRowModel, runContextQuery?: (() => void) | undefined): ReactNode {
+    return true;
+  }
+
   /**
    * Returns false if the query should be skipped
    */
@@ -740,3 +816,20 @@ function luceneEscape(value: string) {
 
   return value.replace(/([\!\*\+\-\=<>\s\&\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, '\\$1');
 }
+
+function createContextTimeRange(rowTimeEpochMs: number, direction: string) {
+  const offset = 7;
+  // For log context, we want to request data from 7 subsequent/previous indices
+  if (direction === LogRowContextQueryDirection.Forward) {
+    return {
+      from: dateTime(rowTimeEpochMs).utc(),
+      to: dateTime(rowTimeEpochMs).add(offset, 'hours').utc(),
+    };
+  } else {
+    return {
+      from: dateTime(rowTimeEpochMs).subtract(offset, 'hours').utc(),
+      to: dateTime(rowTimeEpochMs).utc(),
+    };
+  }
+}
+

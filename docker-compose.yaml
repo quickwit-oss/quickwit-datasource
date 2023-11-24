@@ -12,7 +12,9 @@ services:
     volumes:
       - ./:/var/lib/grafana/plugins/grafana-quickwit-datasource
       - ./provisioning:/etc/grafana/provisioning
-    # - ./grafana/storage:/var/lib/grafana
-    # - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - gquickwit:/var/lib/grafana
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+volumes:
+  gquickwit:

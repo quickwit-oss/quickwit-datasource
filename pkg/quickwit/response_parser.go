@@ -108,6 +108,7 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 
 		doc := map[string]interface{}{
 			"_source": flattened,
+			"sort":    hit["sort"],
 		}
 
 		for k, v := range flattened {
