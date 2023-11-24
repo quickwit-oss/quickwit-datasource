@@ -7,7 +7,7 @@ import { extendedStats } from '../../../../queryDef';
 import { MetricAggregation, ExtendedStat } from '../../../../types';
 import { useQuery } from '../../ElasticsearchQueryContext';
 import { SettingsEditorContainer } from '../../SettingsEditorContainer';
-import { isMetricAggregationWithInlineScript, isMetricAggregationWithMissingSupport } from '../aggregations';
+import { isMetricAggregationWithMissingSupport } from '../aggregations';
 import { changeMetricMeta, changeMetricSetting } from '../state/actions';
 import { metricAggregationConfig } from '../utils';
 
@@ -150,10 +150,6 @@ export const SettingsEditor = ({ metric, previousMetrics }: Props) => {
             />
           </InlineField>
         </>
-      )}
-
-      {isMetricAggregationWithInlineScript(metric) && (
-        <SettingField label="Script" metric={metric} settingName="script" placeholder="_value * 1" />
       )}
 
       {isMetricAggregationWithMissingSupport(metric) && (
