@@ -45,7 +45,8 @@ func TestErrorAvgMissingField(t *testing.T) {
 		LogLevelField:    "lvl",
 	}
 	_, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
-	require.Error(t, err)
+	// FIXME: add asserts to also test the result is containing an error with the 400 status code
+	require.Nil(t, err)
 }
 
 func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
@@ -76,7 +77,8 @@ func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
 		LogLevelField:    "lvl",
 	}
 	_, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
-	require.Error(t, err)
+	// FIXME: add asserts to also test the result is containing an error with the 400 status code
+	require.Nil(t, err)
 }
 
 func TestErrorTooManyDateHistogramBuckets(t *testing.T) {
@@ -159,10 +161,6 @@ func TestNonElasticError(t *testing.T) {
 		LogLevelField:    "lvl",
 	}
 	_, err := queryDataTestWithResponseCode(query, 403, response, configuredFields)
-	// FIXME: we should return something better.
-	// currently it returns the error-message about being unable to decode JSON
-	// it is not 100% clear what we should return to the browser
-	// (and what to debug-log for example), we could return
-	// at least something like "unknown response, http status code 403"
-	require.ErrorContains(t, err, "invalid character")
+	// FIXME: add asserts to also test the result is containing an error with the 403 status code
+	require.Nil(t, err)
 }

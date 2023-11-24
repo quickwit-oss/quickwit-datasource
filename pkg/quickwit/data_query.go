@@ -1,13 +1,13 @@
 package quickwit
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
@@ -26,6 +26,26 @@ var newElasticsearchDataQuery = func(client es.Client, dataQuery []backend.DataQ
 		client:      client,
 		dataQueries: dataQuery,
 	}
+}
+
+func handleQuickwitErrors(err error) (*backend.QueryDataResponse, error) {
+	if nil == err {
+		return nil, nil
+	}
+
+	var payload = err.Error()
+	var qe es.QuickwitQueryError
+	unmarshall_err := json.Unmarshal([]byte(payload), &qe)
+	if unmarshall_err == nil {
+		return nil, err
+	}
+
+	result := backend.QueryDataResponse{
+		Responses: backend.Responses{},
+	}
+
+	result.Responses[qe.Key] = backend.ErrDataResponse(backend.Status(qe.Status), payload)
+	return &result, nil
 }
 
 func (e *elasticsearchDataQuery) execute() (*backend.QueryDataResponse, error) {
@@ -50,12 +70,11 @@ func (e *elasticsearchDataQuery) execute() (*backend.QueryDataResponse, error) {
 	}
 
 	res, err := e.client.ExecuteMultisearch(req)
-	if err != nil {
+	result, err := handleQuickwitErrors(err)
+	if result != nil {
+		return result, nil
+	} else if err != nil {
 		return &backend.QueryDataResponse{}, err
-	}
-
-	if res.Status == 404 {
-		return &backend.QueryDataResponse{}, fmt.Errorf("/_msearch endpoint not found, please check your Quickwit version")
 	}
 
 	return parseResponse(res.Responses, queries, e.client.GetConfiguredFields())
