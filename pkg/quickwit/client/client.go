@@ -168,7 +168,6 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 
 	if res.StatusCode >= 400 {
 		qe := QuickwitQueryError{
-			Key:          "msearch",
 			Status:       res.StatusCode,
 			Message:      "Error on multisearch",
 			ResponseBody: res.Body,

@@ -28,7 +28,7 @@ var newElasticsearchDataQuery = func(client es.Client, dataQuery []backend.DataQ
 	}
 }
 
-func handleQuickwitErrors(err error) (*backend.QueryDataResponse, error) {
+func handleQuickwitErrors(e *elasticsearchDataQuery, err error) (*backend.QueryDataResponse, error) {
 	if nil == err {
 		return nil, nil
 	}
@@ -44,7 +44,7 @@ func handleQuickwitErrors(err error) (*backend.QueryDataResponse, error) {
 		Responses: backend.Responses{},
 	}
 
-	result.Responses[qe.Key] = backend.ErrDataResponse(backend.Status(qe.Status), payload)
+	result.Responses[e.dataQueries[0].RefID] = backend.ErrDataResponse(backend.Status(qe.Status), payload)
 	return &result, nil
 }
 
@@ -70,7 +70,7 @@ func (e *elasticsearchDataQuery) execute() (*backend.QueryDataResponse, error) {
 	}
 
 	res, err := e.client.ExecuteMultisearch(req)
-	result, err := handleQuickwitErrors(err)
+	result, err := handleQuickwitErrors(e, err)
 	if result != nil {
 		return result, nil
 	} else if err != nil {

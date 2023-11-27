@@ -46,7 +46,6 @@ type SearchResponseHits struct {
 
 type QuickwitQueryError struct {
 	Status       int              `json:"status"`
-	Key          string           `json:"key"`
 	Message      string           `json:"message"`
 	ResponseBody io.ReadCloser    `json:"response_body"`
 	RequestBody  []*SearchRequest `json:"request_body"`
