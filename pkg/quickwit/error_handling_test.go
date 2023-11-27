@@ -44,9 +44,10 @@ func TestErrorAvgMissingField(t *testing.T) {
 		LogMessageField:  "line",
 		LogLevelField:    "lvl",
 	}
-	_, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
-	// FIXME: add asserts to also test the result is containing an error with the 400 status code
+
+	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
 	require.Nil(t, err)
+	require.Contains(t, result.response.Responses["A"].Error.Error(), "\"status\":400")
 }
 
 func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
@@ -76,9 +77,10 @@ func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
 		LogMessageField:  "line",
 		LogLevelField:    "lvl",
 	}
-	_, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
-	// FIXME: add asserts to also test the result is containing an error with the 400 status code
+
+	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
 	require.Nil(t, err)
+	require.Contains(t, result.response.Responses["A"].Error.Error(), "\"status\":400")
 }
 
 func TestErrorTooManyDateHistogramBuckets(t *testing.T) {
@@ -160,7 +162,8 @@ func TestNonElasticError(t *testing.T) {
 		LogMessageField:  "line",
 		LogLevelField:    "lvl",
 	}
-	_, err := queryDataTestWithResponseCode(query, 403, response, configuredFields)
-	// FIXME: add asserts to also test the result is containing an error with the 403 status code
+
+	result, err := queryDataTestWithResponseCode(query, 403, response, configuredFields)
 	require.Nil(t, err)
+	require.Contains(t, result.response.Responses["A"].Error.Error(), "\"status\":403")
 }
