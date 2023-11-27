@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/experimental/errorsource"
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
@@ -28,7 +29,7 @@ var newElasticsearchDataQuery = func(client es.Client, dataQuery []backend.DataQ
 	}
 }
 
-func handleQuickwitErrors(err error) (*backend.QueryDataResponse, error) {
+func handleQuickwitErrors(e *elasticsearchDataQuery, err error) (*backend.QueryDataResponse, error) {
 	if nil == err {
 		return nil, nil
 	}
@@ -40,12 +41,8 @@ func handleQuickwitErrors(err error) (*backend.QueryDataResponse, error) {
 		return nil, err
 	}
 
-	result := backend.QueryDataResponse{
-		Responses: backend.Responses{},
-	}
-
-	result.Responses[qe.Key] = backend.ErrDataResponse(backend.Status(qe.Status), payload)
-	return &result, nil
+	response := backend.NewQueryDataResponse()
+	return errorsource.AddErrorToResponse(e.dataQueries[0].RefID, response, err), nil
 }
 
 func (e *elasticsearchDataQuery) execute() (*backend.QueryDataResponse, error) {
@@ -70,7 +67,7 @@ func (e *elasticsearchDataQuery) execute() (*backend.QueryDataResponse, error) {
 	}
 
 	res, err := e.client.ExecuteMultisearch(req)
-	result, err := handleQuickwitErrors(err)
+	result, err := handleQuickwitErrors(e, err)
 	if result != nil {
 		return result, nil
 	} else if err != nil {
