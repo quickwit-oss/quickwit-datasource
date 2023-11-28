@@ -95,10 +95,29 @@ func parseResponse(responses []*es.SearchResponse, targets []*Query, configuredF
 	return &result, nil
 }
 
+func parseLuceneQuery(query string) []string {
+	var keywords []string
+
+	termRegex := regexp.MustCompile(`("[^"]+"|\S+)`)
+	matches := termRegex.FindAllString(query, -1)
+
+	for _, match := range matches {
+		if match[0] == '"' && match[len(match)-1] == '"' {
+			match = match[1 : len(match)-1]
+		}
+
+		keywords = append(keywords, strings.ReplaceAll(match, "*", ""))
+	}
+
+	return keywords
+}
+
 func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields es.ConfiguredFields, queryRes *backend.DataResponse) error {
 	propNames := make(map[string]bool)
 	docs := make([]map[string]interface{}, len(res.Hits.Hits))
 	searchWords := make(map[string]bool)
+
+	highlights := parseLuceneQuery(target.RawQuery)
 
 	for hitIdx, hit := range res.Hits.Hits {
 		var flattened map[string]interface{}
@@ -132,23 +151,6 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 			propNames[key] = true
 		}
 
-		// FIXME: Quickwit does not support highlight. Should we replace this by a custom highlighter?
-		// Process highlight to searchWords
-		if highlights, ok := doc["highlight"].(map[string]interface{}); ok {
-			for _, highlight := range highlights {
-				if highlightList, ok := highlight.([]interface{}); ok {
-					for _, highlightValue := range highlightList {
-						str := fmt.Sprintf("%v", highlightValue)
-						matches := searchWordsRegex.FindAllStringSubmatch(str, -1)
-
-						for _, v := range matches {
-							searchWords[v[1]] = true
-						}
-					}
-				}
-			}
-		}
-
 		docs[hitIdx] = doc
 	}
 
@@ -158,6 +160,11 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 	frames := data.Frames{}
 	frame := data.NewFrame("", fields...)
 	setPreferredVisType(frame, data.VisTypeLogs)
+
+	for _, keyword := range highlights {
+		searchWords[keyword] = true
+	}
+
 	setLogsCustomMeta(frame, searchWords, stringToIntWithDefaultValue(target.Metrics[0].Settings.Get("limit").MustString(), defaultSize))
 	frames = append(frames, frame)
 

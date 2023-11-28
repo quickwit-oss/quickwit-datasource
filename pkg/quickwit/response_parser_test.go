@@ -3178,6 +3178,36 @@ func TestLabelOrderInFieldName(t *testing.T) {
 	requireTimeSeriesName(t, "val1 error", frames[5])
 }
 
+func TestParseLuceneQuery(t *testing.T) {
+	t.Run("Empty term query", func(t *testing.T) {
+		query := ""
+		highlights := parseLuceneQuery(query)
+		require.Len(t, highlights, 0)
+	})
+
+	t.Run("Simple term query", func(t *testing.T) {
+		query := "foo"
+		highlights := parseLuceneQuery(query)
+		require.Len(t, highlights, 1)
+		require.Equal(t, "foo", highlights[0])
+	})
+
+	t.Run("Multi term query", func(t *testing.T) {
+		query := "foo bar"
+		highlights := parseLuceneQuery(query)
+		require.Len(t, highlights, 2)
+		require.Equal(t, "foo", highlights[0])
+		require.Equal(t, "bar", highlights[1])
+	})
+
+	t.Run("Wildcard query", func(t *testing.T) {
+		query := "foo*"
+		highlights := parseLuceneQuery(query)
+		require.Len(t, highlights, 1)
+		require.Equal(t, "foo", highlights[0])
+	})
+}
+
 func TestFlatten(t *testing.T) {
 	t.Run("Flattens simple object", func(t *testing.T) {
 		obj := map[string]interface{}{
