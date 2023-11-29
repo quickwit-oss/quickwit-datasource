@@ -335,7 +335,6 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 		sort = es.SortOrderAsc
 	}
 	b.Sort(sort, defaultTimeField, "boolean")
-	b.Sort(sort, "_doc", "")
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
 	// TODO when hightlight is supported in quickwit
 	// b.AddHighlight()
