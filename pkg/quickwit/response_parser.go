@@ -95,18 +95,46 @@ func parseResponse(responses []*es.SearchResponse, targets []*Query, configuredF
 	return &result, nil
 }
 
+func isLuceneOperator(value string) bool {
+	operators := []string{"or", "and"}
+	for _, op := range operators {
+		if strings.ToLower(value) == op {
+			return true
+		}
+	}
+
+	return false
+}
+
 func parseLuceneQuery(query string) []string {
 	var keywords []string
 
 	termRegex := regexp.MustCompile(`("[^"]+"|\S+)`)
-	matches := termRegex.FindAllString(query, -1)
+	keyValueRegex := regexp.MustCompile(`[^:]+:([^:]*)`)
+	termMatches := termRegex.FindAllString(query, -1)
 
-	for _, match := range matches {
-		if match[0] == '"' && match[len(match)-1] == '"' {
-			match = match[1 : len(match)-1]
+	for _, termMatch := range termMatches {
+		if termMatch[0] == '"' && termMatch[len(termMatches)-1] == '"' {
+			termMatch = termMatch[1 : len(termMatch)-1]
 		}
 
-		keywords = append(keywords, strings.ReplaceAll(match, "*", ""))
+		keyValueMatches := keyValueRegex.FindStringSubmatch(termMatch)
+		if len(keyValueMatches) <= 1 {
+			value := strings.ReplaceAll(termMatch, "*", "")
+			if isLuceneOperator(value) {
+				continue
+			}
+			keywords = append(keywords, value)
+			continue
+		}
+
+		for _, keyValueMatch := range keyValueMatches[1:] {
+			value := strings.ReplaceAll(keyValueMatch, "*", "")
+			if isLuceneOperator(value) {
+				continue
+			}
+			keywords = append(keywords, value)
+		}
 	}
 
 	return keywords

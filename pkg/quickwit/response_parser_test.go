@@ -3206,6 +3206,21 @@ func TestParseLuceneQuery(t *testing.T) {
 		require.Len(t, highlights, 1)
 		require.Equal(t, "foo", highlights[0])
 	})
+
+	t.Run("KeyValue query", func(t *testing.T) {
+		query := "foo:bar*"
+		highlights := parseLuceneQuery(query)
+		require.Len(t, highlights, 1)
+		require.Equal(t, "bar", highlights[0])
+	})
+
+	t.Run("MultiKeyValue query", func(t *testing.T) {
+		query := "foo:bar* AND foo2:bar2"
+		highlights := parseLuceneQuery(query)
+		require.Len(t, highlights, 2)
+		require.Equal(t, "bar", highlights[0])
+		require.Equal(t, "bar2", highlights[1])
+	})
 }
 
 func TestFlatten(t *testing.T) {
