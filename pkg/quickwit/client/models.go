@@ -2,6 +2,7 @@ package es
 
 import (
 	"encoding/json"
+	"io"
 	"time"
 )
 
@@ -41,6 +42,14 @@ func (r *SearchRequest) MarshalJSON() ([]byte, error) {
 // SearchResponseHits represents search response hits
 type SearchResponseHits struct {
 	Hits []map[string]interface{}
+}
+
+type QuickwitQueryError struct {
+	Status       int              `json:"status"`
+	Message      string           `json:"message"`
+	ResponseBody io.ReadCloser    `json:"response_body"`
+	RequestBody  []*SearchRequest `json:"request_body"`
+	QueryParam   string           `json:"query_param"`
 }
 
 // SearchResponse represents a search response
