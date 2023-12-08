@@ -3,6 +3,8 @@ import { DataSourceHttpSettings, Input, InlineField, FieldSet } from '@grafana/u
 import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
 import { QuickwitOptions } from 'quickwit';
 import { coerceOptions } from './utils';
+import { Divider } from 'components/Divider';
+import { DataLinks } from './DataLinks';
 
 interface Props extends DataSourcePluginOptionsEditorProps<QuickwitOptions> {}
 
@@ -27,6 +29,7 @@ export const ConfigEditor = (props: Props) => {
         onChange={onOptionsChange}
       />
       <QuickwitDetails value={options} onChange={onSettingsChange} />
+      <QuickwitDataLinks value={options} onChange={onOptionsChange} />
     </>
   );
 };
@@ -35,6 +38,27 @@ type DetailsProps = {
   value: DataSourceSettings<QuickwitOptions>;
   onChange: (value: DataSourceSettings<QuickwitOptions>) => void;
 };
+
+export const QuickwitDataLinks = ({ value, onChange }: DetailsProps) => {
+  return (
+    <div className="gf-form-group">
+      <Divider hideLine />
+      <DataLinks
+        value={value.jsonData.dataLinks}
+        onChange={(newValue) => {
+          onChange({
+            ...value,
+            jsonData: {
+              ...value.jsonData,
+              dataLinks: newValue,
+            },
+          });
+        }}
+      />
+    </div>
+  )
+};
+
 export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
   return (
     <>
