@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +23,70 @@ var qwlog = log.New()
 
 type QuickwitDatasource struct {
 	dsInfo es.DatasourceInfo
+}
+
+type QuickwitMapping struct {
+	IndexConfig struct {
+		DocMapping struct {
+			TimestampField string `json:"timestamp_field"`
+			FieldMappings  []struct {
+				Name         string   `json:"name"`
+				InputFormats []string `json:"input_formats"`
+			} `json:"field_mappings"`
+		} `json:"doc_mapping"`
+	} `json:"index_config"`
+}
+
+func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (string, string, error) {
+	mappingEndpointUrl := qwUrl + "/indexes/" + index
+	qwlog.Info("Calling quickwit endpoint: " + mappingEndpointUrl)
+	r, err := cli.Get(mappingEndpointUrl)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
+		qwlog.Error(errMsg)
+		return "", "", err
+	}
+
+	statusCode := r.StatusCode
+	if statusCode < 200 || statusCode >= 400 {
+		errMsg := fmt.Sprintf("Error when calling url = %s: statusCode = %d", mappingEndpointUrl, statusCode)
+		qwlog.Error(errMsg)
+		return "", "", fmt.Errorf(errMsg)
+	}
+
+	defer r.Body.Close()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
+		qwlog.Error(errMsg)
+		return "", "", err
+	}
+
+	var payload QuickwitMapping
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		errMsg := fmt.Sprintf("Unmarshalling body error: err = %s, body = %s", err.Error(), (body))
+		qwlog.Error(errMsg)
+		return "", "", fmt.Errorf(errMsg)
+	}
+
+	timestampFieldName := payload.IndexConfig.DocMapping.TimestampField
+	timestampFieldFormat := "undef"
+	for _, field := range payload.IndexConfig.DocMapping.FieldMappings {
+		if field.Name == timestampFieldName && len(field.InputFormats) > 0 {
+			timestampFieldFormat = field.InputFormats[0]
+			break
+		}
+	}
+
+	if timestampFieldFormat == "undef" {
+		errMsg := fmt.Sprintf("No format found for field: %s", string(timestampFieldName))
+		qwlog.Error(errMsg)
+		return timestampFieldName, "", fmt.Errorf(errMsg)
+	}
+
+	qwlog.Info(fmt.Sprintf("Found timestampFieldName = %s, timestampFieldFormat = %s", timestampFieldName, timestampFieldFormat))
+	return timestampFieldName, timestampFieldFormat, nil
 }
 
 // Creates a Quickwit datasource.
@@ -50,19 +113,8 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		return nil, err
 	}
 
-	timeField, ok := jsonData["timeField"].(string)
-	if !ok {
-		return nil, errors.New("timeField cannot be cast to string")
-	}
-
-	if timeField == "" {
-		return nil, errors.New("a time field name is required")
-	}
-
-	timeOutputFormat, ok := jsonData["timeOutputFormat"].(string)
-	if !ok {
-		return nil, errors.New("timeOutputFormat cannot be cast to string")
-	}
+	timeField, toOk := jsonData["timeField"].(string)
+	timeOutputFormat, tofOk := jsonData["timeOutputFormat"].(string)
 
 	logLevelField, ok := jsonData["logLevelField"].(string)
 	if !ok {
@@ -94,6 +146,13 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		}
 	default:
 		maxConcurrentShardRequests = 256
+	}
+
+	if !toOk || !tofOk {
+		timeField, timeOutputFormat, err = getTimestampFieldInfos(index, settings.URL, httpCli)
+		if nil != err {
+			return nil, err
+		}
 	}
 
 	configuredFields := es.ConfiguredFields{

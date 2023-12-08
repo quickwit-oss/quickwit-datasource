@@ -79,13 +79,31 @@ export class QuickwitDataSource
     super(instanceSettings);
     const settingsData = instanceSettings.jsonData || ({} as QuickwitOptions);
     this.index = settingsData.index || '';
-    this.timeField = settingsData.timeField || '';
-    this.timeOutputFormat = settingsData.timeOutputFormat || '';
-    this.logMessageField = settingsData.logMessageField || '';
-    this.logLevelField = settingsData.logLevelField || '';
+    this.timeField = ''
+    this.timeOutputFormat = ''
     this.queryBuilder = new ElasticQueryBuilder({
       timeField: this.timeField,
     });
+    from(this.getResource('indexes/' + this.index)).pipe(
+      map((indexMetadata) => {
+        let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
+        let timestampFieldName = indexMetadata.index_config.doc_mapping.timestamp_field
+        let timestampField = fields.find((field) => field.json_path === timestampFieldName);
+        let timestampFormat = timestampField ? timestampField.field_mapping.output_format || '' : ''
+        let timestampFieldInfos = { 'field': timestampFieldName, 'format': timestampFormat }
+        console.log("timestampFieldInfos = " + JSON.stringify(timestampFieldInfos))
+        return timestampFieldInfos
+      })
+    ).subscribe(result => {
+      this.timeField = result.field;
+      this.timeOutputFormat = result.format;
+      this.queryBuilder = new ElasticQueryBuilder({
+        timeField: this.timeField,
+      });
+    });
+    
+    this.logMessageField = settingsData.logMessageField || '';
+    this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
     this.languageProvider = new ElasticsearchLanguageProvider(this);
   }
@@ -111,12 +129,7 @@ export class QuickwitDataSource
         message: 'Cannot save datasource, `index` is required',
       };
     }
-    if (this.timeField === '' ) {
-      return {
-        status: 'error',
-        message: 'Cannot save datasource, `timeField` is required',
-      };
-    }
+
     return lastValueFrom(
       from(this.getResource('indexes/' + this.index)).pipe(
         mergeMap((indexMetadata) => {
@@ -147,21 +160,19 @@ export class QuickwitDataSource
     if (this.timeField === '') {
       return `Time field must not be empty`;
     }
-    if (indexMetadata.index_config.doc_mapping.timestamp_field !== this.timeField) {
-      return `No timestamp field named '${this.timeField}' found`;
-    }
+
     let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
     let timestampField = fields.find((field) => field.json_path === this.timeField);
+
     // Should never happen.
     if (timestampField === undefined) {
       return `No field named '${this.timeField}' found in the doc mapping. This should never happen.`;
     }
-    if (timestampField.field_mapping.output_format !== this.timeOutputFormat) {
-      return `Timestamp output format is declared as '${timestampField.field_mapping.output_format}' in the doc mapping, not '${this.timeOutputFormat}'.`;
-    }
+
+    let timeOutputFormat = timestampField.field_mapping.output_format || 'unknown';
     const supportedTimestampOutputFormats = ['unix_timestamp_secs', 'unix_timestamp_millis', 'unix_timestamp_micros', 'unix_timestamp_nanos', 'iso8601', 'rfc3339'];
-    if (!supportedTimestampOutputFormats.includes(this.timeOutputFormat)) {
-      return `Timestamp output format '${this.timeOutputFormat} is not yet supported.`;
+    if (!supportedTimestampOutputFormats.includes(timeOutputFormat)) {
+      return `Timestamp output format '${timeOutputFormat} is not yet supported.`;
     }
     return;
   }
@@ -310,6 +321,7 @@ export class QuickwitDataSource
       ignore_unavailable: true,
       index: this.index,
     });
+
     let esQuery = JSON.stringify(this.queryBuilder.getTermsQuery(queryDef));
     esQuery = esQuery.replace(/\$timeFrom/g, range.from.valueOf().toString());
     esQuery = esQuery.replace(/\$timeTo/g, range.to.valueOf().toString());
