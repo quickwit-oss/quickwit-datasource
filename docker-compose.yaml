@@ -5,8 +5,10 @@ services:
     image: jaegertracing/jaeger-query:1.51
     container_name: 'jaeger-quickwit'
     environment:
-      - GRPC_STORAGE_SERVER=host.docker.internal:7280
+      - GRPC_STORAGE_SERVER=host.docker.internal:7281
       - SPAN_STORAGE_TYPE=grpc-plugin
+    ports:
+      - 16686:16686
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
