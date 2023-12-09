@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0-beta.0
+
+This version works only with quickwit main version (or docker edge).
+
+- Add support for log context feature.
+- Better error handling.
+
 ## 0.2.4
 
 ### What's Changed

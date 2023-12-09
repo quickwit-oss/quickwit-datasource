@@ -167,10 +167,17 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 	c.logger.Debug("Received multisearch response", "code", res.StatusCode, "status", res.Status, "content-length", res.ContentLength)
 
 	if res.StatusCode >= 400 {
-		jsonResponseBody, _ := json.Marshal(res.Body)
-		jsonQueryParam, _ := json.Marshal(queryParams)
-		jsonRequestBody, _ := json.Marshal(r.Requests)
-		c.logger.Error("Error on multisearch: statusCode = " + strconv.Itoa(res.StatusCode) + ", responseBody = " + string(jsonResponseBody) + ", queryParam = " + string(jsonQueryParam) + ", requestBody = " + string(jsonRequestBody))
+		qe := QuickwitQueryError{
+			Status:       res.StatusCode,
+			Message:      "Error on multisearch",
+			ResponseBody: res.Body,
+			QueryParam:   queryParams,
+			RequestBody:  r.Requests,
+		}
+
+		errorPayload, _ := json.Marshal(qe)
+		c.logger.Error(string(errorPayload))
+		return nil, fmt.Errorf(string(errorPayload))
 	}
 
 	start := time.Now()

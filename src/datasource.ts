@@ -125,8 +125,7 @@ export class QuickwitDataSource
         catchError((err) => {
           if (err.status === 404) {
             return of({ status: 'error', message: 'Index does not exists.' });
-          }
-          else if (err.message) {
+          } else if (err.message) {
             return of({ status: 'error', message: err.message });
           } else {
             return of({ status: 'error', message: err.status });
@@ -487,7 +486,7 @@ export class QuickwitDataSource
           const error: DataQueryError = {
             message: 'Error during context query. Please check JS console logs.',
             status: err.status,
-            statusText: err.statusText,
+            statusText: err.message,
           };
           throw error;
         })
