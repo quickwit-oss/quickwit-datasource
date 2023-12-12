@@ -100,6 +100,7 @@ export interface TermsQuery {
 
 export type DataLinkConfig = {
   field: string;
+  base64TraceId: boolean;
   url: string;
   urlDisplayLabel?: string;
   datasourceUid?: string;

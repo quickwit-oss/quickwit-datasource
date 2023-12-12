@@ -11,7 +11,7 @@ import {
   InlineFieldRow,
   InlineLabel,
   Input,
-  useStyles2
+  useStyles2,
 } from '@grafana/ui';
 
 import { DataSourcePicker } from '@grafana/runtime'

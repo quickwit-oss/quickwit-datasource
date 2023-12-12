@@ -4,6 +4,7 @@ import { catchError, mergeMap, map } from 'rxjs/operators';
 
 import {
   AbstractQuery,
+  ArrayVector,
   CoreApp,
   DataFrame,
   DataLink,
@@ -17,6 +18,7 @@ import {
   DataSourceWithQueryImportSupport,
   DataSourceWithSupplementaryQueriesSupport,
   dateTime,
+  Field,
   FieldColorModeId,
   FieldType,
   getDefaultTimeRange,
@@ -32,7 +34,7 @@ import {
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, Logs, TermsQuery } from './types';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, Logs, TermsQuery } from './types';
 import { 
   DataSourceWithBackend, 
   getTemplateSrv, 
@@ -348,7 +350,7 @@ export class QuickwitDataSource
     };
     return from(this.getResource('indexes/' + this.index)).pipe(
       map((index_metadata) => {
-        const shouldAddField = (field: Field) => {
+        const shouldAddField = (field: QuickwitField) => {
           const translated_type = typeMap[field.field_mapping.type];
           if (type?.length === 0) {
             return true;
@@ -578,8 +580,8 @@ export class QuickwitDataSource
 }
 
 // Returns a flatten array of fields and nested fields found in the given `FieldMapping` array. 
-function getAllFields(field_mappings: FieldMapping[]): Field[] {
-  const fields: Field[] = [];
+function getAllFields(field_mappings: FieldMapping[]): QuickwitField[] {
+  const fields: QuickwitField[] = [];
   for (const field_mapping of field_mappings) {
     if (field_mapping.type === 'object' && field_mapping.field_mappings !== undefined) {
       for (const child_field_mapping of getAllFields(field_mapping.field_mappings)) {
@@ -821,13 +823,51 @@ function luceneEscape(value: string) {
   return value.replace(/([\!\*\+\-\=<>\s\&\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, '\\$1');
 }
 
+function base64ToHex(base64String: string) {
+  const binaryString = window.atob(base64String);
+  return Array.from(binaryString).map(char => {
+      const byte = char.charCodeAt(0);
+      return ('0' + byte.toString(16)).slice(-2);
+  }).join('');
+}
+
 export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: DataLinkConfig[]) {
   if (!dataLinks.length) {
     return;
   }
+  let fields_to_fix_condition = (field: Field) => {
+    return dataLinks.filter((dataLink) => dataLink.field === field.name && dataLink.base64TraceId).length === 1;
+  };
+  const fields_to_keep  = dataFrame.fields.filter((field) => {
+    return !fields_to_fix_condition(field)
+  });
+  let new_fields = dataFrame
+    .fields
+    .filter(fields_to_fix_condition)
+    .map((field) => {
+      let values = field.values.toArray().map((value) => {
+        try {
+          return base64ToHex(value);
+        } catch (e) {
+          console.warn("cannot convert value from base64 to hex", e);
+          return value;
+        };
+      });
+      return {
+        ...field,
+        values: new ArrayVector(values),
+      }
+    });
+
+  if (new_fields.length === 0) {
+    return;
+  }
+
+  dataFrame.fields = [new_fields[0], ...fields_to_keep];
 
   for (const field of dataFrame.fields) {
     const linksToApply = dataLinks.filter((dataLink) => dataLink.field === field.name);
+    console.log(linksToApply);
 
     if (linksToApply.length === 0) {
       continue;

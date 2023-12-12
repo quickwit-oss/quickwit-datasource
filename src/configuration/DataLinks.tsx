@@ -76,7 +76,7 @@ export const DataLinks = (props: Props) => {
           icon="plus"
           onClick={(event) => {
             event.preventDefault();
-            const newDataLinks = [...(value || []), { field: '', url: '' }];
+            const newDataLinks = [...(value || []), { field: '', url: '', base64TraceId: true }];
             onChange(newDataLinks);
           }}
         >

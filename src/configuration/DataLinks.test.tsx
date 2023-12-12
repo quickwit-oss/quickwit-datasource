@@ -59,9 +59,11 @@ const testValue: DataLinkConfig[] = [
   {
     field: 'regex1',
     url: 'localhost1',
+    base64TraceId: false,
   },
   {
     field: 'regex2',
     url: 'localhost2',
+    base64TraceId: true,
   },
 ];
