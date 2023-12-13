@@ -31,6 +31,7 @@ export const DataLink = (props: Props) => {
   const styles = useStyles2(getStyles);
   const [showInternalLink, setShowInternalLink] = useInternalLink(value.datasourceUid);
   const [base64TraceId, setBase64TraceId] = useState(true)
+  const labelWidth = 24
 
   const handleChange = (field: keyof typeof value) => (event: React.ChangeEvent<HTMLInputElement>) => {
     onChange({
@@ -50,7 +51,7 @@ export const DataLink = (props: Props) => {
         <InlineField
           label="Field"
           htmlFor="elasticsearch-datasource-config-field"
-          labelWidth={12}
+          labelWidth={labelWidth}
           tooltip={'Can be exact field name or a regex pattern that will match on the field name.'}
         >
           <Input
@@ -74,7 +75,7 @@ export const DataLink = (props: Props) => {
 
       <InlineFieldRow>
         <div className={styles.urlField}>
-          <InlineLabel htmlFor="elasticsearch-datasource-internal-link" width={12}>
+          <InlineLabel htmlFor="elasticsearch-datasource-internal-link" width={labelWidth}>
             {showInternalLink ? 'Query' : 'URL'}
           </InlineLabel>
           <DataLinkInput
@@ -108,7 +109,16 @@ export const DataLink = (props: Props) => {
       </InlineFieldRow>
 
       <div className={styles.row}>
-        <InlineField label="Internal link" labelWidth={12}>
+        <InlineField label="Field encoded in base64?" labelWidth={labelWidth} tooltip="Quickwit encodes the traceID in base64 by default whereas Jaeger uses hex">
+          <InlineSwitch
+            value={base64TraceId}
+            onChange={() => handleBase64TraceId(!base64TraceId, value)}
+          />
+        </InlineField>
+      </div>
+
+      <div className={styles.row}>
+        <InlineField label="Internal link" labelWidth={labelWidth}>
           <InlineSwitch
             label="Internal link"
             value={showInternalLink || false}
@@ -136,16 +146,6 @@ export const DataLink = (props: Props) => {
             current={value.datasourceUid}
           />
         )}
-      </div>
-
-      <div className={styles.row}>
-        <InlineField label="Base64" labelWidth={12} title="Base64 traceId">
-          <InlineSwitch
-            label="Base64 traceId"
-            value={base64TraceId}
-            onChange={() => handleBase64TraceId(!base64TraceId, value)}
-          />
-        </InlineField>
       </div>
     </div>
   );
