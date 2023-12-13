@@ -139,9 +139,8 @@ export const DataLink = (props: Props) => {
       </div>
 
       <div className={styles.row}>
-        <InlineField label="Base64" labelWidth={12}>
+        <InlineField label="Base64" labelWidth={12} title="Base64 traceId">
           <InlineSwitch
-            title="Base64 traceId"
             label="Base64 traceId"
             value={base64TraceId}
             onChange={() => handleBase64TraceId(!base64TraceId, value)}
