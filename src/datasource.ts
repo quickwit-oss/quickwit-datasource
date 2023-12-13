@@ -867,7 +867,6 @@ export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: D
 
   for (const field of dataFrame.fields) {
     const linksToApply = dataLinks.filter((dataLink) => dataLink.field === field.name);
-    console.log(linksToApply);
 
     if (linksToApply.length === 0) {
       continue;
