@@ -73,6 +73,15 @@ export const DataLink = (props: Props) => {
         />
       </div>
 
+      <div className={styles.row}>
+        <InlineField label="Field encoded in base64?" labelWidth={labelWidth} tooltip="Must be at true if your trace ID is encoded in base64. This is the case for the `otel-traces-v0_6` index.">
+          <InlineSwitch
+            value={base64TraceId}
+            onChange={() => handleBase64TraceId(!base64TraceId, value)}
+          />
+        </InlineField>
+      </div>
+
       <InlineFieldRow>
         <div className={styles.urlField}>
           <InlineLabel htmlFor="elasticsearch-datasource-internal-link" width={labelWidth}>
@@ -107,15 +116,6 @@ export const DataLink = (props: Props) => {
           </InlineField>
         </div>
       </InlineFieldRow>
-
-      <div className={styles.row}>
-        <InlineField label="Field encoded in base64?" labelWidth={labelWidth} tooltip="Quickwit encodes the traceID in base64 by default whereas Jaeger uses hex">
-          <InlineSwitch
-            value={base64TraceId}
-            onChange={() => handleBase64TraceId(!base64TraceId, value)}
-          />
-        </InlineField>
-      </div>
 
       <div className={styles.row}>
         <InlineField label="Internal link" labelWidth={labelWidth}>
