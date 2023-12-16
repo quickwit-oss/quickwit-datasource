@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,6 +38,23 @@ type QuickwitMapping struct {
 	} `json:"index_config"`
 }
 
+type QuickwitCreationErrorPayload struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status"`
+}
+
+func newErrorCreationPayload(statusCode int, message string) error {
+	var payload QuickwitCreationErrorPayload
+	payload.Message = message
+	payload.StatusCode = statusCode
+	json, err := json.Marshal(payload)
+	if nil != err {
+		return err
+	}
+
+	return errors.New(string(json))
+}
+
 func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (string, string, error) {
 	mappingEndpointUrl := qwUrl + "/indexes/" + index
 	qwlog.Info("Calling quickwit endpoint: " + mappingEndpointUrl)
@@ -48,10 +66,11 @@ func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (strin
 	}
 
 	statusCode := r.StatusCode
+
 	if statusCode < 200 || statusCode >= 400 {
-		errMsg := fmt.Sprintf("Error when calling url = %s: statusCode = %d", mappingEndpointUrl, statusCode)
+		errMsg := fmt.Sprintf("Error when calling url = %s", mappingEndpointUrl)
 		qwlog.Error(errMsg)
-		return "", "", fmt.Errorf(errMsg)
+		return "", "", newErrorCreationPayload(statusCode, errMsg)
 	}
 
 	defer r.Body.Close()
@@ -59,7 +78,7 @@ func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (strin
 	if err != nil {
 		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
 		qwlog.Error(errMsg)
-		return "", "", err
+		return "", "", newErrorCreationPayload(statusCode, errMsg)
 	}
 
 	var payload QuickwitMapping
@@ -67,7 +86,7 @@ func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (strin
 	if err != nil {
 		errMsg := fmt.Sprintf("Unmarshalling body error: err = %s, body = %s", err.Error(), (body))
 		qwlog.Error(errMsg)
-		return "", "", fmt.Errorf(errMsg)
+		return "", "", newErrorCreationPayload(statusCode, errMsg)
 	}
 
 	timestampFieldName := payload.IndexConfig.DocMapping.TimestampField
@@ -82,7 +101,7 @@ func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (strin
 	if timestampFieldFormat == "undef" {
 		errMsg := fmt.Sprintf("No format found for field: %s", string(timestampFieldName))
 		qwlog.Error(errMsg)
-		return timestampFieldName, "", fmt.Errorf(errMsg)
+		return timestampFieldName, "", newErrorCreationPayload(statusCode, errMsg)
 	}
 
 	qwlog.Info(fmt.Sprintf("Found timestampFieldName = %s, timestampFieldFormat = %s", timestampFieldName, timestampFieldFormat))

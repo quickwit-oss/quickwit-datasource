@@ -51,6 +51,7 @@ import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregatio
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
+import { extractJsonPayload } from 'utils';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
@@ -91,8 +92,18 @@ export class QuickwitDataSource
         let timestampField = fields.find((field) => field.json_path === timestampFieldName);
         let timestampFormat = timestampField ? timestampField.field_mapping.output_format || '' : ''
         let timestampFieldInfos = { 'field': timestampFieldName, 'format': timestampFormat }
-        console.log("timestampFieldInfos = " + JSON.stringify(timestampFieldInfos))
         return timestampFieldInfos
+      }),
+      catchError((err) => {
+        if (!err.data || !err.data.error) {
+          let err_source = extractJsonPayload(err.data.error)
+          if(!err_source) {
+            throw err
+          }
+        }
+
+        // the error will be handle in the testDatasource function
+        return of({'field': '', 'format': ''})
       })
     ).subscribe(result => {
       this.timeField = result.field;
@@ -143,7 +154,14 @@ export class QuickwitDataSource
           return of({ status: 'success', message: `Index OK. Time field name OK` });
         }),
         catchError((err) => {
-          if (err.status === 404) {
+          if (err.data && err.data.error) {
+            let err_source = extractJsonPayload(err.data.error)
+            if (err_source) {
+              err = err_source
+            }
+          }
+
+          if (err.status && err.status === 404) {
             return of({ status: 'error', message: 'Index does not exists.' });
           } else if (err.message) {
             return of({ status: 'error', message: err.message });
@@ -377,7 +395,7 @@ export class QuickwitDataSource
         return _map(filteredFields, (field) => {
           return {
             text: field.json_path,
-            value: typeMap[field.field_mapping.type],
+            value: typeMap[field.field_mapping.type]
           };
         });
       })

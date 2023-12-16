@@ -13,6 +13,20 @@ export const describeMetric = (metric: MetricAggregation) => {
   return `${metricAggregationConfig[metric.type].label} ${metric.field}`;
 };
 
+export const extractJsonPayload = (msg: string) => {
+  const match = msg.match(/{.*}/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+      return JSON.parse(match[0]);
+  } catch (error) {
+      return null;
+  }
+}
+
 /**
  * Utility function to clean up aggregations settings objects.
  * It removes nullish values and empty strings, array and objects
