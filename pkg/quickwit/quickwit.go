@@ -31,8 +31,9 @@ type QuickwitMapping struct {
 		DocMapping struct {
 			TimestampField string `json:"timestamp_field"`
 			FieldMappings  []struct {
-				Name         string   `json:"name"`
-				InputFormats []string `json:"input_formats"`
+				Name         string  `json:"name"`
+				Type         string  `json:"type"`
+				OutputFormat *string `json:"output_format,omitempty"`
 			} `json:"field_mappings"`
 		} `json:"doc_mapping"`
 	} `json:"index_config"`
@@ -92,8 +93,8 @@ func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (strin
 	timestampFieldName := payload.IndexConfig.DocMapping.TimestampField
 	timestampFieldFormat := "undef"
 	for _, field := range payload.IndexConfig.DocMapping.FieldMappings {
-		if field.Name == timestampFieldName && len(field.InputFormats) > 0 {
-			timestampFieldFormat = field.InputFormats[0]
+		if field.Type == "datetime" && field.Name == timestampFieldName && nil != field.OutputFormat {
+			timestampFieldFormat = *field.OutputFormat
 			break
 		}
 	}
