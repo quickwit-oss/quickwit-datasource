@@ -26,15 +26,18 @@ type QuickwitDatasource struct {
 	dsInfo es.DatasourceInfo
 }
 
+type FieldMappings struct {
+	Name          string          `json:"name"`
+	Type          string          `json:"type"`
+	OutputFormat  *string         `json:"output_format,omitempty"`
+	FieldMappings []FieldMappings `json:"field_mappings,omitempty"`
+}
+
 type QuickwitMapping struct {
 	IndexConfig struct {
 		DocMapping struct {
-			TimestampField string `json:"timestamp_field"`
-			FieldMappings  []struct {
-				Name         string  `json:"name"`
-				Type         string  `json:"type"`
-				OutputFormat *string `json:"output_format,omitempty"`
-			} `json:"field_mappings"`
+			TimestampField string          `json:"timestamp_field"`
+			FieldMappings  []FieldMappings `json:"field_mappings"`
 		} `json:"doc_mapping"`
 	} `json:"index_config"`
 }
@@ -54,6 +57,30 @@ func newErrorCreationPayload(statusCode int, message string) error {
 	}
 
 	return errors.New(string(json))
+}
+
+func findTimeStampFormat(timestampFieldName string, parentName *string, fieldMappings []FieldMappings) *string {
+	if nil == fieldMappings {
+		return nil
+	}
+
+	for _, field := range fieldMappings {
+		fieldName := field.Name
+		if nil != parentName {
+			fieldName = fmt.Sprintf("%s.%s", *parentName, fieldName)
+		}
+
+		if field.Type == "datetime" && fieldName == timestampFieldName && nil != field.OutputFormat {
+			return field.OutputFormat
+		} else if field.Type == "object" && nil != field.FieldMappings {
+			format := findTimeStampFormat(timestampFieldName, &field.Name, field.FieldMappings)
+			if nil != format {
+				return format
+			}
+		}
+	}
+
+	return nil
 }
 
 func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (string, string, error) {
@@ -91,22 +118,16 @@ func getTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (strin
 	}
 
 	timestampFieldName := payload.IndexConfig.DocMapping.TimestampField
-	timestampFieldFormat := "undef"
-	for _, field := range payload.IndexConfig.DocMapping.FieldMappings {
-		if field.Type == "datetime" && field.Name == timestampFieldName && nil != field.OutputFormat {
-			timestampFieldFormat = *field.OutputFormat
-			break
-		}
-	}
+	timestampFieldFormat := findTimeStampFormat(timestampFieldName, nil, payload.IndexConfig.DocMapping.FieldMappings)
 
-	if timestampFieldFormat == "undef" {
+	if nil == timestampFieldFormat {
 		errMsg := fmt.Sprintf("No format found for field: %s", string(timestampFieldName))
 		qwlog.Error(errMsg)
 		return timestampFieldName, "", newErrorCreationPayload(statusCode, errMsg)
 	}
 
-	qwlog.Info(fmt.Sprintf("Found timestampFieldName = %s, timestampFieldFormat = %s", timestampFieldName, timestampFieldFormat))
-	return timestampFieldName, timestampFieldFormat, nil
+	qwlog.Info(fmt.Sprintf("Found timestampFieldName = %s, timestampFieldFormat = %s", timestampFieldName, *timestampFieldFormat))
+	return timestampFieldName, *timestampFieldFormat, nil
 }
 
 // Creates a Quickwit datasource.
