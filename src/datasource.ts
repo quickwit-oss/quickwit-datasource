@@ -343,29 +343,55 @@ export class QuickwitDataSource
   // or fix the implementation.
   getFields(type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
     const typeMap: Record<string, string> = {
-      u64: 'number',
-      i64: 'number',
-      datetime: 'date',
+      date: 'date',
+      date_nanos: 'date',
+      keyword: 'string',
       text: 'string',
+      binary: 'string',
+      byte: 'number',
+      long: 'number',
+      unsigned_long: 'number',
+      double: 'number',
+      integer: 'number',
+      short: 'number',
+      float: 'number',
+      scaled_float: 'number'
     };
+
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((index_metadata) => {
-        const shouldAddField = (field: QuickwitField) => {
-          const translated_type = typeMap[field.field_mapping.type];
+        const shouldAddField = (field: any) => {
+          if (!field.aggregatable) {
+            return false
+          }
+
+          const translated_type = typeMap[field.type];
           if (type?.length === 0) {
             return true;
           }
+
           return type?.includes(translated_type);
         };
 
-        const fields = getAllFields(index_metadata.index_config.doc_mapping.field_mappings);
+        const fields = Object.entries(index_metadata.fields).flatMap(([key, value]) => {
+          let payload = JSON.parse(JSON.stringify(value))
+          return Object.entries(payload).map(([subkey, subvalue]) => {
+            let subpayload = JSON.parse(JSON.stringify(subvalue))
+            return {
+              text: key,
+              type: subkey,
+              aggregatable: subpayload["aggregatable"]
+            }
+          })
+        });
+
         const filteredFields = fields.filter(shouldAddField);
 
         // transform to array
         return _map(filteredFields, (field) => {
           return {
-            text: field.json_path,
-            value: typeMap[field.field_mapping.type],
+            text: field.text,
+            value: typeMap[field.type],
           };
         });
       })
