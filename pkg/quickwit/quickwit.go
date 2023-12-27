@@ -143,7 +143,9 @@ func (ds *QuickwitDatasource) CallResource(ctx context.Context, req *backend.Cal
 	// - empty string for fetching db version
 	// - ?/_mapping for fetching index mapping
 	// - _msearch for executing getTerms queries
-	if req.Path != "" && !strings.Contains(req.Path, "indexes/") && req.Path != "_elastic/_msearch" {
+	// - _field_caps for getting all the aggregeables fields
+	var isFieldCaps = req.Path != "" && strings.Contains(req.Path, "_elastic") && strings.Contains(req.Path, "/_field_caps")
+	if req.Path != "" && !strings.Contains(req.Path, "indexes/") && req.Path != "_elastic/_msearch" && !isFieldCaps {
 		return fmt.Errorf("invalid resource URL: %s", req.Path)
 	}
 

@@ -348,7 +348,7 @@ export class QuickwitDataSource
       datetime: 'date',
       text: 'string',
     };
-    return from(this.getResource('indexes/' + this.index)).pipe(
+    return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((index_metadata) => {
         const shouldAddField = (field: QuickwitField) => {
           const translated_type = typeMap[field.field_mapping.type];
