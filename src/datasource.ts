@@ -34,7 +34,7 @@ import {
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, Logs, TermsQuery } from './types';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, Logs, TermsQuery, FieldCapabilitiesResponse } from './types';
 import { 
   DataSourceWithBackend, 
   getTemplateSrv, 
@@ -51,6 +51,7 @@ import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregatio
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
+import { fieldTypeMap } from 'utils';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
@@ -338,36 +339,35 @@ export class QuickwitDataSource
     );
   }
 
-  // TODO: instead of being a string, this could be a custom type representing all the elastic types
-  // FIXME: This doesn't seem to return actual MetricFindValues, we should either change the return type
-  // or fix the implementation.
-  getFields(type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
-    const typeMap: Record<string, string> = {
-      u64: 'number',
-      i64: 'number',
-      datetime: 'date',
-      text: 'string',
-    };
-    return from(this.getResource('indexes/' + this.index)).pipe(
-      map((index_metadata) => {
-        const shouldAddField = (field: QuickwitField) => {
-          const translated_type = typeMap[field.field_mapping.type];
+  getFields(aggregatable?: boolean, type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
+    // TODO: use the time range.
+    return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
+      map((field_capabilities_response: FieldCapabilitiesResponse) => {
+        const shouldAddField = (field: any) => {
+          if (aggregatable !== undefined && field.aggregatable !== aggregatable) {
+            return false
+          }
           if (type?.length === 0) {
             return true;
           }
-          return type?.includes(translated_type);
+          return type?.includes(field.type) || type?.includes(fieldTypeMap[field.type]);
         };
-
-        const fields = getAllFields(index_metadata.index_config.doc_mapping.field_mappings);
-        const filteredFields = fields.filter(shouldAddField);
-
-        // transform to array
-        return _map(filteredFields, (field) => {
-          return {
-            text: field.json_path,
-            value: typeMap[field.field_mapping.type],
-          };
-        });
+        const fieldCapabilities = Object.entries(field_capabilities_response.fields)
+          .flatMap(([field_name, field_capabilities]) => {
+            return Object.values(field_capabilities)
+              .map(field_capability => {
+                field_capability.field_name = field_name;
+                return field_capability;
+              });
+          })
+          .filter(shouldAddField)
+          .map(field_capability => {
+            return {
+              text: field_capability.field_name,
+              value: fieldTypeMap[field_capability.type],  
+            }
+          });
+        return fieldCapabilities;
       })
     );
   }
@@ -376,7 +376,7 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys() {
-    return lastValueFrom(this.getFields());
+    return lastValueFrom(this.getFields(true));
   }
 
   /**
@@ -523,12 +523,10 @@ export class QuickwitDataSource
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
-      // Interpolation of variables with a list of values for which we don't
-      // know the field name is not supported yet.
-      // if (parsedQuery.find === 'fields') {
-      //   parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-      //   return lastValueFrom(this.getFields(parsedQuery.type, range));
-      // }
+      if (parsedQuery.find === 'fields') {
+        parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
+        return lastValueFrom(this.getFields(true, parsedQuery.type, range));
+      }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);

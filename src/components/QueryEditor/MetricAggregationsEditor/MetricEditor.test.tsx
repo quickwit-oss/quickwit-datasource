@@ -31,7 +31,7 @@ describe('Metric Editor', () => {
 
     const wrapper = ({ children }: PropsWithChildren<{}>) => (
       <ElasticsearchProvider
-        datasource={{ getFields } as ElasticDatasource}
+        datasource={{ getFields: getFields } as ElasticDatasource}
         query={query}
         app={undefined}
         range={getDefaultTimeRange()}
