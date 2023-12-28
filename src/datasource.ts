@@ -339,21 +339,18 @@ export class QuickwitDataSource
     );
   }
 
-  getAggregatableFields(type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
+  getFields(aggregatable?: boolean, type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
     // TODO: use the time range.
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
-          if (!field.aggregatable) {
+          if (aggregatable !== undefined && !field.aggregatable) {
             return false
           }
-
-          const translatedType = fieldTypeMap[field.type];
           if (type?.length === 0) {
             return true;
           }
-
-          return type?.includes(translatedType);
+          return type?.includes(field.type) || type?.includes(fieldTypeMap[field.type]);
         };
         const fieldCapabilities = Object.entries(field_capabilities_response.fields)
           .flatMap(([field_name, field_capabilities]) => {
@@ -379,7 +376,7 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys() {
-    return lastValueFrom(this.getAggregatableFields());
+    return lastValueFrom(this.getFields(true));
   }
 
   /**
@@ -526,6 +523,10 @@ export class QuickwitDataSource
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
+      if (parsedQuery.find === 'fields') {
+        parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
+        return lastValueFrom(this.getFields(true, parsedQuery.type, range));
+      }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);

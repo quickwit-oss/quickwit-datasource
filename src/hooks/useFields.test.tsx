@@ -23,11 +23,11 @@ describe('useFields hook', () => {
       bucketAggs: [defaultBucketAgg()],
     };
 
-    const getFields: ElasticDatasource['getAggregatableFields'] = jest.fn(() => from([[]]));
+    const getFields: ElasticDatasource['getFields'] = jest.fn(() => from([[]]));
 
     const wrapper = ({ children }: PropsWithChildren<{}>) => (
       <ElasticsearchProvider
-        datasource={{ getAggregatableFields: getFields } as ElasticDatasource}
+        datasource={{ getFields: getFields } as ElasticDatasource}
         query={query}
         app={undefined}
         range={timeRange}
