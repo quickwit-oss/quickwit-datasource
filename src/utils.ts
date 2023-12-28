@@ -13,6 +13,20 @@ export const describeMetric = (metric: MetricAggregation) => {
   return `${metricAggregationConfig[metric.type].label} ${metric.field}`;
 };
 
+export const extractJsonPayload = (msg: string) => {
+  const match = msg.match(/{.*}/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+      return JSON.parse(match[0]);
+  } catch (error) {
+      return null;
+  }
+}
+
 /**
  * Utility function to clean up aggregations settings objects.
  * It removes nullish values and empty strings, array and objects
@@ -101,3 +115,19 @@ export const getScriptValue = (metric: MetricAggregationWithInlineScript) =>
 
 export const unsupportedVersionMessage =
   'Support for Elasticsearch versions after their end-of-life (currently versions < 7.16) was removed. Using unsupported version of Elasticsearch may lead to unexpected and incorrect results.';
+
+export const fieldTypeMap: Record<string, string> = {
+  date: 'date',
+  date_nanos: 'date',
+  keyword: 'string',
+  text: 'string',
+  binary: 'string',
+  byte: 'number',
+  long: 'number',
+  unsigned_long: 'number',
+  double: 'number',
+  integer: 'number',
+  short: 'number',
+  float: 'number',
+  scaled_float: 'number'
+};

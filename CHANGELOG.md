@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0-beta.1
+
+This version works only with quickwit main version (or docker edge).
+
+- Add support for data links (possibility to create links to other datasources).
+
 ## 0.3.0-beta.0
 
 This version works only with quickwit main version (or docker edge).

@@ -100,6 +100,7 @@ export interface TermsQuery {
 
 export type DataLinkConfig = {
   field: string;
+  base64TraceId: boolean;
   url: string;
   urlDisplayLabel?: string;
   datasourceUid?: string;
@@ -148,4 +149,24 @@ export type Field = {
   // Json path of the field.
   path_segments: string[];
   field_mapping: FieldMapping;
+}
+
+export type FieldCapabilityType = "long" | "keyword" | "text" | "date" | "date_nanos" | "binary" | "double" | "boolean" | "ip" | "nested" | "object" ;
+
+export type FieldCapability = {
+  field_name: string; // Field not present in response but added on the front side.
+  type: FieldCapabilityType;
+  metadata_field: boolean;
+  searchable: boolean;
+  aggregatable: boolean;
+  indices: String[];
+}
+
+export type FieldCapabilitiesResponse = {
+  indices: String[];
+  fields: {
+    [key: string]: {
+      [key in FieldCapabilityType]: FieldCapability;
+    }
+  };
 }

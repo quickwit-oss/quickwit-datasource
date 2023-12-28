@@ -1,6 +1,18 @@
 version: '3.0'
 
 services:
+  jaeger:
+    image: jaegertracing/jaeger-query:1.51
+    container_name: 'jaeger-quickwit'
+    environment:
+      - GRPC_STORAGE_SERVER=host.docker.internal:7281
+      - SPAN_STORAGE_TYPE=grpc-plugin
+    ports:
+      - 16686:16686
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - quickwit
   grafana:
     container_name: 'grafana-quickwit-datasource'
     build:
@@ -15,6 +27,12 @@ services:
       - gquickwit:/var/lib/grafana
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - quickwit
+
+networks:
+  quickwit:
+    driver: bridge
 
 volumes:
   gquickwit:

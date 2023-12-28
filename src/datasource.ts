@@ -4,8 +4,10 @@ import { catchError, mergeMap, map } from 'rxjs/operators';
 
 import {
   AbstractQuery,
+  ArrayVector,
   CoreApp,
   DataFrame,
+  DataLink,
   DataQueryError,
   DataQueryRequest,
   DataQueryResponse,
@@ -16,6 +18,7 @@ import {
   DataSourceWithQueryImportSupport,
   DataSourceWithSupplementaryQueriesSupport,
   dateTime,
+  Field,
   FieldColorModeId,
   FieldType,
   getDefaultTimeRange,
@@ -31,8 +34,12 @@ import {
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field, FieldMapping, IndexMetadata, Logs, TermsQuery } from './types';
-import { DataSourceWithBackend, getTemplateSrv, TemplateSrv } from '@grafana/runtime';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, Logs, TermsQuery, FieldCapabilitiesResponse } from './types';
+import { 
+  DataSourceWithBackend, 
+  getTemplateSrv, 
+  TemplateSrv,
+  getDataSourceSrv } from '@grafana/runtime';
 import { LogRowContextOptions, LogRowContextQueryDirection, QuickwitOptions } from 'quickwit';
 import { ElasticQueryBuilder } from 'QueryBuilder';
 import { colors } from '@grafana/ui';
@@ -44,6 +51,7 @@ import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregatio
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
+import { extractJsonPayload, fieldTypeMap } from 'utils';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
@@ -72,26 +80,54 @@ export class QuickwitDataSource
     super(instanceSettings);
     const settingsData = instanceSettings.jsonData || ({} as QuickwitOptions);
     this.index = settingsData.index || '';
-    this.timeField = settingsData.timeField || '';
-    this.timeOutputFormat = settingsData.timeOutputFormat || '';
-    this.logMessageField = settingsData.logMessageField || '';
-    this.logLevelField = settingsData.logLevelField || '';
+    this.timeField = ''
+    this.timeOutputFormat = ''
     this.queryBuilder = new ElasticQueryBuilder({
       timeField: this.timeField,
     });
+    from(this.getResource('indexes/' + this.index)).pipe(
+      map((indexMetadata) => {
+        let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
+        let timestampFieldName = indexMetadata.index_config.doc_mapping.timestamp_field
+        let timestampField = fields.find((field) => field.json_path === timestampFieldName);
+        let timestampFormat = timestampField ? timestampField.field_mapping.output_format || '' : ''
+        let timestampFieldInfos = { 'field': timestampFieldName, 'format': timestampFormat }
+        return timestampFieldInfos
+      }),
+      catchError((err) => {
+        if (!err.data || !err.data.error) {
+          let err_source = extractJsonPayload(err.data.error)
+          if(!err_source) {
+            throw err
+          }
+        }
+
+        // the error will be handle in the testDatasource function
+        return of({'field': '', 'format': ''})
+      })
+    ).subscribe(result => {
+      this.timeField = result.field;
+      this.timeOutputFormat = result.format;
+      this.queryBuilder = new ElasticQueryBuilder({
+        timeField: this.timeField,
+      });
+    });
+    
+    this.logMessageField = settingsData.logMessageField || '';
+    this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
     this.languageProvider = new ElasticsearchLanguageProvider(this);
   }
 
-  // /**
-  //  * Ideally final -- any other implementation may not work as expected
-  //  */
-  // query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
-  //   return super.query(request)
-  //     .pipe(map((response) => {
-  //       return response;
-  //     }));
-  // }
+  query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
+     return super.query(request)
+       .pipe(map((response) => {
+          response.data.forEach((dataFrame) => {
+            enhanceDataFrameWithDataLinks(dataFrame, this.dataLinks);
+          });
+         return response;
+       }));
+  }
 
     /**
      * Checks the plugin health
@@ -104,12 +140,7 @@ export class QuickwitDataSource
         message: 'Cannot save datasource, `index` is required',
       };
     }
-    if (this.timeField === '' ) {
-      return {
-        status: 'error',
-        message: 'Cannot save datasource, `timeField` is required',
-      };
-    }
+
     return lastValueFrom(
       from(this.getResource('indexes/' + this.index)).pipe(
         mergeMap((indexMetadata) => {
@@ -123,7 +154,14 @@ export class QuickwitDataSource
           return of({ status: 'success', message: `Index OK. Time field name OK` });
         }),
         catchError((err) => {
-          if (err.status === 404) {
+          if (err.data && err.data.error) {
+            let err_source = extractJsonPayload(err.data.error)
+            if (err_source) {
+              err = err_source
+            }
+          }
+
+          if (err.status && err.status === 404) {
             return of({ status: 'error', message: 'Index does not exists.' });
           } else if (err.message) {
             return of({ status: 'error', message: err.message });
@@ -140,21 +178,19 @@ export class QuickwitDataSource
     if (this.timeField === '') {
       return `Time field must not be empty`;
     }
-    if (indexMetadata.index_config.doc_mapping.timestamp_field !== this.timeField) {
-      return `No timestamp field named '${this.timeField}' found`;
-    }
+
     let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
     let timestampField = fields.find((field) => field.json_path === this.timeField);
+
     // Should never happen.
     if (timestampField === undefined) {
       return `No field named '${this.timeField}' found in the doc mapping. This should never happen.`;
     }
-    if (timestampField.field_mapping.output_format !== this.timeOutputFormat) {
-      return `Timestamp output format is declared as '${timestampField.field_mapping.output_format}' in the doc mapping, not '${this.timeOutputFormat}'.`;
-    }
+
+    let timeOutputFormat = timestampField.field_mapping.output_format || 'unknown';
     const supportedTimestampOutputFormats = ['unix_timestamp_secs', 'unix_timestamp_millis', 'unix_timestamp_micros', 'unix_timestamp_nanos', 'iso8601', 'rfc3339'];
-    if (!supportedTimestampOutputFormats.includes(this.timeOutputFormat)) {
-      return `Timestamp output format '${this.timeOutputFormat} is not yet supported.`;
+    if (!supportedTimestampOutputFormats.includes(timeOutputFormat)) {
+      return `Timestamp output format '${timeOutputFormat} is not yet supported.`;
     }
     return;
   }
@@ -303,6 +339,7 @@ export class QuickwitDataSource
       ignore_unavailable: true,
       index: this.index,
     });
+
     let esQuery = JSON.stringify(this.queryBuilder.getTermsQuery(queryDef));
     esQuery = esQuery.replace(/\$timeFrom/g, range.from.valueOf().toString());
     esQuery = esQuery.replace(/\$timeTo/g, range.to.valueOf().toString());
@@ -331,36 +368,35 @@ export class QuickwitDataSource
     );
   }
 
-  // TODO: instead of being a string, this could be a custom type representing all the elastic types
-  // FIXME: This doesn't seem to return actual MetricFindValues, we should either change the return type
-  // or fix the implementation.
-  getFields(type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
-    const typeMap: Record<string, string> = {
-      u64: 'number',
-      i64: 'number',
-      datetime: 'date',
-      text: 'string',
-    };
-    return from(this.getResource('indexes/' + this.index)).pipe(
-      map((index_metadata) => {
-        const shouldAddField = (field: Field) => {
-          const translated_type = typeMap[field.field_mapping.type];
+  getFields(aggregatable?: boolean, type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
+    // TODO: use the time range.
+    return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
+      map((field_capabilities_response: FieldCapabilitiesResponse) => {
+        const shouldAddField = (field: any) => {
+          if (aggregatable !== undefined && field.aggregatable !== aggregatable) {
+            return false
+          }
           if (type?.length === 0) {
             return true;
           }
-          return type?.includes(translated_type);
+          return type?.includes(field.type) || type?.includes(fieldTypeMap[field.type]);
         };
-
-        const fields = getAllFields(index_metadata.index_config.doc_mapping.field_mappings);
-        const filteredFields = fields.filter(shouldAddField);
-
-        // transform to array
-        return _map(filteredFields, (field) => {
-          return {
-            text: field.json_path,
-            value: typeMap[field.field_mapping.type],
-          };
-        });
+        const fieldCapabilities = Object.entries(field_capabilities_response.fields)
+          .flatMap(([field_name, field_capabilities]) => {
+            return Object.values(field_capabilities)
+              .map(field_capability => {
+                field_capability.field_name = field_name;
+                return field_capability;
+              });
+          })
+          .filter(shouldAddField)
+          .map(field_capability => {
+            return {
+              text: field_capability.field_name,
+              value: fieldTypeMap[field_capability.type],  
+            }
+          });
+        return fieldCapabilities;
       })
     );
   }
@@ -369,7 +405,7 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys() {
-    return lastValueFrom(this.getFields());
+    return lastValueFrom(this.getFields(true));
   }
 
   /**
@@ -516,12 +552,10 @@ export class QuickwitDataSource
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
-      // Interpolation of variables with a list of values for which we don't
-      // know the field name is not supported yet.
-      // if (parsedQuery.find === 'fields') {
-      //   parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-      //   return lastValueFrom(this.getFields(parsedQuery.type, range));
-      // }
+      if (parsedQuery.find === 'fields') {
+        parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
+        return lastValueFrom(this.getFields(true, parsedQuery.type, range));
+      }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);
@@ -573,8 +607,8 @@ export class QuickwitDataSource
 }
 
 // Returns a flatten array of fields and nested fields found in the given `FieldMapping` array. 
-function getAllFields(field_mappings: FieldMapping[]): Field[] {
-  const fields: Field[] = [];
+function getAllFields(field_mappings: FieldMapping[]): QuickwitField[] {
+  const fields: QuickwitField[] = [];
   for (const field_mapping of field_mappings) {
     if (field_mapping.type === 'object' && field_mapping.field_mappings !== undefined) {
       for (const child_field_mapping of getAllFields(field_mapping.field_mappings)) {
@@ -816,6 +850,83 @@ function luceneEscape(value: string) {
   return value.replace(/([\!\*\+\-\=<>\s\&\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, '\\$1');
 }
 
+function base64ToHex(base64String: string) {
+  const binaryString = window.atob(base64String);
+  return Array.from(binaryString).map(char => {
+      const byte = char.charCodeAt(0);
+      return ('0' + byte.toString(16)).slice(-2);
+  }).join('');
+}
+
+export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: DataLinkConfig[]) {
+  if (!dataLinks.length) {
+    return;
+  }
+  let fields_to_fix_condition = (field: Field) => {
+    return dataLinks.filter((dataLink) => dataLink.field === field.name && dataLink.base64TraceId).length === 1;
+  };
+  const fields_to_keep  = dataFrame.fields.filter((field) => {
+    return !fields_to_fix_condition(field)
+  });
+  let new_fields = dataFrame
+    .fields
+    .filter(fields_to_fix_condition)
+    .map((field) => {
+      let values = field.values.toArray().map((value) => {
+        try {
+          return base64ToHex(value);
+        } catch (e) {
+          console.warn("cannot convert value from base64 to hex", e);
+          return value;
+        };
+      });
+      return {
+        ...field,
+        values: new ArrayVector(values),
+      }
+    });
+
+  if (new_fields.length === 0) {
+    return;
+  }
+
+  dataFrame.fields = [new_fields[0], ...fields_to_keep];
+
+  for (const field of dataFrame.fields) {
+    const linksToApply = dataLinks.filter((dataLink) => dataLink.field === field.name);
+
+    if (linksToApply.length === 0) {
+      continue;
+    }
+
+    field.config = field.config || {};
+    field.config.links = [...(field.config.links || [], linksToApply.map(generateDataLink))];
+  }
+}
+
+function generateDataLink(linkConfig: DataLinkConfig): DataLink {
+  const dataSourceSrv = getDataSourceSrv();
+
+  if (linkConfig.datasourceUid) {
+    const dsSettings = dataSourceSrv.getInstanceSettings(linkConfig.datasourceUid);
+
+    return {
+      title: linkConfig.urlDisplayLabel || '',
+      url: '',
+      internal: {
+        query: { query: linkConfig.url },
+        datasourceUid: linkConfig.datasourceUid,
+        datasourceName: dsSettings?.name ?? 'Data source not found',
+      },
+    };
+  } else {
+    return {
+      title: linkConfig.urlDisplayLabel || '',
+      url: linkConfig.url,
+    };
+  }
+}
+
 function createContextTimeRange(rowTimeEpochMs: number, direction: string) {
   const offset = 7;
   // For log context, we want to request data from 7 subsequent/previous indices
@@ -831,4 +942,3 @@ function createContextTimeRange(rowTimeEpochMs: number, direction: string) {
     };
   }
 }
-

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +23,13 @@ var qwlog = log.New()
 
 type QuickwitDatasource struct {
 	dsInfo es.DatasourceInfo
+}
+
+type FieldMappings struct {
+	Name          string          `json:"name"`
+	Type          string          `json:"type"`
+	OutputFormat  *string         `json:"output_format,omitempty"`
+	FieldMappings []FieldMappings `json:"field_mappings,omitempty"`
 }
 
 // Creates a Quickwit datasource.
@@ -50,19 +56,8 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		return nil, err
 	}
 
-	timeField, ok := jsonData["timeField"].(string)
-	if !ok {
-		return nil, errors.New("timeField cannot be cast to string")
-	}
-
-	if timeField == "" {
-		return nil, errors.New("a time field name is required")
-	}
-
-	timeOutputFormat, ok := jsonData["timeOutputFormat"].(string)
-	if !ok {
-		return nil, errors.New("timeOutputFormat cannot be cast to string")
-	}
+	timeField, toOk := jsonData["timeField"].(string)
+	timeOutputFormat, tofOk := jsonData["timeOutputFormat"].(string)
 
 	logLevelField, ok := jsonData["logLevelField"].(string)
 	if !ok {
@@ -94,6 +89,13 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		}
 	default:
 		maxConcurrentShardRequests = 256
+	}
+
+	if !toOk || !tofOk {
+		timeField, timeOutputFormat, err = GetTimestampFieldInfos(index, settings.URL, httpCli)
+		if nil != err {
+			return nil, err
+		}
 	}
 
 	configuredFields := es.ConfiguredFields{
@@ -143,7 +145,9 @@ func (ds *QuickwitDatasource) CallResource(ctx context.Context, req *backend.Cal
 	// - empty string for fetching db version
 	// - ?/_mapping for fetching index mapping
 	// - _msearch for executing getTerms queries
-	if req.Path != "" && !strings.Contains(req.Path, "indexes/") && req.Path != "_elastic/_msearch" {
+	// - _field_caps for getting all the aggregeables fields
+	var isFieldCaps = req.Path != "" && strings.Contains(req.Path, "_elastic") && strings.Contains(req.Path, "/_field_caps")
+	if req.Path != "" && !strings.Contains(req.Path, "indexes/") && req.Path != "_elastic/_msearch" && !isFieldCaps {
 		return fmt.Errorf("invalid resource URL: %s", req.Path)
 	}
 
