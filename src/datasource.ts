@@ -526,12 +526,6 @@ export class QuickwitDataSource
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
-      // Interpolation of variables with a list of values for which we don't
-      // know the field name is not supported yet.
-      // if (parsedQuery.find === 'fields') {
-      //   parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-      //   return lastValueFrom(this.getFields(parsedQuery.type, range));
-      // }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);
