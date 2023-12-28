@@ -48,12 +48,12 @@ describe('useFields hook', () => {
       { wrapper, initialProps: 'cardinality' }
     );
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith([], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith(true, [], timeRange);
 
     // All other metric aggregations only work on numbers
     rerender('avg');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(['number'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith(true, ['number'], timeRange);
 
     //
     // BUCKET AGGREGATIONS
@@ -61,26 +61,26 @@ describe('useFields hook', () => {
     // Date Histrogram only works on dates
     rerender('date_histogram');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(['date'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith(true, ['date'], timeRange);
 
     // Histrogram only works on numbers
     rerender('histogram');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(['number'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith(true, ['number'], timeRange);
 
     // Geohash Grid only works on geo_point data
     rerender('geohash_grid');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(['geo_point'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith(true, ['geo_point'], timeRange);
 
     // All other bucket aggregation work on any kind of data
     rerender('terms');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith([], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith(true, [], timeRange);
 
     // top_metrics work on only on numeric data in 7.7
     rerender('top_metrics');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(['number'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith(true, ['number'], timeRange);
   });
 });
