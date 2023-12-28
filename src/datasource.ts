@@ -344,7 +344,7 @@ export class QuickwitDataSource
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
-          if (aggregatable !== undefined && !field.aggregatable) {
+          if (aggregatable !== undefined && field.aggregatable !== aggregatable) {
             return false
           }
           if (type?.length === 0) {
