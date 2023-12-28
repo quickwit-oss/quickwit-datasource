@@ -11,8 +11,9 @@ services:
       - 16686:16686
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    networks:
-      - quickwit
+    network_mode: host
+    # networks:
+    #   - quickwit
   grafana:
     container_name: 'grafana-quickwit-datasource'
     build:
@@ -27,8 +28,9 @@ services:
       - gquickwit:/var/lib/grafana
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    networks:
-      - quickwit
+    network_mode: host
+    # networks:
+    #   - quickwit
 
 networks:
   quickwit:

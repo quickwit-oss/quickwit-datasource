@@ -34,7 +34,7 @@ import {
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, Logs, TermsQuery } from './types';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, Logs, TermsQuery, FieldCapabilitiesResponse } from './types';
 import { 
   DataSourceWithBackend, 
   getTemplateSrv, 
@@ -51,6 +51,7 @@ import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregatio
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
+import { fieldTypeMap } from 'utils';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
@@ -338,62 +339,38 @@ export class QuickwitDataSource
     );
   }
 
-  // TODO: instead of being a string, this could be a custom type representing all the elastic types
-  // FIXME: This doesn't seem to return actual MetricFindValues, we should either change the return type
-  // or fix the implementation.
-  getFields(type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
-    const typeMap: Record<string, string> = {
-      date: 'date',
-      date_nanos: 'date',
-      keyword: 'string',
-      text: 'string',
-      binary: 'string',
-      byte: 'number',
-      long: 'number',
-      unsigned_long: 'number',
-      double: 'number',
-      integer: 'number',
-      short: 'number',
-      float: 'number',
-      scaled_float: 'number'
-    };
-
+  getAggregatableFields(type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
+    // TODO: use the time range.
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
-      map((index_metadata) => {
+      map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
           if (!field.aggregatable) {
             return false
           }
 
-          const translated_type = typeMap[field.type];
+          const translatedType = fieldTypeMap[field.type];
           if (type?.length === 0) {
             return true;
           }
 
-          return type?.includes(translated_type);
+          return type?.includes(translatedType);
         };
-
-        const fields = Object.entries(index_metadata.fields).flatMap(([key, value]) => {
-          let payload = JSON.parse(JSON.stringify(value))
-          return Object.entries(payload).map(([subkey, subvalue]) => {
-            let subpayload = JSON.parse(JSON.stringify(subvalue))
-            return {
-              text: key,
-              type: subkey,
-              aggregatable: subpayload["aggregatable"]
-            }
+        const fieldCapabilities = Object.entries(field_capabilities_response.fields)
+          .flatMap(([field_name, field_capabilities]) => {
+            return Object.values(field_capabilities)
+              .map(field_capability => {
+                field_capability.field_name = field_name;
+                return field_capability;
+              });
           })
-        });
-
-        const filteredFields = fields.filter(shouldAddField);
-
-        // transform to array
-        return _map(filteredFields, (field) => {
-          return {
-            text: field.text,
-            value: typeMap[field.type],
-          };
-        });
+          .filter(shouldAddField)
+          .map(field_capability => {
+            return {
+              text: field_capability.field_name,
+              value: fieldTypeMap[field_capability.type],  
+            }
+          });
+        return fieldCapabilities;
       })
     );
   }
@@ -402,7 +379,7 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys() {
-    return lastValueFrom(this.getFields());
+    return lastValueFrom(this.getAggregatableFields());
   }
 
   /**

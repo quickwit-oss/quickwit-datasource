@@ -27,11 +27,11 @@ describe('Metric Editor', () => {
       bucketAggs: [defaultBucketAgg('2')],
     };
 
-    const getFields: ElasticDatasource['getFields'] = jest.fn(() => from([[]]));
+    const getFields: ElasticDatasource['getAggregatableFields'] = jest.fn(() => from([[]]));
 
     const wrapper = ({ children }: PropsWithChildren<{}>) => (
       <ElasticsearchProvider
-        datasource={{ getFields } as ElasticDatasource}
+        datasource={{ getAggregatableFields: getFields } as ElasticDatasource}
         query={query}
         app={undefined}
         range={getDefaultTimeRange()}
