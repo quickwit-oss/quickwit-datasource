@@ -159,11 +159,11 @@ export type FieldCapability = {
   metadata_field: boolean;
   searchable: boolean;
   aggregatable: boolean;
-  indices: Array<String>;
+  indices: String[];
 }
 
 export type FieldCapabilitiesResponse = {
-  indices: Array<String>;
+  indices: String[];
   fields: {
     [key: string]: {
       [key in FieldCapabilityType]: FieldCapability;
