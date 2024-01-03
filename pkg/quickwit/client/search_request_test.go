@@ -45,7 +45,7 @@ func TestSearchRequest(t *testing.T) {
 	t.Run("When adding size, sort, filters", func(t *testing.T) {
 		b := setup()
 		b.Size(200)
-		b.Sort(SortOrderDesc, timeField, "boolean")
+		b.Sort(SortOrderDesc, timeField, "epoch_nanos_int")
 		filters := b.Query().Bool().Filter()
 		filters.AddDateRangeFilter(timeField, 1684398201000, 1684308201000)
 		filters.AddQueryStringFilter("test", true)

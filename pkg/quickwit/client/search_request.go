@@ -81,7 +81,7 @@ const (
 )
 
 // Sort adds a "asc" | "desc" sort to the search request
-func (b *SearchRequestBuilder) Sort(order SortOrder, field string, unmappedType string) *SearchRequestBuilder {
+func (b *SearchRequestBuilder) Sort(order SortOrder, field string, format string) *SearchRequestBuilder {
 	if order != SortOrderAsc && order != SortOrderDesc {
 		return b
 	}
@@ -91,10 +91,9 @@ func (b *SearchRequestBuilder) Sort(order SortOrder, field string, unmappedType 
 		"order": string(order),
 	}
 
-	// FIXME when quickwit supports unmapped_type
-	// if unmappedType != "" {
-	// 	props["unmapped_type"] = unmappedType
-	// }
+	if format != "" {
+		sort[field]["format"] = format
+	}
 
 	b.sort = append(b.sort, sort)
 
