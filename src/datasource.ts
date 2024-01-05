@@ -4,7 +4,6 @@ import { catchError, mergeMap, map } from 'rxjs/operators';
 
 import {
   AbstractQuery,
-  ArrayVector,
   CoreApp,
   DataFrame,
   DataLink,
@@ -18,7 +17,6 @@ import {
   DataSourceWithQueryImportSupport,
   DataSourceWithSupplementaryQueriesSupport,
   dateTime,
-  Field,
   FieldColorModeId,
   FieldType,
   getDefaultTimeRange,
@@ -850,47 +848,10 @@ function luceneEscape(value: string) {
   return value.replace(/([\!\*\+\-\=<>\s\&\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, '\\$1');
 }
 
-function base64ToHex(base64String: string) {
-  const binaryString = window.atob(base64String);
-  return Array.from(binaryString).map(char => {
-      const byte = char.charCodeAt(0);
-      return ('0' + byte.toString(16)).slice(-2);
-  }).join('');
-}
-
 export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: DataLinkConfig[]) {
   if (!dataLinks.length) {
     return;
   }
-  let fields_to_fix_condition = (field: Field) => {
-    return dataLinks.filter((dataLink) => dataLink.field === field.name && dataLink.base64TraceId).length === 1;
-  };
-  const fields_to_keep  = dataFrame.fields.filter((field) => {
-    return !fields_to_fix_condition(field)
-  });
-  let new_fields = dataFrame
-    .fields
-    .filter(fields_to_fix_condition)
-    .map((field) => {
-      let values = field.values.toArray().map((value) => {
-        try {
-          return base64ToHex(value);
-        } catch (e) {
-          console.warn("cannot convert value from base64 to hex", e);
-          return value;
-        };
-      });
-      return {
-        ...field,
-        values: new ArrayVector(values),
-      }
-    });
-
-  if (new_fields.length === 0) {
-    return;
-  }
-
-  dataFrame.fields = [new_fields[0], ...fields_to_keep];
 
   for (const field of dataFrame.fields) {
     const linksToApply = dataLinks.filter((dataLink) => dataLink.field === field.name);

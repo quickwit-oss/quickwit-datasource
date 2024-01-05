@@ -353,7 +353,7 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 		// This is currently used only for log context query
 		sort = es.SortOrderAsc
 	}
-	b.Sort(sort, defaultTimeField, "boolean")
+	b.Sort(sort, defaultTimeField, "epoch_nanos_int")
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
 	// TODO when hightlight is supported in quickwit
 	// b.AddHighlight()
@@ -368,7 +368,7 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 
 func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
 	metric := q.Metrics[0]
-	b.Sort(es.SortOrderDesc, defaultTimeField, "boolean")
+	b.Sort(es.SortOrderDesc, defaultTimeField, "epoch_nanos_int")
 	b.Sort(es.SortOrderDesc, "_doc", "")
 	// Note: not supported in Quickwit
 	// b.AddDocValueField(defaultTimeField)

@@ -21,9 +21,27 @@ The license for this project is [AGPL-3.0](LICENSE.md), and a [notice](NOTICE.md
 
 We recommand Grafana v9.5 or v10.
 
+Quickwit 0.6 is compatible with 0.2.x versions only.
+
+Quickwit 0.7 is compatible with 0.3.x versions only.
+
+
 ## Installation
 
-### Download the latest release (0.2.4)
+### Download the 0.3.0 for Quickwit 0.7
+
+```bash
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.3.0/quickwit-quickwit-datasource-0.3.0.zip
+```
+
+### Unzip into the plugins directory
+
+```bash
+mkdir -p grafana-storage/plugins
+unzip quickwit-quickwit-datasource-0.3.0.zip -d grafana-storage/plugins
+```
+
+### Download the 0.2.4 for Quickwit 0.6
 
 ```bash
 wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.4/quickwit-quickwit-datasource-0.2.4.zip

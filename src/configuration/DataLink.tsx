@@ -30,7 +30,6 @@ export const DataLink = (props: Props) => {
   const { value, onChange, onDelete, suggestions, className } = props;
   const styles = useStyles2(getStyles);
   const [showInternalLink, setShowInternalLink] = useInternalLink(value.datasourceUid);
-  const [base64TraceId, setBase64TraceId] = useState(true)
   const labelWidth = 24
 
   const handleChange = (field: keyof typeof value) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,11 +38,6 @@ export const DataLink = (props: Props) => {
       [field]: event.currentTarget.value,
     });
   };
-
-  const handleBase64TraceId = (base64TraceId: boolean, config: DataLinkConfig) => {
-    setBase64TraceId(base64TraceId)
-    config = {...config, base64TraceId: base64TraceId };
-  }
 
   return (
     <div className={className}>
@@ -71,15 +65,6 @@ export const DataLink = (props: Props) => {
             onDelete();
           }}
         />
-      </div>
-
-      <div className={styles.row}>
-        <InlineField label="Field encoded in base64?" labelWidth={labelWidth} tooltip="Must be at true if your trace ID is encoded in base64. This is the case for the `otel-traces-v0_6` index.">
-          <InlineSwitch
-            value={base64TraceId}
-            onChange={() => handleBase64TraceId(!base64TraceId, value)}
-          />
-        </InlineField>
       </div>
 
       <InlineFieldRow>
