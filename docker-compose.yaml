@@ -14,15 +14,17 @@ services:
     networks:
       - quickwit
   grafana:
-    container_name: 'grafana-quickwit-datasource'
+    container_name: 'quickwit-quickwit-datasource'
+    platform: "linux/amd64"
     build:
       context: ./.config
       args:
-        grafana_version: 10.0.1
+        grafana_image: ${GRAFANA_IMAGE:-grafana-enterprise}
+        grafana_version: ${GRAFANA_VERSION:-10.0.3}
     ports:
       - 3000:3000/tcp
     volumes:
-      - ./:/var/lib/grafana/plugins/grafana-quickwit-datasource
+      - ./dist:/var/lib/grafana/plugins/quickwit-quickwit-datasource
       - ./provisioning:/etc/grafana/provisioning
       - gquickwit:/var/lib/grafana
     extra_hosts:
