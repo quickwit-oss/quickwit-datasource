@@ -8,7 +8,7 @@
 //
 // Run 'make gen-cue' from repository root to regenerate.
 
-import { DataQuery } from '@grafana/data';
+import { DataQuery } from '@grafana/schema';
 
 export const DataQueryModelVersion = Object.freeze([0, 0]);
 
