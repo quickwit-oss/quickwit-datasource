@@ -10,13 +10,3 @@ export interface QuickwitOptions extends DataSourceJsonData {
     dataLinks?: DataLinkConfig[];
     index: string;
 }
-
-export interface LogRowContextOptions {
-    direction?: LogRowContextQueryDirection;
-    limit?: number;
-}
-
-export enum LogRowContextQueryDirection {
-    Backward = 'BACKWARD',
-    Forward = 'FORWARD',
-}
