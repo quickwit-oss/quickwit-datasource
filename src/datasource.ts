@@ -4,6 +4,7 @@ import { catchError, mergeMap, map } from 'rxjs/operators';
 
 import {
   AbstractQuery,
+  AdHocVariableFilter,
   CoreApp,
   DataFrame,
   DataLink,
@@ -50,6 +51,7 @@ import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggre
 import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
 import { extractJsonPayload, fieldTypeMap } from 'utils';
+import { addAddHocFilter } from 'modifyQuery';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
@@ -567,12 +569,12 @@ export class QuickwitDataSource
     return this.templateSrv.replace(queryString, scopedVars, formatQuery);
   }
 
-  interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}): ElasticsearchQuery[] {
-    return queries.map((q) => this.applyTemplateVariables(q, scopedVars));
+  interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}, filters?: AdHocVariableFilter[]): ElasticsearchQuery[] {
+    return queries.map((q) => this.applyTemplateVariables(q, scopedVars, filters));
   }
 
   // Used when running queries through backend
-  applyTemplateVariables(query: ElasticsearchQuery, scopedVars: ScopedVars): ElasticsearchQuery {
+  applyTemplateVariables(query: ElasticsearchQuery, scopedVars: ScopedVars, filters?: AdHocVariableFilter[]): ElasticsearchQuery {
     // We need a separate interpolation format for lucene queries, therefore we first interpolate any
     // lucene query string and then everything else
     const interpolateBucketAgg = (bucketAgg: BucketAggregation): BucketAggregation => {
@@ -595,11 +597,23 @@ export class QuickwitDataSource
     const expandedQuery = {
       ...query,
       datasource: this.getRef(),
-      query: this.interpolateLuceneQuery(query.query || '', scopedVars),
+      query: this.addAdHocFilters(this.interpolateLuceneQuery(query.query || '', scopedVars), filters),
       bucketAggs: query.bucketAggs?.map(interpolateBucketAgg),
     };
 
     const finalQuery = JSON.parse(this.templateSrv.replace(JSON.stringify(expandedQuery), scopedVars));
+    return finalQuery;
+  }
+
+  addAdHocFilters(query: string, adhocFilters?: AdHocVariableFilter[]) {
+    if (!adhocFilters) {
+      return query;
+    }
+    let finalQuery = query;
+    adhocFilters.forEach((filter) => {
+      finalQuery = addAddHocFilter(finalQuery, filter);
+    });
+
     return finalQuery;
   }
 }
