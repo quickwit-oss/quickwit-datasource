@@ -373,8 +373,11 @@ export class QuickwitDataSource
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
+          if (aggregatable === undefined) {
+            return true;
+          }
           if (aggregatable !== undefined && field.aggregatable !== aggregatable) {
-            return false
+            return false;
           }
           if (type?.length === 0) {
             return true;
@@ -396,7 +399,12 @@ export class QuickwitDataSource
               value: fieldTypeMap[field_capability.type],  
             }
           });
-        return fieldCapabilities;
+        const uniquefieldCapabilities = fieldCapabilities.filter((field_capability, index, self) =>
+          index === self.findIndex((t) => (
+            t.text === field_capability.text && t.value === field_capability.value
+          ))
+        ).sort((a, b) => a.text.localeCompare(b.text));
+        return uniquefieldCapabilities;
       })
     );
   }
@@ -405,7 +413,8 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys() {
-    return lastValueFrom(this.getFields(true));
+    console.log("getTagKeys");
+    return lastValueFrom(this.getFields());
   }
 
   /**
@@ -549,6 +558,7 @@ export class QuickwitDataSource
   }
 
   metricFindQuery(query: string, options?: { range: TimeRange }): Promise<MetricFindValue[]> {
+    console.log("metricFindQuery");
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
