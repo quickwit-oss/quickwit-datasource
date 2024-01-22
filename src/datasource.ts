@@ -4,6 +4,7 @@ import { catchError, mergeMap, map } from 'rxjs/operators';
 
 import {
   AbstractQuery,
+  AdHocVariableFilter,
   CoreApp,
   DataFrame,
   DataLink,
@@ -50,6 +51,7 @@ import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggre
 import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
 import { extractJsonPayload, fieldTypeMap } from 'utils';
+import { addAddHocFilter } from 'modifyQuery';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
@@ -371,8 +373,11 @@ export class QuickwitDataSource
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
+          if (aggregatable === undefined) {
+            return true;
+          }
           if (aggregatable !== undefined && field.aggregatable !== aggregatable) {
-            return false
+            return false;
           }
           if (type?.length === 0) {
             return true;
@@ -394,7 +399,12 @@ export class QuickwitDataSource
               value: fieldTypeMap[field_capability.type],  
             }
           });
-        return fieldCapabilities;
+        const uniquefieldCapabilities = fieldCapabilities.filter((field_capability, index, self) =>
+          index === self.findIndex((t) => (
+            t.text === field_capability.text && t.value === field_capability.value
+          ))
+        ).sort((a, b) => a.text.localeCompare(b.text));
+        return uniquefieldCapabilities;
       })
     );
   }
@@ -403,7 +413,8 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys() {
-    return lastValueFrom(this.getFields(true));
+    console.log("getTagKeys");
+    return lastValueFrom(this.getFields());
   }
 
   /**
@@ -547,6 +558,7 @@ export class QuickwitDataSource
   }
 
   metricFindQuery(query: string, options?: { range: TimeRange }): Promise<MetricFindValue[]> {
+    console.log("metricFindQuery");
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
@@ -567,12 +579,12 @@ export class QuickwitDataSource
     return this.templateSrv.replace(queryString, scopedVars, formatQuery);
   }
 
-  interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}): ElasticsearchQuery[] {
-    return queries.map((q) => this.applyTemplateVariables(q, scopedVars));
+  interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}, filters?: AdHocVariableFilter[]): ElasticsearchQuery[] {
+    return queries.map((q) => this.applyTemplateVariables(q, scopedVars, filters));
   }
 
   // Used when running queries through backend
-  applyTemplateVariables(query: ElasticsearchQuery, scopedVars: ScopedVars): ElasticsearchQuery {
+  applyTemplateVariables(query: ElasticsearchQuery, scopedVars: ScopedVars, filters?: AdHocVariableFilter[]): ElasticsearchQuery {
     // We need a separate interpolation format for lucene queries, therefore we first interpolate any
     // lucene query string and then everything else
     const interpolateBucketAgg = (bucketAgg: BucketAggregation): BucketAggregation => {
@@ -595,11 +607,23 @@ export class QuickwitDataSource
     const expandedQuery = {
       ...query,
       datasource: this.getRef(),
-      query: this.interpolateLuceneQuery(query.query || '', scopedVars),
+      query: this.addAdHocFilters(this.interpolateLuceneQuery(query.query || '', scopedVars), filters),
       bucketAggs: query.bucketAggs?.map(interpolateBucketAgg),
     };
 
     const finalQuery = JSON.parse(this.templateSrv.replace(JSON.stringify(expandedQuery), scopedVars));
+    return finalQuery;
+  }
+
+  addAdHocFilters(query: string, adhocFilters?: AdHocVariableFilter[]) {
+    if (!adhocFilters) {
+      return query;
+    }
+    let finalQuery = query;
+    adhocFilters.forEach((filter) => {
+      finalQuery = addAddHocFilter(finalQuery, filter);
+    });
+
     return finalQuery;
   }
 }
