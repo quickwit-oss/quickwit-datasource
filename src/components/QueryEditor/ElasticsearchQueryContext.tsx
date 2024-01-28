@@ -69,7 +69,7 @@ export const ElasticsearchProvider = ({
       }
       setShouldRunInit(false);
     }
-  }, [shouldRunInit, dispatch, isUninitialized]);
+  }, [shouldRunInit, dispatch, isUninitialized, app]);
 
   if (isUninitialized) {
     return null;
