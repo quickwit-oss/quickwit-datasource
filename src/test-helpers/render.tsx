@@ -1,10 +1,10 @@
 import { render } from '@testing-library/react';
 import React, { ComponentProps, ReactNode } from 'react';
 
-import { getDefaultTimeRange } from '@grafana/data';
+import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
 import { ElasticDatasource } from '../datasource';
-import { ElasticsearchProvider } from 'components/QueryEditor/ElasticsearchQueryContext';
+import { ElasticsearchProvider } from '../components/QueryEditor/ElasticsearchQueryContext';
 
 const defaultProviderProps = {
   datasource: {} as ElasticDatasource,
@@ -32,7 +32,7 @@ export const renderWithESProvider = (
   return render(
     <ElasticsearchProvider
       query={query}
-      app={undefined}
+      app={CoreApp.Unknown}
       onChange={onChange}
       datasource={datasource}
       onRunQuery={onRunQuery}

@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
 import { DataSourceHttpSettings, Input, InlineField, FieldSet } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
-import { QuickwitOptions } from 'quickwit';
+import { QuickwitOptions } from '../quickwit';
 import { coerceOptions } from './utils';
-import { Divider } from 'components/Divider';
+import { Divider } from '../components/Divider';
 import { DataLinks } from './DataLinks';
 
 interface Props extends DataSourcePluginOptionsEditorProps<QuickwitOptions> {}

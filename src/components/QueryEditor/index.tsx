@@ -2,7 +2,7 @@ import { css } from '@emotion/css';
 
 import React from 'react';
 
-import { getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
+import { CoreApp, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
 import { InlineLabel, QueryField, useStyles2 } from '@grafana/ui';
 
 import { ElasticDatasource } from '../../datasource';
@@ -15,7 +15,7 @@ import { ElasticsearchProvider } from './ElasticsearchQueryContext';
 import { MetricAggregationsEditor } from './MetricAggregationsEditor';
 import { metricAggregationConfig } from './MetricAggregationsEditor/utils';
 import { changeQuery } from './state';
-import { QuickwitOptions } from 'quickwit';
+import { QuickwitOptions } from '../../quickwit';
 import { QueryTypeSelector } from './QueryTypeSelector';
 
 export type ElasticQueryEditorProps = QueryEditorProps<ElasticDatasource, ElasticsearchQuery, QuickwitOptions>;
@@ -25,9 +25,9 @@ export const QueryEditor = ({ query, onChange, onRunQuery, datasource, range, ap
     <ElasticsearchProvider
       datasource={datasource}
       onChange={onChange}
+      app={app || CoreApp.Unknown}
       onRunQuery={onRunQuery}
       query={query}
-      app={app}
       range={range || getDefaultTimeRange()}
     >
       <QueryEditorForm value={query} />

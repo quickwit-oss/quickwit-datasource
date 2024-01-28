@@ -413,7 +413,6 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys() {
-    console.log("getTagKeys");
     return lastValueFrom(this.getFields());
   }
 
@@ -558,7 +557,6 @@ export class QuickwitDataSource
   }
 
   metricFindQuery(query: string, options?: { range: TimeRange }): Promise<MetricFindValue[]> {
-    console.log("metricFindQuery");
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {

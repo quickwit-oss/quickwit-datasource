@@ -1,4 +1,4 @@
-import { reducerTester } from 'dependencies/reducerTester';
+import { reducerTester } from './../../../../dependencies/reducerTester';
 import { BucketAggregation, DateHistogram, ElasticsearchQuery } from '../../../../types';
 import { changeMetricType } from '../../MetricAggregationsEditor/state/actions';
 import { initQuery } from '../../state';
@@ -12,7 +12,7 @@ import {
   removeBucketAggregation,
 } from './actions';
 import { createReducer } from './reducer';
-import { defaultBucketAgg } from 'queryDef';
+import { defaultBucketAgg } from './../../../../queryDef';
 
 describe('Bucket Aggregations Reducer', () => {
   it('Should correctly add new aggregations', () => {

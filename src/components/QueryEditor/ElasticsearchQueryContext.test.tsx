@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import React, { PropsWithChildren } from 'react';
 
-import { getDefaultTimeRange } from '@grafana/data';
+import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
 import { ElasticDatasource } from '../../datasource';
 import { ElasticsearchQuery } from '../../types';
@@ -25,7 +25,7 @@ describe('ElasticsearchQueryContext', () => {
     render(
       <ElasticsearchProvider
         query={{ refId: 'A' }}
-        app={undefined}
+        app={CoreApp.Unknown}
         onChange={onChange}
         datasource={datasource}
         onRunQuery={onRunQuery}
@@ -58,7 +58,7 @@ describe('ElasticsearchQueryContext', () => {
         <ElasticsearchProvider
           datasource={{} as ElasticDatasource}
           query={query}
-          app={undefined}
+          app={CoreApp.Unknown}
           onChange={() => {}}
           onRunQuery={() => {}}
           range={getDefaultTimeRange()}

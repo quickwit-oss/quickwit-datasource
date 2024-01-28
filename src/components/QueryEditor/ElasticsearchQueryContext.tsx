@@ -16,7 +16,7 @@ const RangeContext = createContext<TimeRange | undefined>(undefined);
 
 interface Props {
   query: ElasticsearchQuery;
-  app: CoreApp | undefined;
+  app: CoreApp;
   onChange: (query: ElasticsearchQuery) => void;
   onRunQuery: () => void;
   datasource: ElasticDatasource;
@@ -61,7 +61,7 @@ export const ElasticsearchProvider = ({
   // This initializes the query by dispatching an init action to each reducer.
   // useStatelessReducer will then call `onChange` with the newly generated query
   useEffect(() => {
-    if (shouldRunInit) {
+    if (shouldRunInit && isUninitialized) {
       if (app === CoreApp.Explore) {
         dispatch(initExploreQuery());
       } else {
@@ -69,7 +69,7 @@ export const ElasticsearchProvider = ({
       }
       setShouldRunInit(false);
     }
-  }, [shouldRunInit, dispatch, app]);
+  }, [shouldRunInit, dispatch, isUninitialized, app]);
 
   if (isUninitialized) {
     return null;
@@ -97,7 +97,7 @@ const getHook: GetHook = (c) => () => {
     throw new Error('use ElasticsearchProvider first.');
   }
 
-  return contextValue as NonNullable<typeof contextValue>;
+  return contextValue;
 };
 
 export const useQuery = getHook(QueryContext);
