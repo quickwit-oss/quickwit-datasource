@@ -1,5 +1,5 @@
 import { DataSourceJsonData } from "@grafana/data";
-import { DataLinkConfig } from "types";
+import { DataLinkConfig } from "./types";
 
 export interface QuickwitOptions extends DataSourceJsonData {
     timeField: string;

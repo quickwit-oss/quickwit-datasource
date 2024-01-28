@@ -1,7 +1,7 @@
 import { DataSourceInstanceSettings, PluginType } from '@grafana/data';
 
 import { QuickwitDataSource } from './datasource';
-import { QuickwitOptions } from 'quickwit';
+import { QuickwitOptions } from './quickwit';
 
 export function createElasticDatasource(
   settings: Partial<DataSourceInstanceSettings<QuickwitOptions>> = {},

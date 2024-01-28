@@ -1,7 +1,7 @@
 import React, { PropsWithChildren } from 'react';
 import { from } from 'rxjs';
 
-import { getDefaultTimeRange } from '@grafana/data';
+import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
 import { ElasticsearchProvider } from '../components/QueryEditor/ElasticsearchQueryContext';
 import { ElasticDatasource } from '../datasource';
@@ -29,7 +29,7 @@ describe('useFields hook', () => {
       <ElasticsearchProvider
         datasource={{ getFields: getFields } as ElasticDatasource}
         query={query}
-        app={undefined}
+        app={CoreApp.Unknown}
         range={timeRange}
         onChange={() => {}}
         onRunQuery={() => {}}

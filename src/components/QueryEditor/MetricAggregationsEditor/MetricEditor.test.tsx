@@ -33,7 +33,7 @@ describe('Metric Editor', () => {
       <ElasticsearchProvider
         datasource={{ getFields: getFields } as ElasticDatasource}
         query={query}
-        app={undefined}
+        app={CoreApp.Unknown}
         range={getDefaultTimeRange()}
         onChange={() => {}}
         onRunQuery={() => {}}
