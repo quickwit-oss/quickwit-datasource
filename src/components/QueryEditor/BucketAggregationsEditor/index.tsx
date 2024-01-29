@@ -1,11 +1,11 @@
 import React from 'react';
 
-import { useDispatch } from '../../../hooks/useStatelessReducer';
-import { IconButton } from '../../IconButton';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { IconButton } from '@/components/IconButton';
 import { useQuery } from '../ElasticsearchQueryContext';
 import { QueryEditorRow } from '../QueryEditorRow';
 
-import { BucketAggregation } from './../../../types';
+import { BucketAggregation } from '@/types';
 import { BucketAggregationEditor } from './BucketAggregationEditor';
 import { addBucketAggregation, removeBucketAggregation } from './state/actions';
 

@@ -5,9 +5,9 @@ import React, { useCallback } from 'react';
 import { SelectableValue } from '@grafana/data';
 import { InlineSegmentGroup, SegmentAsync, useTheme2 } from '@grafana/ui';
 
-import { useFields } from '../../../hooks/useFields';
-import { useDispatch } from '../../../hooks/useStatelessReducer';
-import { MetricAggregation, MetricAggregationType } from '../../../types';
+import { useFields } from '@/hooks/useFields';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { MetricAggregation, MetricAggregationType } from '@/types';
 import { MetricPicker } from '../../MetricPicker';
 import { useQuery } from '../ElasticsearchQueryContext';
 import { segmentStyles } from '../styles';

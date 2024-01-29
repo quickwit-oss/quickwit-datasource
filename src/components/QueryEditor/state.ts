@@ -1,6 +1,6 @@
 import { Action, createAction } from '@reduxjs/toolkit';
 
-import { ElasticsearchQuery } from '../../types';
+import { ElasticsearchQuery } from '@/types';
 
 /**
  * When the `initQuery` Action is dispatched, the query gets populated with default values where values are not present.

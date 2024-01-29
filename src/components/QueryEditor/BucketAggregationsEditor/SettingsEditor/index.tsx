@@ -3,9 +3,9 @@ import React, { ComponentProps, useRef } from 'react';
 
 import { InlineField, Input } from '@grafana/ui';
 
-import { useDispatch } from '../../../../hooks/useStatelessReducer';
-import { BucketAggregation } from '../../../../types';
-import { SettingsEditorContainer } from '../../SettingsEditorContainer';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { BucketAggregation } from '@/types';
+import { SettingsEditorContainer } from '@/components/QueryEditor/SettingsEditorContainer';
 import { changeBucketAggregationSetting } from '../state/actions';
 import { bucketAggregationConfig } from '../utils';
 

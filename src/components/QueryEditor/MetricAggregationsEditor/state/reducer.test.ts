@@ -1,6 +1,6 @@
 import { reducerTester } from 'dependencies/reducerTester';
-import { defaultMetricAgg } from '../../../../queryDef';
-import { Derivative, ElasticsearchQuery, ExtendedStats, MetricAggregation } from '../../../../types';
+import { defaultMetricAgg } from '@/queryDef';
+import { Derivative, ElasticsearchQuery, ExtendedStats, MetricAggregation } from '@/types';
 import { initQuery } from '../../state';
 import { metricAggregationConfig } from '../utils';
 

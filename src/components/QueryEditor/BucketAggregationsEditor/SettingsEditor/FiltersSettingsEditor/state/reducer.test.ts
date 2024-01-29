@@ -1,5 +1,5 @@
 import { reducerTester } from 'dependencies/reducerTester';
-import { Filter } from '../../../../../../types';
+import { Filter } from '@/types';
 
 import { addFilter, changeFilter, removeFilter } from './actions';
 import { reducer } from './reducer';

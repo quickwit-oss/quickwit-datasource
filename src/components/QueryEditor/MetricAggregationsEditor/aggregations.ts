@@ -8,7 +8,7 @@ import {
   MetricAggregationWithMissingSupport,
   PipelineMetricAggregation,
   MetricAggregationWithSettings,
-} from '../../../types';
+} from '@/types';
 
 import { metricAggregationConfig } from './utils';
 

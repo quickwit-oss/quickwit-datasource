@@ -4,7 +4,7 @@ import { AnnotationQuery } from '@grafana/data';
 import { EditorField, EditorRow } from '@grafana/experimental';
 import { Input } from '@grafana/ui';
 
-import { ElasticsearchQuery } from '../../types';
+import { ElasticsearchQuery } from '@/types';
 
 import { ElasticQueryEditorProps, ElasticSearchQueryField } from './index';
 

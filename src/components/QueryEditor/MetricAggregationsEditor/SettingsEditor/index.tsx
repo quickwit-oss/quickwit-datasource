@@ -2,9 +2,9 @@ import { uniqueId } from 'lodash';
 import React, { ComponentProps, useRef, useState } from 'react';
 import { InlineField, Input, InlineSwitch, Select } from '@grafana/ui';
 
-import { useDispatch } from '../../../../hooks/useStatelessReducer';
-import { extendedStats } from '../../../../queryDef';
-import { MetricAggregation, ExtendedStat } from '../../../../types';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { extendedStats } from '@/queryDef';
+import { MetricAggregation, ExtendedStat } from '@/types';
 import { useQuery } from '../../ElasticsearchQueryContext';
 import { SettingsEditorContainer } from '../../SettingsEditorContainer';
 import { isMetricAggregationWithMissingSupport } from '../aggregations';

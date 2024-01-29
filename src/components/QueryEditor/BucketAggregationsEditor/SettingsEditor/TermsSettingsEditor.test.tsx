@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import React from 'react';
 import selectEvent from 'react-select-event';
 
-import { ElasticsearchQuery, Terms, Average, Derivative, TopMetrics } from '../../../../types';
+import { ElasticsearchQuery, Terms, Average, Derivative, TopMetrics } from '@/types';
 
 import { TermsSettingsEditor } from './TermsSettingsEditor';
 import { describeMetric } from 'utils';

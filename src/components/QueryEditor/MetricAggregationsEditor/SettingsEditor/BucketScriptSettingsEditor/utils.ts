@@ -1,4 +1,4 @@
-import { PipelineVariable } from '../../../../../types';
+import { PipelineVariable } from '@/types';
 
 export const defaultPipelineVariable = (name: string): PipelineVariable => ({ name, pipelineAgg: '' });
 
