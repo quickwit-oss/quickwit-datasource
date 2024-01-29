@@ -198,6 +198,9 @@ const config = async (env): Promise<Configuration> => {
     ],
 
     resolve: {
+      alias: {
+        '@': path.resolve(process.cwd(), 'src'),
+      },
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
       // handle resolving "rootDir" paths
       modules: [path.resolve(process.cwd(), 'src'), 'node_modules'],

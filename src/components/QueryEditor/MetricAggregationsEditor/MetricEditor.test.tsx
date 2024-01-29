@@ -5,12 +5,11 @@ import { from } from 'rxjs';
 
 import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
-import { ElasticDatasource } from '../../../datasource';
-import { defaultBucketAgg } from '../../../queryDef';
-import { ElasticsearchQuery } from '../../../types';
+import { ElasticDatasource } from '@/datasource';
+import { defaultBucketAgg } from '@/queryDef';
+import { ElasticsearchQuery, Count, UniqueCount } from '@/types';
 import { ElasticsearchProvider } from '../ElasticsearchQueryContext';
 
-import { Count, UniqueCount } from './../../../types';
 import { MetricEditor } from './MetricEditor';
 
 describe('Metric Editor', () => {

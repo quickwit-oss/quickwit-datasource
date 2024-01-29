@@ -4,10 +4,10 @@ import React, { Fragment, useEffect } from 'react';
 
 import { Input, InlineLabel } from '@grafana/ui';
 
-import { useStatelessReducer, useDispatch } from '../../../../../hooks/useStatelessReducer';
-import { BucketScript, MetricAggregation } from '../../../../../types';
-import { AddRemove } from '../../../../AddRemove';
-import { MetricPicker } from '../../../../MetricPicker';
+import { useStatelessReducer, useDispatch } from '@/hooks/useStatelessReducer';
+import { BucketScript, MetricAggregation } from '@/types';
+import { AddRemove } from '@/components/AddRemove';
+import { MetricPicker } from '@/components/MetricPicker';
 import { changeMetricAttribute } from '../../state/actions';
 import { SettingField } from '../SettingField';
 

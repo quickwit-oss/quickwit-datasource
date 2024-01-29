@@ -2,9 +2,9 @@ import React, { Context, createContext, PropsWithChildren, useCallback, useConte
 
 import { CoreApp, TimeRange } from '@grafana/data';
 
-import { ElasticDatasource } from '../../datasource';
-import { combineReducers, useStatelessReducer, DispatchContext } from '../../hooks/useStatelessReducer';
-import { ElasticsearchQuery } from '../../types';
+import { ElasticDatasource } from '@/datasource';
+import { combineReducers, useStatelessReducer, DispatchContext } from '@/hooks/useStatelessReducer';
+import { ElasticsearchQuery } from '@/types';
 
 import { createReducer as createBucketAggsReducer } from './BucketAggregationsEditor/state/reducer';
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';

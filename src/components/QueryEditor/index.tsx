@@ -5,10 +5,10 @@ import React from 'react';
 import { CoreApp, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
 import { InlineLabel, QueryField, useStyles2 } from '@grafana/ui';
 
-import { ElasticDatasource } from '../../datasource';
-import { useNextId } from '../../hooks/useNextId';
-import { useDispatch } from '../../hooks/useStatelessReducer';
-import { ElasticsearchQuery } from '../../types';
+import { ElasticDatasource } from '@/datasource';
+import { useNextId } from '@/hooks/useNextId';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { ElasticsearchQuery } from '@/types';
 
 import { BucketAggregationsEditor } from './BucketAggregationsEditor';
 import { ElasticsearchProvider } from './ElasticsearchQueryContext';

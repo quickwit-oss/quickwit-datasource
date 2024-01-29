@@ -3,8 +3,8 @@ import React from 'react';
 import { SelectableValue } from '@grafana/data';
 import { RadioButtonGroup } from '@grafana/ui';
 
-import { useDispatch } from '../../hooks/useStatelessReducer';
-import { MetricAggregation, QueryType } from '../../types';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { MetricAggregation, QueryType } from '@/types';
 
 import { useQuery } from './ElasticsearchQueryContext';
 import { changeMetricType } from './MetricAggregationsEditor/state/actions';

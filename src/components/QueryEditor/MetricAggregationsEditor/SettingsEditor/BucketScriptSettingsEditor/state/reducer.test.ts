@@ -1,5 +1,5 @@
 import { reducerTester } from 'dependencies/reducerTester';
-import { PipelineVariable } from '../../../../../../types';
+import { PipelineVariable } from '@/types';
 
 import {
   addPipelineVariable,

@@ -2,7 +2,7 @@ import React from 'react';
 
 import { InlineFieldRow, InlineLabel, InlineSegmentGroup } from '@grafana/ui';
 
-import { MetricAggregation } from '../../types';
+import { MetricAggregation } from '@/types';
 
 import { SettingsEditor } from './MetricAggregationsEditor/SettingsEditor';
 

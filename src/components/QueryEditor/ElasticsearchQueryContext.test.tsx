@@ -4,8 +4,8 @@ import React, { PropsWithChildren } from 'react';
 
 import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
-import { ElasticDatasource } from '../../datasource';
-import { ElasticsearchQuery } from '../../types';
+import { ElasticDatasource } from '@/datasource';
+import { ElasticsearchQuery } from '@/types';
 
 import { ElasticsearchProvider, useQuery } from './ElasticsearchQueryContext';
 

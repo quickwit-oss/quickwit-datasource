@@ -1,5 +1,5 @@
-import { BucketAggregation } from '../../../../types';
-import { describeMetric, convertOrderByToMetricId } from '../../../../utils';
+import { BucketAggregation } from '@/types';
+import { describeMetric, convertOrderByToMetricId } from '@/utils';
 import { useQuery } from '../../ElasticsearchQueryContext';
 import { bucketAggregationConfig, orderByOptions, orderOptions } from '../utils';
 

@@ -1,5 +1,5 @@
 import { reducerTester } from 'dependencies/reducerTester';
-import { ElasticsearchQuery } from '../../types';
+import { ElasticsearchQuery } from '@/types';
 
 import { aliasPatternReducer, changeAliasPattern, changeQuery, initQuery, queryReducer } from './state';
 

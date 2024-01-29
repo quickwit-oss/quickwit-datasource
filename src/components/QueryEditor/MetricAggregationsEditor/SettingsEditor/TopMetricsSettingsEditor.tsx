@@ -4,10 +4,10 @@ import React from 'react';
 import { SelectableValue } from '@grafana/data';
 import { AsyncMultiSelect, InlineField, SegmentAsync, Select } from '@grafana/ui';
 
-import { useFields } from '../../../../hooks/useFields';
-import { useDispatch } from '../../../../hooks/useStatelessReducer';
-import { TopMetrics } from '../../../../types';
-import { orderOptions } from '../../BucketAggregationsEditor/utils';
+import { useFields } from '@/hooks/useFields';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { TopMetrics } from '@/types';
+import { orderOptions } from '@/components/QueryEditor/BucketAggregationsEditor/utils';
 import { changeMetricSetting } from '../state/actions';
 
 interface Props {

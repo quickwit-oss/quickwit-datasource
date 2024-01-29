@@ -1,4 +1,4 @@
-import { MetricsConfiguration, MetricAggregation, PipelineMetricAggregationType } from '../../../types';
+import { MetricsConfiguration, MetricAggregation, PipelineMetricAggregationType } from '@/types';
 
 import {
   defaultPipelineVariable,

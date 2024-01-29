@@ -3,11 +3,11 @@ import React from 'react';
 import { SelectableValue } from '@grafana/data';
 import { InlineSegmentGroup, Segment, SegmentAsync } from '@grafana/ui';
 
-import { useFields } from '../../../hooks/useFields';
-import { useDispatch } from '../../../hooks/useStatelessReducer';
+import { useFields } from '@/hooks/useFields';
+import { useDispatch } from '@/hooks/useStatelessReducer';
 import { segmentStyles } from '../styles';
 
-import { BucketAggregation, BucketAggregationType } from './../../../types';
+import { BucketAggregation, BucketAggregationType } from '@/types';
 import { SettingsEditor } from './SettingsEditor';
 import { isBucketAggregationWithField } from './aggregations';
 import { changeBucketAggregationField, changeBucketAggregationType } from './state/actions';

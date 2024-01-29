@@ -4,9 +4,9 @@ import React, { useEffect, useRef } from 'react';
 
 import { InlineField, Input, QueryField } from '@grafana/ui';
 
-import { useDispatch, useStatelessReducer } from '../../../../../hooks/useStatelessReducer';
-import { Filters } from '../../../../../types';
-import { AddRemove } from '../../../../AddRemove';
+import { useDispatch, useStatelessReducer } from '@/hooks/useStatelessReducer';
+import { Filters } from '@/types';
+import { AddRemove } from '@/components/AddRemove';
 import { changeBucketAggregationSetting } from '../../state/actions';
 
 import { addFilter, changeFilter, removeFilter } from './state/actions';

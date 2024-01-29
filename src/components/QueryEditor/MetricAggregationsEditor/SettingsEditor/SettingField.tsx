@@ -3,9 +3,9 @@ import React, { ComponentProps, useState } from 'react';
 
 import { InlineField, Input } from '@grafana/ui';
 
-import { useDispatch } from '../../../../hooks/useStatelessReducer';
-import { MetricAggregationWithSettings } from '../../../../types';
-import { SettingKeyOf } from '../../../types';
+import { useDispatch } from '@/hooks/useStatelessReducer';
+import { MetricAggregationWithSettings } from '@/types';
+import { SettingKeyOf } from '@/components/types';
 import { changeMetricSetting } from '../state/actions';
 
 interface Props<T extends MetricAggregationWithSettings, K extends SettingKeyOf<T>> {

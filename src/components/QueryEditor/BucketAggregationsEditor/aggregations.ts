@@ -1,4 +1,4 @@
-import { BucketAggregationType, BucketAggregationWithField, BucketAggregation } from '../../../types';
+import { BucketAggregationType, BucketAggregationWithField, BucketAggregation } from '@/types';
 
 import { bucketAggregationConfig } from './utils';
 
