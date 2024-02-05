@@ -40,7 +40,7 @@ import {
   TemplateSrv,
   getDataSourceSrv } from '@grafana/runtime';
 import { LogRowContextOptions, LogRowContextQueryDirection, QuickwitOptions } from 'quickwit';
-import { ElasticQueryBuilder } from 'QueryBuilder';
+import { ElasticQueryBuilder } from 'QueryBuilder/elastic';
 import { colors } from '@grafana/ui';
 
 import { BarAlignment, DataQuery, GraphDrawStyle, StackingMode } from '@grafana/schema';

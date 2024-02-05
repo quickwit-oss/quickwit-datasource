@@ -1,4 +1,4 @@
-import React, { Context, createContext, PropsWithChildren, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, PropsWithChildren, useCallback, useEffect, useState } from 'react';
 
 import { CoreApp, TimeRange } from '@grafana/data';
 
@@ -9,10 +9,16 @@ import { ElasticsearchQuery } from '@/types';
 import { createReducer as createBucketAggsReducer } from './BucketAggregationsEditor/state/reducer';
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';
 import { aliasPatternReducer, queryReducer, initQuery, initExploreQuery } from './state';
+import { getHook } from 'utils/context';
 
-const DatasourceContext = createContext<ElasticDatasource | undefined>(undefined);
-const QueryContext = createContext<ElasticsearchQuery | undefined>(undefined);
-const RangeContext = createContext<TimeRange | undefined>(undefined);
+export const RangeContext = createContext<TimeRange | undefined>(undefined);
+export const useRange = getHook(RangeContext);
+
+export const QueryContext = createContext<ElasticsearchQuery | undefined>(undefined);
+export const useQuery = getHook(QueryContext);
+
+export const DatasourceContext = createContext<ElasticDatasource | undefined>(undefined);
+export const useDatasource = getHook(DatasourceContext);
 
 interface Props {
   query: ElasticsearchQuery;
@@ -85,21 +91,3 @@ export const ElasticsearchProvider = ({
     </DatasourceContext.Provider>
   );
 };
-
-interface GetHook {
-  <T>(context: Context<T>): () => NonNullable<T>;
-}
-
-const getHook: GetHook = (c) => () => {
-  const contextValue = useContext(c);
-
-  if (!contextValue) {
-    throw new Error('use ElasticsearchProvider first.');
-  }
-
-  return contextValue;
-};
-
-export const useQuery = getHook(QueryContext);
-export const useDatasource = getHook(DatasourceContext);
-export const useRange = getHook(RangeContext);
