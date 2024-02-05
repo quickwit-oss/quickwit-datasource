@@ -57,6 +57,13 @@ export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
 export type ElasticDatasource = QuickwitDataSource;
 
+type FieldCapsSpec = {
+  aggregatable?: boolean,
+  searchable?: boolean,
+  type?: string[],
+  _range?: TimeRange
+}
+
 export class QuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
   implements
@@ -368,21 +375,21 @@ export class QuickwitDataSource
     );
   }
 
-  getFields(aggregatable?: boolean, type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
+  getFields(spec: FieldCapsSpec={}): Observable<MetricFindValue[]> {
     // TODO: use the time range.
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
-          if (aggregatable === undefined) {
-            return true;
+          if (spec.aggregatable !== undefined && field.aggregatable !== spec.aggregatable) {
+            return false
           }
-          if (aggregatable !== undefined && field.aggregatable !== aggregatable) {
-            return false;
+          if (spec.searchable !== undefined && field.searchable !== spec.searchable){
+            return false
           }
-          if (type?.length === 0) {
-            return true;
+          if (spec.type && spec.type.length !== 0 && !(spec.type.includes(field.type) || spec.type.includes(fieldTypeMap[field.type]))) {
+            return false
           }
-          return type?.includes(field.type) || type?.includes(fieldTypeMap[field.type]);
+          return true
         };
         const fieldCapabilities = Object.entries(field_capabilities_response.fields)
           .flatMap(([field_name, field_capabilities]) => {
@@ -412,8 +419,8 @@ export class QuickwitDataSource
   /**
    * Get tag keys for adhoc filters
    */
-  getTagKeys() {
-    return lastValueFrom(this.getFields());
+  getTagKeys(spec?: FieldCapsSpec) {
+    return lastValueFrom(this.getFields(spec));
   }
 
   /**
@@ -562,7 +569,7 @@ export class QuickwitDataSource
     if (query) {
       if (parsedQuery.find === 'fields') {
         parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-        return lastValueFrom(this.getFields(true, parsedQuery.type, range));
+        return lastValueFrom(this.getFields({aggregatable:true, type:parsedQuery.type, _range:range}));
       }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
