@@ -1,9 +1,9 @@
 import { css } from '@emotion/css';
 
-import React from 'react';
+import React, { createContext, useCallback, useEffect } from 'react';
 
-import { CoreApp, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
-import { InlineLabel, QueryField, useStyles2 } from '@grafana/ui';
+import { CoreApp, Field, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
+import { InlineLabel, useStyles2 } from '@grafana/ui';
 
 import { ElasticDatasource } from '@/datasource';
 import { useNextId } from '@/hooks/useNextId';
@@ -11,12 +11,17 @@ import { useDispatch } from '@/hooks/useStatelessReducer';
 import { ElasticsearchQuery } from '@/types';
 
 import { BucketAggregationsEditor } from './BucketAggregationsEditor';
-import { ElasticsearchProvider } from './ElasticsearchQueryContext';
+import { ElasticsearchProvider, useDatasource } from './ElasticsearchQueryContext';
 import { MetricAggregationsEditor } from './MetricAggregationsEditor';
 import { metricAggregationConfig } from './MetricAggregationsEditor/utils';
 import { changeQuery } from './state';
 import { QuickwitOptions } from '../../quickwit';
 import { QueryTypeSelector } from './QueryTypeSelector';
+
+import { useQueryBuilder } from '@/QueryBuilder/lucene';
+import { getHook } from 'utils/context';
+import { LuceneQueryEditor } from '@/components/LuceneQueryEditor';
+import { useDatasourceFields } from 'datasource.utils';
 
 export type ElasticQueryEditorProps = QueryEditorProps<ElasticDatasource, ElasticsearchQuery, QuickwitOptions>;
 
@@ -38,12 +43,15 @@ export const QueryEditor = ({ query, onChange, onRunQuery, datasource, range, ap
 const getStyles = (theme: GrafanaTheme2) => ({
   root: css`
     display: flex;
+    margin: 0 ${theme.spacing(0.5)} ${theme.spacing(0.5)} 0;
   `,
   queryItem: css`
     flex-grow: 1;
-    margin: 0 ${theme.spacing(0.5)} ${theme.spacing(0.5)} 0;
   `,
 });
+
+const SearchableFieldsContext = createContext<Field[]|undefined>(undefined)
+export const useSearchableFields = getHook(SearchableFieldsContext)
 
 interface Props {
   value: ElasticsearchQuery;
@@ -51,18 +59,23 @@ interface Props {
 
 export const ElasticSearchQueryField = ({ value, onChange }: { value?: string; onChange: (v: string) => void }) => {
   const styles = useStyles2(getStyles);
+  const builder = useQueryBuilder();
+  const {setQuery} = builder;
+  const datasource = useDatasource()
+  const { getSuggestions } = useDatasourceFields(datasource);
+
+  useEffect(()=>{
+    setQuery(value || '')
+  }, [setQuery, value])
+
+  const onEditorChange = useCallback((query: string)=>{
+    setQuery(query);
+    onChange(query)
+  },[setQuery, onChange])
 
   return (
     <div className={styles.queryItem}>
-      <QueryField
-        query={value}
-        // By default QueryField calls onChange if onBlur is not defined, this will trigger a rerender
-        // And slate will claim the focus, making it impossible to leave the field.
-        onBlur={() => {}}
-        onChange={onChange}
-        placeholder="Enter a lucene query"
-        portalOrigin="elasticsearch"
-      />
+        <LuceneQueryEditor placeholder="Enter a lucene query" builder={builder} autocompleter={getSuggestions} onChange={onEditorChange}/>
     </div>
   );
 };
