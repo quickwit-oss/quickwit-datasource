@@ -11,6 +11,8 @@ import { ElasticsearchQuery, MetricAggregationType, BucketAggregationType } from
 import { useFields } from './useFields';
 import { renderHook } from '@testing-library/react-hooks';
 
+
+
 describe('useFields hook', () => {
   // TODO: If we move the field type to the configuration objects as described in the hook's source
   // we can stop testing for getField to be called with the correct parameters.
@@ -48,12 +50,12 @@ describe('useFields hook', () => {
       { wrapper, initialProps: 'cardinality' }
     );
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(true, [], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith({aggregatable:true, type:[], _range:timeRange});
 
     // All other metric aggregations only work on numbers
     rerender('avg');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(true, ['number'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith({aggregatable:true, type:['number'], _range:timeRange});
 
     //
     // BUCKET AGGREGATIONS
@@ -61,26 +63,26 @@ describe('useFields hook', () => {
     // Date Histrogram only works on dates
     rerender('date_histogram');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(true, ['date'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith({aggregatable:true, type:['date'], _range:timeRange});
 
     // Histrogram only works on numbers
     rerender('histogram');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(true, ['number'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith({aggregatable:true, type:['number'], _range:timeRange});
 
     // Geohash Grid only works on geo_point data
     rerender('geohash_grid');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(true, ['geo_point'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith({aggregatable:true, type:['geo_point'], _range:timeRange});
 
     // All other bucket aggregation work on any kind of data
     rerender('terms');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(true, [], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith({aggregatable:true, type:[], _range:timeRange});
 
     // top_metrics work on only on numeric data in 7.7
     rerender('top_metrics');
     result.current();
-    expect(getFields).toHaveBeenLastCalledWith(true, ['number'], timeRange);
+    expect(getFields).toHaveBeenLastCalledWith({aggregatable:true, type:['number'], _range:timeRange});
   });
 });

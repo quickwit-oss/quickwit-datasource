@@ -5,10 +5,8 @@ import { catchError, mergeMap, map } from 'rxjs/operators';
 import {
   AbstractQuery,
   AdHocVariableFilter,
-  CoreApp,
   DataFrame,
   DataLink,
-  DataQueryError,
   DataQueryRequest,
   DataQueryResponse,
   DataSourceApi,
@@ -17,7 +15,6 @@ import {
   DataSourceWithLogsContextSupport,
   DataSourceWithQueryImportSupport,
   DataSourceWithSupplementaryQueriesSupport,
-  dateTime,
   FieldColorModeId,
   FieldType,
   getDefaultTimeRange,
@@ -28,19 +25,18 @@ import {
   LogsVolumeType,
   MetricFindValue,
   QueryFixAction,
-  rangeUtil,
   ScopedVars,
   SupplementaryQueryType,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, Logs, TermsQuery, FieldCapabilitiesResponse } from './types';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, TermsQuery, FieldCapabilitiesResponse } from './types';
 import { 
   DataSourceWithBackend, 
   getTemplateSrv, 
   TemplateSrv,
   getDataSourceSrv } from '@grafana/runtime';
-import { LogRowContextOptions, LogRowContextQueryDirection, QuickwitOptions } from 'quickwit';
-import { ElasticQueryBuilder } from 'QueryBuilder';
+import { QuickwitOptions } from 'quickwit';
+import { ElasticQueryBuilder } from 'QueryBuilder/elastic';
 import { colors } from '@grafana/ui';
 
 import { BarAlignment, DataQuery, GraphDrawStyle, StackingMode } from '@grafana/schema';
@@ -52,10 +48,18 @@ import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
 import { extractJsonPayload, fieldTypeMap } from 'utils';
 import { addAddHocFilter } from 'modifyQuery';
+import { LogContextProvider, LogRowContextOptions } from './LogContext/LogContextProvider';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
 
 export type ElasticDatasource = QuickwitDataSource;
+
+type FieldCapsSpec = {
+  aggregatable?: boolean,
+  searchable?: boolean,
+  type?: string[],
+  _range?: TimeRange
+}
 
 export class QuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
@@ -72,6 +76,8 @@ export class QuickwitDataSource
   queryBuilder: ElasticQueryBuilder;
   dataLinks: DataLinkConfig[];
   languageProvider: ElasticsearchLanguageProvider;
+
+  private logContextProvider: LogContextProvider;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<QuickwitOptions>,
@@ -117,6 +123,7 @@ export class QuickwitDataSource
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
     this.languageProvider = new ElasticsearchLanguageProvider(this);
+    this.logContextProvider = new LogContextProvider(this);
   }
 
   query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
@@ -368,21 +375,21 @@ export class QuickwitDataSource
     );
   }
 
-  getFields(aggregatable?: boolean, type?: string[], _range?: TimeRange): Observable<MetricFindValue[]> {
+  getFields(spec: FieldCapsSpec={}): Observable<MetricFindValue[]> {
     // TODO: use the time range.
     return from(this.getResource('_elastic/' + this.index + '/_field_caps')).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
-          if (aggregatable === undefined) {
-            return true;
+          if (spec.aggregatable !== undefined && field.aggregatable !== spec.aggregatable) {
+            return false
           }
-          if (aggregatable !== undefined && field.aggregatable !== aggregatable) {
-            return false;
+          if (spec.searchable !== undefined && field.searchable !== spec.searchable){
+            return false
           }
-          if (type?.length === 0) {
-            return true;
+          if (spec.type && spec.type.length !== 0 && !(spec.type.includes(field.type) || spec.type.includes(fieldTypeMap[field.type]))) {
+            return false
           }
-          return type?.includes(field.type) || type?.includes(fieldTypeMap[field.type]);
+          return true
         };
         const fieldCapabilities = Object.entries(field_capabilities_response.fields)
           .flatMap(([field_name, field_capabilities]) => {
@@ -412,8 +419,8 @@ export class QuickwitDataSource
   /**
    * Get tag keys for adhoc filters
    */
-  getTagKeys() {
-    return lastValueFrom(this.getFields());
+  getTagKeys(spec?: FieldCapsSpec) {
+    return lastValueFrom(this.getFields(spec));
   }
 
   /**
@@ -475,75 +482,27 @@ export class QuickwitDataSource
     return text;
   }
 
-  private makeLogContextDataRequest = (row: LogRowModel, options?: LogRowContextOptions) => {
-    const direction = options?.direction || LogRowContextQueryDirection.Backward;
-    const searchAfter = row.dataFrame.fields.find((f) => f.name === 'sort')?.values.get(row.rowIndex) ?? [row.timeEpochNs]
+  // Log Context
 
-    const logQuery: Logs = {
-      type: 'logs',
-      id: '1',
-      settings: {
-        limit: options?.limit ? options?.limit.toString() : '10',
-        // Sorting of results in the context query
-        sortDirection: direction === LogRowContextQueryDirection.Backward ? 'desc' : 'asc',
-        // Used to get the next log lines before/after the current log line using sort field of selected log line
-        searchAfter: searchAfter,
-      },
-    };
-
-    const query: ElasticsearchQuery = {
-      refId: `log-context-${row.dataFrame.refId}-${direction}`,
-      metrics: [logQuery],
-      query: '',
-    };
-
-    const timeRange = createContextTimeRange(row.timeEpochMs, direction);
-    const range = {
-      from: timeRange.from,
-      to: timeRange.to,
-      raw: timeRange,
-    };
-
-    const interval = rangeUtil.calculateInterval(range, 1);
-
-    const contextRequest: DataQueryRequest<ElasticsearchQuery> = {
-      requestId: `log-context-request-${row.dataFrame.refId}-${options?.direction}`,
-      targets: [query],
-      interval: interval.interval,
-      intervalMs: interval.intervalMs,
-      range,
-      scopedVars: {},
-      timezone: 'UTC',
-      app: CoreApp.Explore,
-      startTime: Date.now(),
-      hideFromInspector: true,
-    };
-    return contextRequest;
-  };
-
-  getLogRowContext = async (row: LogRowModel, options?: LogRowContextOptions): Promise<{ data: DataFrame[] }> => {
-    const contextRequest = this.makeLogContextDataRequest(row, options);
-
-    return lastValueFrom(
-      this.query(contextRequest).pipe(
-        catchError((err) => {
-          const error: DataQueryError = {
-            message: 'Error during context query. Please check JS console logs.',
-            status: err.status,
-            statusText: err.message,
-          };
-          throw error;
-        })
-      )
-    );
-  };
-
+  // NOTE : deprecated since grafana-data 10.3
   showContextToggle(row?: LogRowModel | undefined): boolean {
     return true;
   }
 
-  getLogRowContextUi?(row: LogRowModel, runContextQuery?: (() => void) | undefined): ReactNode {
-    return true;
+  getLogRowContext = async (
+      row: LogRowModel,
+      options?: LogRowContextOptions,
+      origQuery?: ElasticsearchQuery
+      ): Promise<{ data: DataFrame[] }> => {
+    return await this.logContextProvider.getLogRowContext(row, options, origQuery);
+  }
+
+  getLogRowContextUi(
+    row: LogRowModel,
+    runContextQuery?: (() => void),
+    origQuery?: ElasticsearchQuery
+    ): ReactNode {
+    return this.logContextProvider.getLogRowContextUi(row, runContextQuery, origQuery);
   }
 
   /**
@@ -562,7 +521,7 @@ export class QuickwitDataSource
     if (query) {
       if (parsedQuery.find === 'fields') {
         parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-        return lastValueFrom(this.getFields(true, parsedQuery.type, range));
+        return lastValueFrom(this.getFields({aggregatable:true, type:parsedQuery.type, _range:range}));
       }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
@@ -906,22 +865,6 @@ function generateDataLink(linkConfig: DataLinkConfig): DataLink {
     return {
       title: linkConfig.urlDisplayLabel || '',
       url: linkConfig.url,
-    };
-  }
-}
-
-function createContextTimeRange(rowTimeEpochMs: number, direction: string) {
-  const offset = 7;
-  // For log context, we want to request data from 7 subsequent/previous indices
-  if (direction === LogRowContextQueryDirection.Forward) {
-    return {
-      from: dateTime(rowTimeEpochMs).utc(),
-      to: dateTime(rowTimeEpochMs).add(offset, 'hours').utc(),
-    };
-  } else {
-    return {
-      from: dateTime(rowTimeEpochMs).subtract(offset, 'hours').utc(),
-      to: dateTime(rowTimeEpochMs).utc(),
     };
   }
 }

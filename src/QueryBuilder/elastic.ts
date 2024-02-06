@@ -1,6 +1,6 @@
 import {
   TermsQuery,
-} from './types';
+} from '../types';
 
 export class ElasticQueryBuilder {
   timeField: string;

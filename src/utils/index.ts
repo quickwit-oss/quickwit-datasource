@@ -1,8 +1,8 @@
 // import { gte, SemVer } from 'semver';
 
-import { isMetricAggregationWithField } from './components/QueryEditor/MetricAggregationsEditor/aggregations';
-import { metricAggregationConfig } from './components/QueryEditor/MetricAggregationsEditor/utils';
-import { MetricAggregation, MetricAggregationWithInlineScript } from './types';
+import { isMetricAggregationWithField } from '../components/QueryEditor/MetricAggregationsEditor/aggregations';
+import { metricAggregationConfig } from '../components/QueryEditor/MetricAggregationsEditor/utils';
+import { MetricAggregation, MetricAggregationWithInlineScript } from '../types';
 
 export const describeMetric = (metric: MetricAggregation) => {
   if (!isMetricAggregationWithField(metric)) {
