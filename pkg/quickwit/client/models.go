@@ -102,6 +102,7 @@ type QueryStringFilter struct {
 	Filter
 	Query           string
 	AnalyzeWildcard bool
+	DefaultOperator string
 }
 
 // MarshalJSON returns the JSON encoding of the query string filter.
@@ -109,7 +110,8 @@ func (f *QueryStringFilter) MarshalJSON() ([]byte, error) {
 	// FIXME: readd analyze_wildcard when quickwit supports it.
 	root := map[string]interface{}{
 		"query_string": map[string]interface{}{
-			"query": f.Query,
+			"query":            f.Query,
+			"default_operator": f.DefaultOperator,
 			//			"analyze_wildcard": f.AnalyzeWildcard,
 		},
 	}
