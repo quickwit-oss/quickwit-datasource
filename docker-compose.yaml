@@ -1,24 +1,22 @@
 version: '3.0'
 
 services:
-  jaeger:
-    image: jaegertracing/jaeger-query:1.51
-    container_name: 'jaeger-quickwit'
+  quickwit:
+    image: quickwit/quickwit:edge
     environment:
-      - GRPC_STORAGE_SERVER=host.docker.internal:7281
-      - SPAN_STORAGE_TYPE=grpc-plugin
-    ports:
-      - 16686:16686
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:7281
+      - QW_ENABLE_OPENTELEMETRY_OTLP_EXPORTER=true
+    command: ["run"]
     networks:
       - quickwit
+    ports:
+      - 7280:7280/tcp
   grafana:
     container_name: 'grafana-quickwit-datasource'
     build:
       context: ./.config
       args:
-        grafana_version: 10.0.1
+        grafana_version: 10.3.1
     ports:
       - 3000:3000/tcp
     volumes:

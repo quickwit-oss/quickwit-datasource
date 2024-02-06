@@ -28,40 +28,33 @@ Quickwit 0.7 is compatible with 0.3.x versions only.
 
 ## Installation
 
-### Download the 0.3.0 for Quickwit 0.7
+You can either download the plugin manually and unzip it into the plugin directory or use the env variable `GF_INSTALL_PLUGINS` to install it.
+
+### 0.3.2 for Quickwit 0.7
+
+Run `grafana-oss` container with the env variable:
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.3.0/quickwit-quickwit-datasource-0.3.0.zip
+docker run -p 3000:3000 -e GF_INSTALL_PLUGINS="https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.3.2/quickwit-quickwit-datasource-0.3.2.zip;quickwit-quickwit-datasource" grafana/grafana-oss run
 ```
 
-### Unzip into the plugins directory
+Or download the plugin manually and start Grafana
 
 ```bash
-mkdir -p grafana-storage/plugins
-unzip quickwit-quickwit-datasource-0.3.0.zip -d grafana-storage/plugins
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.3.2/quickwit-quickwit-datasource-0.3.2.zip
+mkdir -p plugins
+unzip quickwit-quickwit-datasource-0.3.2.zip -d plugins/quickwit-quickwit-datasource-0.3.2
+docker run -p 3000:3000 -e GF_PATHS_PLUGINS=/data/plugins -v ${PWD}/plugins:/data/plugins grafana/grafana-oss run
 ```
 
-### Download the 0.2.4 for Quickwit 0.6
+### 0.2.4 for Quickwit 0.6
+
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.4/quickwit-quickwit-datasource-0.2.4.zip
+docker run -p 3000:3000 -e GF_INSTALL_PLUGINS="https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.2.4/quickwit-quickwit-datasource-0.2.4.zip;quickwit-quickwit-datasource" grafana/grafana-oss run
 ```
 
-### Unzip into the plugins directory
-
-```bash
-mkdir -p grafana-storage/plugins
-unzip quickwit-quickwit-datasource-0.2.4.zip -d grafana-storage/plugins
-```
-
-### Start Grafana
-
-```bash
-docker run --rm -p 3000:3000 \
--e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=quickwit-quickwit-datasource \
--v ${PWD}/grafana-storage:/var/lib/grafana \
---name grafana-enterprise grafana/grafana-enterprise
-```
+## Additional instructions
 
 If you are running a local Quickwit instance on Linux, add the `--network=host` argument to the `docker run` command. This will allow Grafana to access services on the host machine. You can later use `http://localhost:7280/api/v1` in the Quickwit API URL when configuring the data source.
 
@@ -79,8 +72,6 @@ locally, please check out the [Plugin management docs](https://grafana.com/docs/
 To configure the Quickwit datasource, you need to provide the following information:
 - The Quickwit API URL with the `/api/v1` suffix. If you have a Quickwit local instance, set the host to `http://host.docker.internal:7280/api/v1` on macOS or `http://localhost:7280/api/v1` on Linux.
 - The index name.
-- The timestamp field name.
-- The output format of the timestamp field: only `unix_timestamp_secs`, `unix_timestamp_millis`, `unix_timestamp_micros`, `unix_timestamp_nanos`, `iso8601` and `rfc3339` are supported.
 - The log message field name (optional). This is the field displayed in the explorer view.
 - The log level field name (optional). It must be a fast field.
   
@@ -99,17 +90,18 @@ datasources:
     url: http://localhost:7280/api/v1
     jsonData:
       index: 'hdfs-logs'
-      timeField: timestamp
-      timeOutputFormat: unix_timestamp_secs
       logMessageField: body
       logLevelField: severity_text
 ```
 
-## Template variables
+## Features
 
-## Learn more
-
-* Set up alerting; refer to [Alerts overview](https://grafana.com/docs/grafana/latest/alerting/).
+- Explore view.
+- Dashboard view.
+- Template variables.
+- Adhoc filters.
+- Explore Log Context.
+- [Alerting](https://grafana.com/docs/grafana/latest/alerting/).
 
 
 ## Contributing to Quickwit datasource
