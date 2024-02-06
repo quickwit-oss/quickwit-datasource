@@ -91,7 +91,7 @@ func (e *elasticsearchDataQuery) processQuery(q *Query, ms *es.MultiSearchReques
 	b.Size(0)
 	filters := b.Query().Bool().Filter()
 	filters.AddDateRangeFilter(defaultTimeField, to, from)
-	filters.AddQueryStringFilter(q.RawQuery, true)
+	filters.AddQueryStringFilter(q.RawQuery, true, "AND")
 
 	if isLogsQuery(q) {
 		processLogsQuery(q, b, from, to, defaultTimeField)

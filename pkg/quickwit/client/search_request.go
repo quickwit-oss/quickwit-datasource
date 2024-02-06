@@ -257,7 +257,7 @@ func (b *FilterQueryBuilder) AddDateRangeFilter(timeField string, lteMillisecs i
 }
 
 // AddQueryStringFilter adds a new query string filter
-func (b *FilterQueryBuilder) AddQueryStringFilter(querystring string, analyseWildcard bool) *FilterQueryBuilder {
+func (b *FilterQueryBuilder) AddQueryStringFilter(querystring string, analyseWildcard bool, defaultOperator string) *FilterQueryBuilder {
 	if len(strings.TrimSpace(querystring)) == 0 {
 		return b
 	}
@@ -265,6 +265,7 @@ func (b *FilterQueryBuilder) AddQueryStringFilter(querystring string, analyseWil
 	b.filters = append(b.filters, &QueryStringFilter{
 		Query:           querystring,
 		AnalyzeWildcard: analyseWildcard,
+		DefaultOperator: defaultOperator,
 	})
 	return b
 }
