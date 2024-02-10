@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 
-import React, { createContext, useCallback, useEffect } from 'react';
+import React, { createContext } from 'react';
 
 import { CoreApp, Field, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
 import { InlineLabel, useStyles2 } from '@grafana/ui';
@@ -18,7 +18,6 @@ import { changeQuery } from './state';
 import { QuickwitOptions } from '../../quickwit';
 import { QueryTypeSelector } from './QueryTypeSelector';
 
-import { useQueryBuilder } from '@/QueryBuilder/lucene';
 import { getHook } from 'utils/context';
 import { LuceneQueryEditor } from '@/components/LuceneQueryEditor';
 import { useDatasourceFields } from 'datasource.utils';
@@ -59,23 +58,12 @@ interface Props {
 
 export const ElasticSearchQueryField = ({ value, onChange }: { value?: string; onChange: (v: string) => void }) => {
   const styles = useStyles2(getStyles);
-  const builder = useQueryBuilder();
-  const {setQuery} = builder;
   const datasource = useDatasource()
   const { getSuggestions } = useDatasourceFields(datasource);
 
-  useEffect(()=>{
-    setQuery(value || '')
-  }, [setQuery, value])
-
-  const onEditorChange = useCallback((query: string)=>{
-    setQuery(query);
-    onChange(query)
-  },[setQuery, onChange])
-
   return (
     <div className={styles.queryItem}>
-        <LuceneQueryEditor placeholder="Enter a lucene query" builder={builder} autocompleter={getSuggestions} onChange={onEditorChange}/>
+      <LuceneQueryEditor placeholder="Enter a lucene query" value={value || ''} autocompleter={getSuggestions} onChange={onChange}/>
     </div>
   );
 };
