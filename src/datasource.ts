@@ -1,6 +1,6 @@
 import { cloneDeep, first as _first, map as _map, groupBy } from 'lodash';
 import { Observable, lastValueFrom, from, isObservable, of } from 'rxjs';
-import { catchError, mergeMap, map } from 'rxjs/operators';
+import { catchError, mergeMap, map, shareReplay } from 'rxjs/operators';
 
 import {
   AbstractQuery,
@@ -27,6 +27,7 @@ import {
   QueryFixAction,
   ScopedVars,
   SupplementaryQueryType,
+  TestDataSourceResponse,
   TimeRange,
 } from '@grafana/data';
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, TermsQuery, FieldCapabilitiesResponse } from './types';
@@ -61,6 +62,15 @@ type FieldCapsSpec = {
   _range?: TimeRange
 }
 
+function getTimeFieldInfoFromIndexMetadata(indexMetadata: any){
+  let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
+  let timestampFieldName = indexMetadata.index_config.doc_mapping.timestamp_field
+  let timestampField = fields.find((field) => field.json_path === timestampFieldName);
+  let timestampFormat = timestampField ? timestampField.field_mapping.output_format || '' : ''
+  let timestampFieldInfos = { 'field': timestampFieldName, 'format': timestampFormat }
+  return timestampFieldInfos
+}
+
 export class QuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
   implements
@@ -73,11 +83,16 @@ export class QuickwitDataSource
   timeOutputFormat: string;
   logMessageField?: string;
   logLevelField?: string;
-  queryBuilder: ElasticQueryBuilder;
   dataLinks: DataLinkConfig[];
   languageProvider: ElasticsearchLanguageProvider;
 
   private logContextProvider: LogContextProvider;
+
+
+  // Observables from index metadata
+  indexMetadata$: any;
+  timeFieldInfo$: Observable<{field: string, format: string}>
+  queryBuilder$: Observable<ElasticQueryBuilder>;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<QuickwitOptions>,
@@ -88,18 +103,10 @@ export class QuickwitDataSource
     this.index = settingsData.index || '';
     this.timeField = ''
     this.timeOutputFormat = ''
-    this.queryBuilder = new ElasticQueryBuilder({
-      timeField: this.timeField,
-    });
-    from(this.getResource('indexes/' + this.index)).pipe(
-      map((indexMetadata) => {
-        let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
-        let timestampFieldName = indexMetadata.index_config.doc_mapping.timestamp_field
-        let timestampField = fields.find((field) => field.json_path === timestampFieldName);
-        let timestampFormat = timestampField ? timestampField.field_mapping.output_format || '' : ''
-        let timestampFieldInfos = { 'field': timestampFieldName, 'format': timestampFormat }
-        return timestampFieldInfos
-      }),
+
+    this.indexMetadata$ = from(this.getResource('indexes/' + this.index))
+    this.timeFieldInfo$ = this.indexMetadata$.pipe(
+      map(getTimeFieldInfoFromIndexMetadata),
       catchError((err) => {
         if (!err.data || !err.data.error) {
           let err_source = extractJsonPayload(err.data.error)
@@ -107,18 +114,21 @@ export class QuickwitDataSource
             throw err
           }
         }
-
         // the error will be handle in the testDatasource function
         return of({'field': '', 'format': ''})
-      })
-    ).subscribe(result => {
-      this.timeField = result.field;
-      this.timeOutputFormat = result.format;
-      this.queryBuilder = new ElasticQueryBuilder({
-        timeField: this.timeField,
-      });
-    });
-    
+      }),
+      shareReplay(1),
+    )
+    this.timeFieldInfo$.subscribe((timeFieldInfo)=>{
+      this.timeField = timeFieldInfo.field;
+      this.timeOutputFormat = timeFieldInfo.format
+    })
+    this.queryBuilder$ = this.timeFieldInfo$.pipe(
+      map((timeFieldInfo)=> {
+        return new ElasticQueryBuilder({timeField:timeFieldInfo.field})
+      }),
+      shareReplay(1),
+    )
     this.logMessageField = settingsData.logMessageField || '';
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
@@ -147,10 +157,8 @@ export class QuickwitDataSource
         message: 'Cannot save datasource, `index` is required',
       };
     }
-
-    return lastValueFrom(
-      from(this.getResource('indexes/' + this.index)).pipe(
-        mergeMap((indexMetadata) => {
+    const validation$: Observable<TestDataSourceResponse> = this.indexMetadata$.pipe(
+        mergeMap((indexMetadata: IndexMetadata): Observable<TestDataSourceResponse> => {
           let error = this.validateIndexConfig(indexMetadata);
           if (error) {
             return of({
@@ -160,7 +168,7 @@ export class QuickwitDataSource
           }
           return of({ status: 'success', message: `Index OK. Time field name OK` });
         }),
-        catchError((err) => {
+        catchError((err): Observable<TestDataSourceResponse>  => {
           if (err.data && err.data.error) {
             let err_source = extractJsonPayload(err.data.error)
             if (err_source) {
@@ -177,7 +185,8 @@ export class QuickwitDataSource
           }
         })
       )
-    );
+
+    return lastValueFrom(validation$);
   }
 
   validateIndexConfig(indexMetadata: IndexMetadata): string | undefined {
@@ -347,18 +356,18 @@ export class QuickwitDataSource
       index: this.index,
     });
 
-    let esQuery = JSON.stringify(this.queryBuilder.getTermsQuery(queryDef));
-    esQuery = esQuery.replace(/\$timeFrom/g, range.from.valueOf().toString());
-    esQuery = esQuery.replace(/\$timeTo/g, range.to.valueOf().toString());
-    esQuery = header + '\n' + esQuery + '\n';
     const resourceOptions = {
-      headers: {
-        'content-type': 'application/x-ndjson'
-      }
+      headers: { 'content-type': 'application/x-ndjson' }
     };
-    const termsObservable = from(this.postResource("_elastic/_msearch", esQuery, resourceOptions));
 
-    return termsObservable.pipe(
+    return this.queryBuilder$.pipe(
+      mergeMap((queryBuilder)=>{
+      let esQuery = JSON.stringify(queryBuilder.getTermsQuery(queryDef));
+      esQuery = esQuery.replace(/\$timeFrom/g, range.from.valueOf().toString());
+      esQuery = esQuery.replace(/\$timeTo/g, range.to.valueOf().toString());
+      esQuery = header + '\n' + esQuery + '\n';
+      return from(this.postResource("_elastic/_msearch", esQuery, resourceOptions))
+      }),
       map((res) => {
         if (!res.responses[0].aggregations) {
           return [];
