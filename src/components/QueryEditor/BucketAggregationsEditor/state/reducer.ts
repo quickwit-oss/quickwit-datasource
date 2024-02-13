@@ -17,7 +17,7 @@ import {
 } from './actions';
 
 export const createReducer =
-  (defaultTimeField: string) =>
+  (defaultTimeField = "default timefield") =>
   (state: ElasticsearchQuery['bucketAggs'], action: Action): ElasticsearchQuery['bucketAggs'] => {
     if (addBucketAggregation.match(action)) {
       const newAgg: Terms = {

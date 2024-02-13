@@ -18,7 +18,7 @@ const query: ElasticsearchQuery = {
 
 describe('ElasticsearchQueryContext', () => {
   it('Should call onChange and onRunQuery with the default query when the query is empty', () => {
-    const datasource = { timeField: 'TIMEFIELD' } as ElasticDatasource;
+    const datasource = {} as ElasticDatasource;
     const onChange = jest.fn();
     const onRunQuery = jest.fn();
 
@@ -38,9 +38,6 @@ describe('ElasticsearchQueryContext', () => {
     expect(changedQuery.alias).toBeDefined();
     expect(changedQuery.metrics).toBeDefined();
     expect(changedQuery.bucketAggs).toBeDefined();
-
-    // Should also set timeField to the configured `timeField` option in datasource configuration
-    expect(changedQuery.timeField).toBe(datasource.timeField);
 
     expect(onRunQuery).toHaveBeenCalled();
   });

@@ -50,12 +50,11 @@ export const ElasticsearchProvider = ({
     query: queryReducer,
     alias: aliasPatternReducer,
     metrics: metricsReducer,
-    bucketAggs: createBucketAggsReducer(datasource.timeField),
+    bucketAggs: createBucketAggsReducer(),
   });
 
   const dispatch = useStatelessReducer(
-    // timeField is part of the query model, but its value is always set to be the one from datasource settings.
-    (newState) => onStateChange({ ...query, ...newState, timeField: datasource.timeField }),
+    (newState) => onStateChange({ ...query, ...newState }),
     query,
     reducer
   );

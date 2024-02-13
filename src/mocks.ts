@@ -38,8 +38,6 @@ export function createElasticDatasource(
     access: 'proxy',
     url: '',
     jsonData: {
-      timeField: '',
-      timeOutputFormat: '',
       index: '',
       ...jsonData,
     },

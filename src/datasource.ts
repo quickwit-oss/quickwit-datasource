@@ -1,10 +1,11 @@
 import { cloneDeep, first as _first, map as _map, groupBy } from 'lodash';
 import { Observable, lastValueFrom, from, isObservable, of } from 'rxjs';
-import { catchError, mergeMap, map, shareReplay } from 'rxjs/operators';
+import { map, mergeMap } from 'rxjs/operators';
 
 import {
   AbstractQuery,
   AdHocVariableFilter,
+  CoreApp,
   DataFrame,
   DataLink,
   DataQueryRequest,
@@ -27,17 +28,16 @@ import {
   QueryFixAction,
   ScopedVars,
   SupplementaryQueryType,
-  TestDataSourceResponse,
   TimeRange,
 } from '@grafana/data';
-import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, Field as QuickwitField, FieldMapping, IndexMetadata, TermsQuery, FieldCapabilitiesResponse } from './types';
+import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, TermsQuery, FieldCapabilitiesResponse } from './types';
 import { 
   DataSourceWithBackend, 
   getTemplateSrv, 
   TemplateSrv,
   getDataSourceSrv } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
-import { ElasticQueryBuilder } from 'QueryBuilder/elastic';
+import { getDataQuery } from 'QueryBuilder/elastic';
 import { colors } from '@grafana/ui';
 
 import { BarAlignment, DataQuery, GraphDrawStyle, StackingMode } from '@grafana/schema';
@@ -47,7 +47,7 @@ import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregatio
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { ReactNode } from 'react';
-import { extractJsonPayload, fieldTypeMap } from 'utils';
+import { fieldTypeMap } from 'utils';
 import { addAddHocFilter } from 'modifyQuery';
 import { LogContextProvider, LogRowContextOptions } from './LogContext/LogContextProvider';
 
@@ -62,15 +62,6 @@ type FieldCapsSpec = {
   _range?: TimeRange
 }
 
-function getTimeFieldInfoFromIndexMetadata(indexMetadata: any){
-  let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
-  let timestampFieldName = indexMetadata.index_config.doc_mapping.timestamp_field
-  let timestampField = fields.find((field) => field.json_path === timestampFieldName);
-  let timestampFormat = timestampField ? timestampField.field_mapping.output_format || '' : ''
-  let timestampFieldInfos = { 'field': timestampFieldName, 'format': timestampFormat }
-  return timestampFieldInfos
-}
-
 export class QuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
   implements
@@ -79,20 +70,12 @@ export class QuickwitDataSource
     DataSourceWithQueryImportSupport<ElasticsearchQuery>
 {
   index: string;
-  timeField: string;
-  timeOutputFormat: string;
   logMessageField?: string;
   logLevelField?: string;
   dataLinks: DataLinkConfig[];
   languageProvider: ElasticsearchLanguageProvider;
 
   private logContextProvider: LogContextProvider;
-
-
-  // Observables from index metadata
-  indexMetadata$: any;
-  timeFieldInfo$: Observable<{field: string, format: string}>
-  queryBuilder$: Observable<ElasticQueryBuilder>;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<QuickwitOptions>,
@@ -101,34 +84,6 @@ export class QuickwitDataSource
     super(instanceSettings);
     const settingsData = instanceSettings.jsonData || ({} as QuickwitOptions);
     this.index = settingsData.index || '';
-    this.timeField = ''
-    this.timeOutputFormat = ''
-
-    this.indexMetadata$ = from(this.getResource('indexes/' + this.index))
-    this.timeFieldInfo$ = this.indexMetadata$.pipe(
-      map(getTimeFieldInfoFromIndexMetadata),
-      catchError((err) => {
-        if (!err.data || !err.data.error) {
-          let err_source = extractJsonPayload(err.data.error)
-          if(!err_source) {
-            throw err
-          }
-        }
-        // the error will be handle in the testDatasource function
-        return of({'field': '', 'format': ''})
-      }),
-      shareReplay(1),
-    )
-    this.timeFieldInfo$.subscribe((timeFieldInfo)=>{
-      this.timeField = timeFieldInfo.field;
-      this.timeOutputFormat = timeFieldInfo.format
-    })
-    this.queryBuilder$ = this.timeFieldInfo$.pipe(
-      map((timeFieldInfo)=> {
-        return new ElasticQueryBuilder({timeField:timeFieldInfo.field})
-      }),
-      shareReplay(1),
-    )
     this.logMessageField = settingsData.logMessageField || '';
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
@@ -157,58 +112,11 @@ export class QuickwitDataSource
         message: 'Cannot save datasource, `index` is required',
       };
     }
-    const validation$: Observable<TestDataSourceResponse> = this.indexMetadata$.pipe(
-        mergeMap((indexMetadata: IndexMetadata): Observable<TestDataSourceResponse> => {
-          let error = this.validateIndexConfig(indexMetadata);
-          if (error) {
-            return of({
-              status: 'error',
-              message: error,
-            });
-          }
-          return of({ status: 'success', message: `Index OK. Time field name OK` });
-        }),
-        catchError((err): Observable<TestDataSourceResponse>  => {
-          if (err.data && err.data.error) {
-            let err_source = extractJsonPayload(err.data.error)
-            if (err_source) {
-              err = err_source
-            }
-          }
+    const backendCheck = from(this.callHealthCheck()).pipe(
+      mergeMap((res) => of(res))
+    )
 
-          if (err.status && err.status === 404) {
-            return of({ status: 'error', message: 'Index does not exists.' });
-          } else if (err.message) {
-            return of({ status: 'error', message: err.message });
-          } else {
-            return of({ status: 'error', message: err.status });
-          }
-        })
-      )
-
-    return lastValueFrom(validation$);
-  }
-
-  validateIndexConfig(indexMetadata: IndexMetadata): string | undefined {
-    // Check timestamp field.
-    if (this.timeField === '') {
-      return `Time field must not be empty`;
-    }
-
-    let fields = getAllFields(indexMetadata.index_config.doc_mapping.field_mappings);
-    let timestampField = fields.find((field) => field.json_path === this.timeField);
-
-    // Should never happen.
-    if (timestampField === undefined) {
-      return `No field named '${this.timeField}' found in the doc mapping. This should never happen.`;
-    }
-
-    let timeOutputFormat = timestampField.field_mapping.output_format || 'unknown';
-    const supportedTimestampOutputFormats = ['unix_timestamp_secs', 'unix_timestamp_millis', 'unix_timestamp_micros', 'unix_timestamp_nanos', 'iso8601', 'rfc3339'];
-    if (!supportedTimestampOutputFormats.includes(timeOutputFormat)) {
-      return `Timestamp output format '${timeOutputFormat} is not yet supported.`;
-    }
-    return;
+    return lastValueFrom(backendCheck)
   }
 
   async importFromAbstractQueries(abstractQueries: AbstractQuery[]): Promise<ElasticsearchQuery[]> {
@@ -262,7 +170,6 @@ export class QuickwitDataSource
           return undefined;
         }
         const bucketAggs: BucketAggregation[] = [];
-        const timeField = this.timeField ?? 'timestamp';
 
         if (this.logLevelField) {
           bucketAggs.push({
@@ -285,14 +192,12 @@ export class QuickwitDataSource
             min_doc_count: '0',
             trimEdges: '0',
           },
-          field: timeField,
         });
 
         return {
           refId: `${REF_ID_STARTER_LOG_VOLUME}${query.refId}`,
           query: query.query,
           metrics: [{ type: 'count', id: '1' }],
-          timeField,
           bucketAggs,
         };
 
@@ -350,38 +255,34 @@ export class QuickwitDataSource
     return { ...query, query: expression };
   }
 
+  getDataQueryRequest(queryDef: TermsQuery, range: TimeRange) {
+    let dataQuery = getDataQuery(queryDef, 'getTerms');
+    const request: DataQueryRequest = {
+      app: CoreApp.Unknown,
+      requestId: 'GetTerms',
+      interval: '',
+      intervalMs: 0,
+      range,
+      targets:[dataQuery],
+      timezone:'browser',
+      scopedVars:{},
+      startTime: Date.now(),
+    }
+    return request
+  }
+
   getTerms(queryDef: TermsQuery, range = getDefaultTimeRange()): Observable<MetricFindValue[]> {
-    const header = JSON.stringify({
-      ignore_unavailable: true,
-      index: this.index,
-    });
+    const dataquery = this.getDataQueryRequest(queryDef, range)
+    return super.query(dataquery).pipe(
+      mergeMap(res=> res.data.map((df: DataFrame)=>{
 
-    const resourceOptions = {
-      headers: { 'content-type': 'application/x-ndjson' }
-    };
-
-    return this.queryBuilder$.pipe(
-      mergeMap((queryBuilder)=>{
-      let esQuery = JSON.stringify(queryBuilder.getTermsQuery(queryDef));
-      esQuery = esQuery.replace(/\$timeFrom/g, range.from.valueOf().toString());
-      esQuery = esQuery.replace(/\$timeTo/g, range.to.valueOf().toString());
-      esQuery = header + '\n' + esQuery + '\n';
-      return from(this.postResource("_elastic/_msearch", esQuery, resourceOptions))
-      }),
-      map((res) => {
-        if (!res.responses[0].aggregations) {
-          return [];
-        }
-
-        const buckets = res.responses[0].aggregations['1'].buckets;
-        return _map(buckets, (bucket) => {
-          return {
-            text: bucket.key_as_string || bucket.key,
-            value: bucket.key,
-          };
-        });
+        return df.fields[0]!.values.map((bucket)=>({
+          text: bucket,
+          value: bucket,
+        }))
       })
-    );
+      )
+    )
   }
 
   getFields(spec: FieldCapsSpec={}, range = getDefaultTimeRange()): Observable<MetricFindValue[]> {
@@ -594,22 +495,6 @@ export class QuickwitDataSource
 
     return finalQuery;
   }
-}
-
-// Returns a flatten array of fields and nested fields found in the given `FieldMapping` array. 
-function getAllFields(field_mappings: FieldMapping[]): QuickwitField[] {
-  const fields: QuickwitField[] = [];
-  for (const field_mapping of field_mappings) {
-    if (field_mapping.type === 'object' && field_mapping.field_mappings !== undefined) {
-      for (const child_field_mapping of getAllFields(field_mapping.field_mappings)) {
-        fields.push({json_path: field_mapping.name + '.' + child_field_mapping.json_path, path_segments: [field_mapping.name].concat(child_field_mapping.path_segments), field_mapping: child_field_mapping.field_mapping})
-      }
-    } else {
-      fields.push({json_path: field_mapping.name, path_segments: [field_mapping.name], field_mapping: field_mapping});
-    }
-  }
-
-  return fields;
 }
 
 /**
