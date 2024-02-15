@@ -70,6 +70,7 @@ export class QuickwitDataSource
     DataSourceWithQueryImportSupport<ElasticsearchQuery>
 {
   index: string;
+  timeField: string;
   logMessageField?: string;
   logLevelField?: string;
   dataLinks: DataLinkConfig[];
@@ -84,6 +85,7 @@ export class QuickwitDataSource
     super(instanceSettings);
     const settingsData = instanceSettings.jsonData || ({} as QuickwitOptions);
     this.index = settingsData.index || '';
+    this.timeField = ''
     this.logMessageField = settingsData.logMessageField || '';
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
@@ -175,6 +177,7 @@ export class QuickwitDataSource
           return undefined;
         }
         const bucketAggs: BucketAggregation[] = [];
+        const timeField = this.timeField ?? 'timestamp';
 
         if (this.logLevelField) {
           bucketAggs.push({
@@ -197,6 +200,7 @@ export class QuickwitDataSource
             min_doc_count: '0',
             trimEdges: '0',
           },
+          field: timeField,
         });
 
         return {
