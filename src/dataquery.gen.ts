@@ -395,7 +395,7 @@ export interface Elasticsearch extends DataQuery {
    * Lucene query
    */
   query?: string;
-    /**
+  /**
    * Name of time field
    */
   timeField?: string;
