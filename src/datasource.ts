@@ -97,7 +97,7 @@ export class QuickwitDataSource
      return super.query(request)
        .pipe(map((response) => {
           response.data.forEach((dataFrame) => {
-            enhanceDataFrameWithDataLinks(dataFrame, this.dataLinks);
+            enhanceDataFrameWithDataLinks(dataFrame, this.dataLinks, this.logMessageField);
           });
          return response;
        }));
@@ -738,7 +738,44 @@ function luceneEscape(value: string) {
   return value.replace(/([\!\*\+\-\=<>\s\&\|\(\)\[\]\{\}\^\~\?\:\\/"])/g, '\\$1');
 }
 
-export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: DataLinkConfig[]) {
+export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: DataLinkConfig[], logMessageField: string | undefined) {
+  // Ignore log volume dataframe, no need to add links or a displayed message field.
+  if (!dataFrame.refId || dataFrame.refId.startsWith('log-volume')) {
+    return;
+  }
+  if (logMessageField) {
+    const messageFields = logMessageField.split(',');
+    let field_idx_list = [];
+    for (const messageField of messageFields) {
+      const field_idx = dataFrame.fields.findIndex((field) => field.name === messageField);
+      if (field_idx !== -1) {
+        field_idx_list.push(field_idx);
+      }
+    }
+    const displayedMessages = Array(dataFrame.length);
+    for (let idx = 0; idx < dataFrame.length; idx++) {
+      let displayedMessage = "";
+      // If we have only one field, we assume the field name is obvious for the user and we don't need to show it.
+      if (field_idx_list.length === 1) {
+        displayedMessage = `${dataFrame.fields[field_idx_list[0]].values[idx]}`;
+      } else {
+        for (const field_idx of field_idx_list) {
+          displayedMessage += ` ${dataFrame.fields[field_idx].name}=${dataFrame.fields[field_idx].values[idx]}`;
+        }
+      }
+      displayedMessages[idx] = displayedMessage.trim();
+    }
+
+    const newField = {
+        name: 'message',
+        type: FieldType.string,
+        config: {},
+        values: displayedMessages,
+    }
+    console.log('newField');
+    dataFrame.fields = [newField, ...dataFrame.fields];
+  }
+  
   if (!dataLinks.length) {
     return;
   }
