@@ -175,7 +175,9 @@ func processRawDataResponse(res *es.SearchResponse, target *Query, configuredFie
 			flattened = flatten(hit["_source"].(map[string]interface{}))
 		}
 
-		doc := map[string]interface{}{}
+		doc := map[string]interface{}{
+			"sort": hit["sort"],
+		}
 
 		for k, v := range flattened {
 			doc[k] = v
@@ -259,7 +261,7 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 		if propName == configuredFields.TimeField {
 			timeVector := make([]*time.Time, size)
 			for i, doc := range docs {
-				timeValue, err := ParseToTime(doc[configuredFields.TimeField], configuredFields.TimeOutputFormat)
+				timeValue, err := ParseToTime(doc["sort"].([]any)[0], TimestampNanos)
 				if err != nil {
 					continue
 				}
