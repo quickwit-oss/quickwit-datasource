@@ -386,8 +386,8 @@ export class QuickwitDataSource
 
   getFields(spec: FieldCapsSpec={}, range = getDefaultTimeRange()): Observable<MetricFindValue[]> {
     return from(this.getResource('_elastic/' + this.index + '/_field_caps', {
-      start_timestamp:range.from.valueOf()/SECOND,
-      end_timestamp:range.to.valueOf()/SECOND,
+      start_timestamp: Math.floor(range.from.valueOf()/SECOND),
+      end_timestamp: Math.ceil(range.to.valueOf()/SECOND),
     })).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         const shouldAddField = (field: any) => {
