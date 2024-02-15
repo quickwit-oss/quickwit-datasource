@@ -276,27 +276,9 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 }
 
 func TestConvertToTime(t *testing.T) {
-	t.Run("Test parse unix timestamps secs", func(t *testing.T) {
-		inputValue := interface{}(1234567890.0)
-		value, _ := ParseToTime(inputValue, "unix_timestamp_secs")
-		require.Equal(t, time.Unix(1234567890, 0), value)
-	})
-
-	t.Run("Test parse unix timestamps millisecs", func(t *testing.T) {
-		inputValue := interface{}(1234567890000.0)
-		value, _ := ParseToTime(inputValue, "unix_timestamp_millis")
-		require.Equal(t, time.Unix(1234567890, 0), value)
-	})
-
-	t.Run("Test parse unix timestamps microsecs", func(t *testing.T) {
-		inputValue := interface{}(1234567890000000.0)
-		value, _ := ParseToTime(inputValue, "unix_timestamp_micros")
-		require.Equal(t, time.Unix(1234567890, 0), value)
-	})
-
-	t.Run("Test parse unix timestamps nanosecs", func(t *testing.T) {
+	t.Run("Test parse unix timestamps nanosecs of float type", func(t *testing.T) {
 		inputValue := interface{}(1234567890000000000.0)
-		value, _ := ParseToTime(inputValue, "unix_timestamp_nanos")
+		value, _ := ParseToTime(inputValue)
 		require.Equal(t, time.Unix(1234567890, 0), value)
 	})
 }
