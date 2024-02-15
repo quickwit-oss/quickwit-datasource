@@ -113,7 +113,12 @@ export class QuickwitDataSource
       };
     }
     const backendCheck = from(this.callHealthCheck()).pipe(
-      mergeMap((res) => of(res))
+      mergeMap((res) => {
+        return of({
+          status: res.status.toLowerCase(),
+          message: res.message
+        })
+      })
     )
 
     return lastValueFrom(backendCheck)
