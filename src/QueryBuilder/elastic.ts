@@ -1,84 +1,67 @@
 import {
+  BucketAggregation,
+  ElasticsearchQuery,
+  MetricAggregation,
   TermsQuery,
 } from '../types';
 
-export class ElasticQueryBuilder {
-  timeField: string;
 
-  constructor(options: { timeField: string }) {
-    this.timeField = options.timeField;
+type OrderByType =  '_key' | '_term' | '_count'
+
+function getTermsAgg(
+  fieldName: string,
+  size: number,
+  orderBy: OrderByType = "_key",
+  order: 'asc'|'desc' = 'asc'
+  ): BucketAggregation {
+  return {
+    type: 'terms',
+    id: "",
+    field: fieldName,
+    settings:{
+      size: size.toString(),
+      order: order,
+      orderBy: orderBy,
+    }
+  }
+}
+
+export function getDataQuery(queryDef: TermsQuery, refId: string): ElasticsearchQuery {
+  const metrics: MetricAggregation[] = [
+    {id:"count1", type:'count'}
+  ];
+
+  // Default behaviour is to order results by { _key: asc }
+  // queryDef.order allows selection of asc/desc
+  // queryDef.orderBy allows selection of doc_count ordering (defaults desc)
+
+  let orderBy: OrderByType;
+  switch (queryDef.orderBy || 'key') {
+    case 'key':
+    case 'term':
+      orderBy = '_key'
+      break;
+    case 'doc_count':
+      orderBy = '_count'
+      break;
+    default:
+      throw { message: `Invalid query sort type ${queryDef.orderBy}` };
   }
 
-  getRangeFilter() {
-    const filter: any = {};
-    filter[this.timeField] = {
-      gte: '$timeFrom',
-      lte: '$timeTo',
-      // FIXME when Quickwit supports format.
-      // format: 'epoch_millis',
-    };
-
-    return filter;
+  const {order = orderBy === '_count' ? 'desc' : 'asc' } = queryDef;
+  if (['asc', 'desc'].indexOf(order) < 0) {
+    throw { message: `Invalid query sort order ${order}` };
   }
 
-  getTermsQuery(queryDef: TermsQuery) {
-    const query: any = {
-      size: 0,
-      query: {
-        bool: {
-          filter: [{ range: this.getRangeFilter() }],
-        },
-      },
-    };
+  const bucketAggs: BucketAggregation[] = [];
+  if (queryDef.field) {
+    bucketAggs.push(getTermsAgg(queryDef.field, 500, orderBy, order))
+  }
 
-    if (queryDef.query) {
-      query.query.bool.filter.push({
-        query_string: {
-          // FIXME when Quickwit supports analyze_wildcard.
-          // analyze_wildcard: true,
-          query: queryDef.query,
-        },
-      });
-    }
-
-    let size = 500;
-    if (queryDef.size) {
-      size = queryDef.size;
-    }
-
-    query.aggs = {
-      '1': {
-        terms: {
-          field: queryDef.field,
-          size: size,
-          order: {},
-        },
-      },
-    };
-
-    // Default behaviour is to order results by { _key: asc }
-    // queryDef.order allows selection of asc/desc
-    // queryDef.orderBy allows selection of doc_count ordering (defaults desc)
-
-    const { orderBy = 'key', order = orderBy === 'doc_count' ? 'desc' : 'asc' } = queryDef;
-
-    if (['asc', 'desc'].indexOf(order) < 0) {
-      throw { message: `Invalid query sort order ${order}` };
-    }
-
-    switch (orderBy) {
-      case 'key':
-      case 'term':
-        const keyname = '_key';
-        query.aggs['1'].terms.order[keyname] = order;
-        break;
-      case 'doc_count':
-        query.aggs['1'].terms.order['_count'] = order;
-        break;
-      default:
-        throw { message: `Invalid query sort type ${orderBy}` };
-    }
-
-    return query;
+  return {
+    refId,
+    metrics,
+    bucketAggs,
+    query: queryDef.query,
   }
 }

@@ -38,7 +38,6 @@ describe('ElasticsearchQueryContext', () => {
     expect(changedQuery.alias).toBeDefined();
     expect(changedQuery.metrics).toBeDefined();
     expect(changedQuery.bucketAggs).toBeDefined();
-
     // Should also set timeField to the configured `timeField` option in datasource configuration
     expect(changedQuery.timeField).toBe(datasource.timeField);
 
