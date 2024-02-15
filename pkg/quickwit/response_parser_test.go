@@ -33,7 +33,8 @@ func TestProcessLogsResponse(t *testing.T) {
 						}
 					  ],
 					  "key": "Q-1561369883389-0.7611823271062786-0",
-					  "query": "hello AND message"
+					  "query": "hello AND message",
+						"sort":[{"testtime":"desc"}]
 					}
 				]
 			`)
@@ -61,7 +62,8 @@ func TestProcessLogsResponse(t *testing.T) {
 								"message": [
 								  "@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"
 								]
-							  }
+							  },
+								"sort":[1684398201000000000]
 							},
 							{
 							  "_id": "kdospaidopa",
@@ -79,7 +81,8 @@ func TestProcessLogsResponse(t *testing.T) {
 								"message": [
 								  "@HIGHLIGHT@hello@/HIGHLIGHT@, i am a @HIGHLIGHT@message@/HIGHLIGHT@"
 								]
-							  }
+							  },
+								"sort":[1684398201000000000]
 							}
 						  ]
 						}
@@ -374,7 +377,7 @@ func TestProcessRawDataResponse(t *testing.T) {
 										"xyz": null
   			          },
   			          "sort":[
-  			            1675869055830,
+				            1675869055830000000,
   			            4
   			          ]
   			        },
@@ -406,7 +409,7 @@ func TestProcessRawDataResponse(t *testing.T) {
 										"xyz": "def"
   			          },
   			          "sort":[
-  			            1675869054835,
+				            1675869054835000000,
   			            7
   			          ]
   			        }
@@ -427,7 +430,7 @@ func TestProcessRawDataResponse(t *testing.T) {
 		require.Len(t, dataframes, 1)
 		frame := dataframes[0]
 
-		require.Equal(t, 10, len(frame.Fields))
+		require.Equal(t, 11, len(frame.Fields))
 		// Fields have the correct length
 		require.Equal(t, 2, frame.Fields[0].Len())
 		// First field is timeField
@@ -440,7 +443,7 @@ func TestProcessRawDataResponse(t *testing.T) {
 		require.Equal(t, "nested.field.double_nested", frame.Fields[7].Name)
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[7].Type())
 		// Correctly detects type even if first value is null
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[9].Type())
+		require.Equal(t, data.FieldTypeNullableString, frame.Fields[10].Type())
 	})
 
 	t.Run("Raw data query filterable fields", func(t *testing.T) {

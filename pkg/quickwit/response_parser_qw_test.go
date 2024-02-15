@@ -24,7 +24,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 						}
 					  ],
 					  "key": "Q-1561369883389-0.7611823271062786-0",
-					  "query": "hello AND message"
+					  "query": "hello AND message",
+						"sort":[{"testtime":"desc"}]
 					}
 				]
 			`)
@@ -46,7 +47,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 								"number": 1,
 								"line": "hello, i am a message",
 								"level": "debug",
-								"fields": { "lvl": "debug" }
+								"fields": { "lvl": "debug" },
+								"sort":[1684398201000000000]
 							  }
 							}
 						  ]
@@ -89,7 +91,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 						}
 					  ],
 					  "key": "Q-1561369883389-0.7611823271062786-0",
-					  "query": "hello AND message"
+					  "query": "hello AND message",
+						"sort":[{"testtime":"desc"}]
 					}
 				]
 			`)
@@ -112,7 +115,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 								"line": "hello, i am a message",
 								"level": "debug",
 								"fields": { "lvl": "debug" }
-							  }
+							  },
+								"sort":[1684398201000000000]
 							}
 						  ]
 						}
@@ -154,7 +158,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 						}
 					  ],
 					  "key": "Q-1561369883389-0.7611823271062786-0",
-					  "query": "hello AND message"
+					  "query": "hello AND message",
+						"sort":[{"testtime":"desc"}]
 					}
 				]
 			`)
@@ -177,7 +182,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 								"line": "hello, i am a message",
 								"level": "debug",
 								"fields": { "lvl": "debug" }
-							  }
+							  },
+								"sort":[1684398201000000000]
 							}
 						  ]
 						}
@@ -219,7 +225,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 						}
 					  ],
 					  "key": "Q-1561369883389-0.7611823271062786-0",
-					  "query": "hello AND message"
+					  "query": "hello AND message",
+						"sort":[{"testtime":"desc"}]
 					}
 				]
 			`)
@@ -242,7 +249,8 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 								"line": "hello, i am a message",
 								"level": "debug",
 								"fields": { "lvl": "debug" }
-							  }
+							  },
+								"sort":[1684398201000000000]
 							}
 						  ]
 						}
