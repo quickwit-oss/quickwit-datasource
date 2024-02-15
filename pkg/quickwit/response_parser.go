@@ -106,8 +106,7 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 		}
 
 		doc := map[string]interface{}{
-			"_source": flattened,
-			"sort":    hit["sort"],
+			"sort": hit["sort"],
 		}
 
 		for k, v := range flattened {
@@ -115,15 +114,6 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 				doc["level"] = v
 			} else {
 				doc[k] = v
-			}
-		}
-
-		if hit["fields"] != nil {
-			source, ok := hit["fields"].(map[string]interface{})
-			if ok {
-				for k, v := range source {
-					doc[k] = v
-				}
 			}
 		}
 
@@ -1066,24 +1056,17 @@ func flatten(target map[string]interface{}) map[string]interface{} {
 // if shouldSortLogMessageField is true, and rest of propNames are ordered alphabetically
 func sortPropNames(propNames map[string]bool, configuredFields es.ConfiguredFields, shouldSortLogMessageField bool) []string {
 	hasTimeField := false
-	hasLogMessageField := false
 
 	var sortedPropNames []string
 	for k := range propNames {
 		if configuredFields.TimeField != "" && k == configuredFields.TimeField {
 			hasTimeField = true
-		} else if shouldSortLogMessageField && configuredFields.LogMessageField != "" && k == configuredFields.LogMessageField {
-			hasLogMessageField = true
 		} else {
 			sortedPropNames = append(sortedPropNames, k)
 		}
 	}
 
 	sort.Strings(sortedPropNames)
-
-	if hasLogMessageField {
-		sortedPropNames = append([]string{configuredFields.LogMessageField}, sortedPropNames...)
-	}
 
 	if hasTimeField {
 		sortedPropNames = append([]string{configuredFields.TimeField}, sortedPropNames...)
