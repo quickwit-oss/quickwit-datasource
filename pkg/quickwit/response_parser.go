@@ -12,7 +12,6 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"golang.org/x/exp/slices"
 
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
@@ -175,7 +174,9 @@ func processRawDataResponse(res *es.SearchResponse, target *Query, configuredFie
 			flattened = flatten(hit["_source"].(map[string]interface{}))
 		}
 
-		doc := map[string]interface{}{}
+		doc := map[string]interface{}{
+			"sort": hit["sort"],
+		}
 
 		for k, v := range flattened {
 			doc[k] = v
@@ -259,7 +260,7 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 		if propName == configuredFields.TimeField {
 			timeVector := make([]*time.Time, size)
 			for i, doc := range docs {
-				timeValue, err := ParseToTime(doc[configuredFields.TimeField], configuredFields.TimeOutputFormat)
+				timeValue, err := ParseToTime(doc["sort"].([]any)[0])
 				if err != nil {
 					continue
 				}
@@ -306,38 +307,13 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 // Parses a value into Time given a timeOutputFormat. The conversion
 // only works with float64 as this is what we get when parsing a response.
 // TODO: understand why we get a float64?
-func ParseToTime(value interface{}, timeOutputFormat string) (time.Time, error) {
-	if timeOutputFormat == Iso8601 || timeOutputFormat == Rfc3339 {
-		value_string := value.(string)
-		timeValue, err := time.Parse(time.RFC3339, value_string)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return timeValue, nil
-	} else if timeOutputFormat == Rfc2822 {
-		value_string := value.(string)
-		timeValue, err := time.Parse(time.RFC822Z, value_string)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return timeValue, nil
-	} else if slices.Contains([]string{TimestampSecs, TimestampMillis, TimestampMicros, TimestampNanos}, timeOutputFormat) {
-		typed_value, ok := value.(float64)
-		if !ok {
-			return time.Time{}, errors.New("parse time only accepts float64 with timestamp based format")
-		}
-		int64_value := int64(typed_value)
-		if timeOutputFormat == TimestampSecs {
-			return time.Unix(int64_value, 0), nil
-		} else if timeOutputFormat == TimestampMillis {
-			return time.Unix(0, int64_value*1_000_000), nil
-		} else if timeOutputFormat == TimestampMicros {
-			return time.Unix(0, int64_value*1_000), nil
-		} else if timeOutputFormat == TimestampNanos {
-			return time.Unix(0, int64_value), nil
-		}
+func ParseToTime(value interface{}) (time.Time, error) {
+	typed_value, ok := value.(float64)
+	if !ok {
+		return time.Time{}, errors.New("parse time only accepts float64 with timestamp based format")
 	}
-	return time.Time{}, fmt.Errorf("timeOutputFormat not supported yet %s", timeOutputFormat)
+	int64_value := int64(typed_value)
+	return time.Unix(0, int64_value), nil
 }
 
 func processBuckets(aggs map[string]interface{}, target *Query,

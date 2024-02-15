@@ -69,12 +69,11 @@ func TestDecodeTimestampFieldInfos(t *testing.T) {
 			`)
 
 			// When
-			timestampFieldName, timestampFieldFormat, err := DecodeTimestampFieldInfos(200, query)
+			timestampFieldName, err := DecodeTimestampFieldInfos(200, query)
 
 			// Then
 			require.NoError(t, err)
 			require.Equal(t, timestampFieldName, "timestamp")
-			require.Equal(t, timestampFieldFormat, "rfc3339")
 		})
 
 		t.Run("Test decode nested fields", func(t *testing.T) {
@@ -144,158 +143,11 @@ func TestDecodeTimestampFieldInfos(t *testing.T) {
 			`)
 
 			// When
-			timestampFieldName, timestampFieldFormat, err := DecodeTimestampFieldInfos(200, query)
+			timestampFieldName, err := DecodeTimestampFieldInfos(200, query)
 
 			// Then
 			require.NoError(t, err)
 			require.Equal(t, timestampFieldName, "sub.timestamp")
-			require.Equal(t, timestampFieldFormat, "rfc3339")
-		})
-
-		t.Run("The timestamp field is not at the expected path", func(t *testing.T) {
-			// Given
-			query := []byte(`
-				{
-				  "version": "0.6",
-				  "index_uid": "myindex:01HG7ZZK3ZD7XF6BKQCZJHSJ5W",
-				  "index_config": {
-					"version": "0.6",
-					"index_id": "myindex",
-					"index_uri": "s3://quickwit-indexes/myindex",
-					"doc_mapping": {
-					  "field_mappings": [
-						{
-						  "name": "foo",
-						  "type": "text",
-						  "fast": false,
-						  "fieldnorms": false,
-						  "indexed": true,
-						  "record": "basic",
-						  "stored": true,
-						  "tokenizer": "default"
-						},
-						{
-							"name": "sub",
-							"type": "object",
-							"field_mappings": [
-							  {
-								"fast": true,
-								"fast_precision": "seconds",
-								"indexed": true,
-								"input_formats": [
-								  "rfc3339",
-								  "unix_timestamp"
-								],
-								"name": "timestamp",
-								"output_format": "rfc3339",
-								"stored": true,
-								"type": "datetime"
-							  }
-							]
-						}
-					  ],
-					  "tag_fields": [],
-					  "store_source": true,
-					  "index_field_presence": false,
-					  "timestamp_field": "timestamp",
-					  "mode": "dynamic",
-					  "dynamic_mapping": {},
-					  "partition_key": "foo",
-					  "max_num_partitions": 1,
-					  "tokenizers": []
-					},
-					"indexing_settings": {},
-					"search_settings": {
-					  "default_search_fields": [
-						"foo"
-					  ]
-					},
-					"retention": null
-				  },
-				  "checkpoint": {},
-				  "create_timestamp": 1701075471,
-				  "sources": []
-				}
-			`)
-
-			// When
-			_, _, err := DecodeTimestampFieldInfos(200, query)
-
-			// Then
-			require.Error(t, err)
-		})
-
-		t.Run("The timestamp field has not the right type", func(t *testing.T) {
-			// Given
-			query := []byte(`
-				{
-				  "version": "0.6",
-				  "index_uid": "myindex:01HG7ZZK3ZD7XF6BKQCZJHSJ5W",
-				  "index_config": {
-					"version": "0.6",
-					"index_id": "myindex",
-					"index_uri": "s3://quickwit-indexes/myindex",
-					"doc_mapping": {
-					  "field_mappings": [
-						{
-						  "name": "foo",
-						  "type": "text",
-						  "fast": false,
-						  "fieldnorms": false,
-						  "indexed": true,
-						  "record": "basic",
-						  "stored": true,
-						  "tokenizer": "default"
-						},
-						{
-							"name": "sub",
-							"type": "object",
-							"field_mappings": [
-							  {
-								"fast": true,
-								"fast_precision": "seconds",
-								"indexed": true,
-								"input_formats": [
-								  "rfc3339",
-								  "unix_timestamp"
-								],
-								"name": "timestamp",
-								"output_format": "rfc3339",
-								"stored": true,
-								"type": "whatever"
-							  }
-							]
-						}
-					  ],
-					  "tag_fields": [],
-					  "store_source": true,
-					  "index_field_presence": false,
-					  "timestamp_field": "sub.timestamp",
-					  "mode": "dynamic",
-					  "dynamic_mapping": {},
-					  "partition_key": "foo",
-					  "max_num_partitions": 1,
-					  "tokenizers": []
-					},
-					"indexing_settings": {},
-					"search_settings": {
-					  "default_search_fields": [
-						"foo"
-					  ]
-					},
-					"retention": null
-				  },
-				  "checkpoint": {},
-				  "create_timestamp": 1701075471,
-				  "sources": []
-				}
-			`)
-
-			// When
-			_, _, err := DecodeTimestampFieldInfos(200, query)
-
-			// Then
-			require.Error(t, err)
 		})
 	})
 }
