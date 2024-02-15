@@ -3287,10 +3287,9 @@ func parseTestResponse(tsdbQueries map[string]string, responseBody string) (*bac
 	from := time.Date(2018, 5, 15, 17, 50, 0, 0, time.UTC)
 	to := time.Date(2018, 5, 15, 17, 55, 0, 0, time.UTC)
 	configuredFields := es.ConfiguredFields{
-		TimeOutputFormat: Rfc3339,
-		TimeField:        "@timestamp",
-		LogMessageField:  "line",
-		LogLevelField:    "lvl",
+		TimeField:       "@timestamp",
+		LogMessageField: "line",
+		LogLevelField:   "lvl",
 	}
 	timeRange := backend.TimeRange{
 		From: from,

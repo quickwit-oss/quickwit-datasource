@@ -59,10 +59,9 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeOutputFormat: TimestampNanos,
-			TimeField:        "testtime",
-			LogMessageField:  "line",
-			LogLevelField:    "lvl",
+			TimeField:       "testtime",
+			LogMessageField: "line",
+			LogLevelField:   "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames
@@ -126,10 +125,9 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeOutputFormat: TimestampMicros,
-			TimeField:        "testtime",
-			LogMessageField:  "line",
-			LogLevelField:    "lvl",
+			TimeField:       "testtime",
+			LogMessageField: "line",
+			LogLevelField:   "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames
@@ -193,10 +191,9 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeOutputFormat: TimestampMillis,
-			TimeField:        "testtime",
-			LogMessageField:  "line",
-			LogLevelField:    "lvl",
+			TimeField:       "testtime",
+			LogMessageField: "line",
+			LogLevelField:   "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames
@@ -260,10 +257,9 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeOutputFormat: TimestampSecs,
-			TimeField:        "testtime",
-			LogMessageField:  "line",
-			LogLevelField:    "lvl",
+			TimeField:       "testtime",
+			LogMessageField: "line",
+			LogLevelField:   "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames

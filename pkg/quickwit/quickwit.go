@@ -57,7 +57,6 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 	}
 
 	timeField, toOk := jsonData["timeField"].(string)
-	timeOutputFormat, tofOk := jsonData["timeOutputFormat"].(string)
 
 	logLevelField, ok := jsonData["logLevelField"].(string)
 	if !ok {
@@ -91,18 +90,17 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		maxConcurrentShardRequests = 256
 	}
 
-	if !toOk || !tofOk {
-		timeField, timeOutputFormat, err = GetTimestampFieldInfos(index, settings.URL, httpCli)
+	if !toOk {
+		timeField, err = GetTimestampFieldInfos(index, settings.URL, httpCli)
 		if nil != err {
 			return nil, err
 		}
 	}
 
 	configuredFields := es.ConfiguredFields{
-		TimeField:        timeField,
-		TimeOutputFormat: timeOutputFormat,
-		LogLevelField:    logLevelField,
-		LogMessageField:  logMessageField,
+		TimeField:       timeField,
+		LogLevelField:   logLevelField,
+		LogMessageField: logMessageField,
 	}
 
 	model := es.DatasourceInfo{
