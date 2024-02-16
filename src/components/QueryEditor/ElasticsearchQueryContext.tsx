@@ -41,9 +41,8 @@ export const ElasticsearchProvider = ({
   const onStateChange = useCallback(
     (query: ElasticsearchQuery) => {
       onChange(query);
-      onRunQuery();
     },
-    [onChange, onRunQuery]
+    [onChange]
   );
 
   const reducer = combineReducers<Pick<ElasticsearchQuery, 'query' | 'alias' | 'metrics' | 'bucketAggs'>>({

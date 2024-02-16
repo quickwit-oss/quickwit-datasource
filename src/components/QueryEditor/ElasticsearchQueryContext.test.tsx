@@ -41,7 +41,6 @@ describe('ElasticsearchQueryContext', () => {
     // Should also set timeField to the configured `timeField` option in datasource configuration
     expect(changedQuery.timeField).toBe(datasource.timeField);
 
-    expect(onRunQuery).toHaveBeenCalled();
   });
 
   // the following applies to all hooks in ElasticsearchQueryContext as they all share the same code.
