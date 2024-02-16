@@ -142,11 +142,15 @@ function removeNodeFromTree(ast: AST, node: NodeTerm): AST {
 /**
  * Merge a query with a filter.
  */
-export function concatenate(query: string, filter: string, condition = 'AND'): string {
+export function concatenate(query: string, filter: string, operator?: 'AND'|'OR'): string {
   if (!filter) {
     return query;
   }
-  return query.trim() === '' ? filter : `${query} ${condition} ${filter}`;
+  if (query.trim() === '' ) {
+    return filter;
+  }
+
+  return operator ? `${query} ${operator} ${filter}` : `${query} ${filter}`
 }
 
 export class LuceneQuery {
