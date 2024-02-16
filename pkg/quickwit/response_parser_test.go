@@ -121,27 +121,6 @@ func TestProcessLogsResponse(t *testing.T) {
 			require.Contains(t, logsFieldMap, "number")
 			require.Equal(t, data.FieldTypeNullableFloat64, logsFieldMap["number"].Type())
 		})
-
-		t.Run("creates correct level field", func(t *testing.T) {
-			result, err := queryDataTest(query, response)
-			require.NoError(t, err)
-
-			require.Len(t, result.response.Responses, 1)
-			frames := result.response.Responses["A"].Frames
-			require.True(t, len(frames) > 0)
-
-			requireFrameLength(t, frames[0], 2)
-			fieldMap := make(map[string]*data.Field)
-			for _, field := range frames[0].Fields {
-				fieldMap[field.Name] = field
-			}
-
-			require.Contains(t, fieldMap, "level")
-			field := fieldMap["level"]
-
-			requireStringAt(t, "debug", field, 0)
-			requireStringAt(t, "error", field, 1)
-		})
 	})
 	t.Run("Empty response", func(t *testing.T) {
 		query := []byte(`
@@ -280,9 +259,7 @@ func TestProcessLogsResponse(t *testing.T) {
 		// First field is timeField
 		require.Equal(t, data.FieldTypeNullableTime, frame.Fields[0].Type())
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
-		// Correctly renames lvl field to level
-		require.Equal(t, "level", frame.Fields[4].Name)
-		require.Equal(t, "line", frame.Fields[5].Name)
+		require.Equal(t, "line", frame.Fields[4].Name)
 		// Correctly uses string types
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
 		// Correctly detects float64 types
