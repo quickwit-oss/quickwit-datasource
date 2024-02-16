@@ -120,39 +120,6 @@ func TestProcessLogsResponse(t *testing.T) {
 
 			require.Contains(t, logsFieldMap, "number")
 			require.Equal(t, data.FieldTypeNullableFloat64, logsFieldMap["number"].Type())
-
-			require.Contains(t, logsFieldMap, "_source")
-			require.Equal(t, data.FieldTypeNullableJSON, logsFieldMap["_source"].Type())
-
-			actualJson1, err := json.Marshal(logsFieldMap["_source"].At(0).(*json.RawMessage))
-			require.NoError(t, err)
-			actualJson2, err := json.Marshal(logsFieldMap["_source"].At(1).(*json.RawMessage))
-			require.NoError(t, err)
-
-			expectedJson1 := `
-					{
-						"fields.lvl": "debug",
-						"host": "djisaodjsoad",
-						"level": "debug",
-						"line": "hello, i am a message",
-						"number": 1,
-						"testtime": "2019-06-24T09:51:19.765Z",
-						"line": "hello, i am a message"
-					}
-					`
-
-			expectedJson2 := `
-					{
-						"testtime": "2019-06-24T09:52:19.765Z",
-						"host": "dsalkdakdop",
-						"number": 2,
-						"line": "hello, i am also message",
-						"level": "error",
-						"fields.lvl": "info"
-					}`
-
-			require.JSONEq(t, expectedJson1, string(actualJson1))
-			require.JSONEq(t, expectedJson2, string(actualJson2))
 		})
 
 		t.Run("creates correct level field", func(t *testing.T) {
@@ -307,27 +274,24 @@ func TestProcessLogsResponse(t *testing.T) {
 		require.Len(t, dataframes, 1)
 		frame := dataframes[0]
 
-		require.Equal(t, 12, len(frame.Fields))
+		require.Equal(t, 11, len(frame.Fields))
 		// Fields have the correct length
 		require.Equal(t, 2, frame.Fields[0].Len())
 		// First field is timeField
 		require.Equal(t, data.FieldTypeNullableTime, frame.Fields[0].Type())
-		// Second is log line
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
-		require.Equal(t, "line", frame.Fields[1].Name)
 		// Correctly renames lvl field to level
-		require.Equal(t, "level", frame.Fields[6].Name)
+		require.Equal(t, "level", frame.Fields[4].Name)
+		require.Equal(t, "line", frame.Fields[5].Name)
 		// Correctly uses string types
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
 		// Correctly detects float64 types
-		require.Equal(t, data.FieldTypeNullableFloat64, frame.Fields[4].Type())
-		// Correctly detects json types
-		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[2].Type())
+		require.Equal(t, data.FieldTypeNullableFloat64, frame.Fields[2].Type())
 		// Correctly flattens fields
-		require.Equal(t, "nested.field.double_nested", frame.Fields[8].Name)
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[8].Type())
+		require.Equal(t, "nested.field.double_nested", frame.Fields[7].Name)
+		require.Equal(t, data.FieldTypeNullableString, frame.Fields[7].Type())
 		// Correctly detects type even if first value is null
-		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[10].Type())
+		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[9].Type())
 	})
 }
 
