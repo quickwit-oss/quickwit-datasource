@@ -110,11 +110,7 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 		}
 
 		for k, v := range flattened {
-			if configuredFields.LogLevelField != "" && k == configuredFields.LogLevelField {
-				doc["level"] = v
-			} else {
-				doc[k] = v
-			}
+			doc[k] = v
 		}
 
 		for key := range doc {
