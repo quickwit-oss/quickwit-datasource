@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-type QuickwitMapping struct {
+type QuickwitIndexMetadata struct {
 	IndexConfig struct {
 		DocMapping struct {
 			TimestampField string          `json:"timestamp_field"`
@@ -35,7 +35,7 @@ func NewErrorCreationPayload(statusCode int, message string) error {
 }
 
 func DecodeTimestampFieldInfos(statusCode int, body []byte) (string, error) {
-	var payload QuickwitMapping
+	var payload []QuickwitIndexMetadata
 	err := json.Unmarshal(body, &payload)
 
 	if err != nil {
@@ -44,15 +44,20 @@ func DecodeTimestampFieldInfos(statusCode int, body []byte) (string, error) {
 		return "", NewErrorCreationPayload(statusCode, errMsg)
 	}
 
-	timestampFieldName := payload.IndexConfig.DocMapping.TimestampField
+	var timestampFieldNames []string
+	for _, indexMetadata := range payload {
+		timestampFieldNames = append(timestampFieldNames, indexMetadata.IndexConfig.DocMapping.TimestampField)
+	}
 
-	qwlog.Info(fmt.Sprintf("Found timestampFieldName = %s", timestampFieldName))
-	return timestampFieldName, nil
+	// timestampFieldName := payload.IndexConfig.DocMapping.TimestampField
+
+	// qwlog.Info(fmt.Sprintf("Found timestampFieldName = %s", timestampFieldName))
+	// return timestampFieldName, nil
 }
 
 func GetTimestampFieldInfos(index string, qwUrl string, cli *http.Client) (string, error) {
-	mappingEndpointUrl := qwUrl + "/indexes/" + index
-	qwlog.Info("Calling quickwit endpoint: " + mappingEndpointUrl)
+	mappingEndpointUrl := qwUrl + "/indexes?index_id_pattern=" + index
+	qwlog.Debug("Calling quickwit endpoint: " + mappingEndpointUrl)
 	r, err := cli.Get(mappingEndpointUrl)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
