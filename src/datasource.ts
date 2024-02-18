@@ -772,7 +772,7 @@ export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: D
         config: {},
         values: displayedMessages,
     }
-    console.log('newField');
+    console.log(dataFrame);
     dataFrame.fields = [newField, ...dataFrame.fields];
   }
   

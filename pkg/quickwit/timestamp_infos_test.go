@@ -13,141 +13,88 @@ func TestDecodeTimestampFieldInfos(t *testing.T) {
 			query := []byte(`
 				{
 				  "version": "0.6",
-				  "index_uid": "myindex:01HG7ZZK3ZD7XF6BKQCZJHSJ5W",
 				  "index_config": {
 					"version": "0.6",
-					"index_id": "myindex",
-					"index_uri": "s3://quickwit-indexes/myindex",
 					"doc_mapping": {
-					  "field_mappings": [
-						{
-						  "name": "foo",
-						  "type": "text",
-						  "fast": false,
-						  "fieldnorms": false,
-						  "indexed": true,
-						  "record": "basic",
-						  "stored": true,
-						  "tokenizer": "default"
-						},
-						{
-						  "name": "timestamp",
-						  "type": "datetime",
-						  "fast": true,
-						  "fast_precision": "seconds",
-						  "indexed": true,
-						  "input_formats": [
-							"rfc3339",
-							"unix_timestamp"
-						  ],
-						  "output_format": "rfc3339",
-						  "stored": true
-						}
-					  ],
-					  "tag_fields": [],
-					  "store_source": true,
-					  "index_field_presence": false,
 					  "timestamp_field": "timestamp",
 					  "mode": "dynamic",
-					  "dynamic_mapping": {},
-					  "partition_key": "foo",
-					  "max_num_partitions": 1,
 					  "tokenizers": []
-					},
-					"indexing_settings": {},
-					"search_settings": {
-					  "default_search_fields": [
-						"foo"
-					  ]
 					},
 					"retention": null
 				  },
-				  "checkpoint": {},
-				  "create_timestamp": 1701075471,
 				  "sources": []
 				}
 			`)
 
 			// When
-			timestampFieldName, err := DecodeTimestampFieldInfos(200, query)
+			timestampFieldName, err := DecodeTimestampFieldFromIndexConfig(query)
 
 			// Then
 			require.NoError(t, err)
 			require.Equal(t, timestampFieldName, "timestamp")
 		})
 
-		t.Run("Test decode nested fields", func(t *testing.T) {
+		t.Run("Test decode from list of index config", func(t *testing.T) {
 			// Given
 			query := []byte(`
+			[
 				{
 				  "version": "0.6",
-				  "index_uid": "myindex:01HG7ZZK3ZD7XF6BKQCZJHSJ5W",
 				  "index_config": {
-					"version": "0.6",
-					"index_id": "myindex",
-					"index_uri": "s3://quickwit-indexes/myindex",
 					"doc_mapping": {
-					  "field_mappings": [
-						{
-						  "name": "foo",
-						  "type": "text",
-						  "fast": false,
-						  "fieldnorms": false,
-						  "indexed": true,
-						  "record": "basic",
-						  "stored": true,
-						  "tokenizer": "default"
-						},
-						{
-							"name": "sub",
-							"type": "object",
-							"field_mappings": [
-							  {
-								"fast": true,
-								"fast_precision": "seconds",
-								"indexed": true,
-								"input_formats": [
-								  "rfc3339",
-								  "unix_timestamp"
-								],
-								"name": "timestamp",
-								"output_format": "rfc3339",
-								"stored": true,
-								"type": "datetime"
-							  }
-							]
-						}
-					  ],
-					  "tag_fields": [],
-					  "store_source": true,
-					  "index_field_presence": false,
-					  "timestamp_field": "sub.timestamp",
-					  "mode": "dynamic",
-					  "dynamic_mapping": {},
-					  "partition_key": "foo",
-					  "max_num_partitions": 1,
-					  "tokenizers": []
+					  "timestamp_field": "sub.timestamp"
 					},
 					"indexing_settings": {},
-					"search_settings": {
-					  "default_search_fields": [
-						"foo"
-					  ]
-					},
 					"retention": null
 				  },
-				  "checkpoint": {},
-				  "create_timestamp": 1701075471,
 				  "sources": []
 				}
+			]
 			`)
 
 			// When
-			timestampFieldName, err := DecodeTimestampFieldInfos(200, query)
+			timestampFieldName, err := DecodeTimestampFieldFromIndexConfigs(query)
 
 			// Then
 			require.NoError(t, err)
 			require.Equal(t, timestampFieldName, "sub.timestamp")
+		})
+
+		t.Run("Test decode from list of index config with different timestamp fields return an error", func(t *testing.T) {
+			// Given
+			query := []byte(`
+			[
+				{
+				  "version": "0.6",
+				  "index_config": {
+					"doc_mapping": {
+					  "timestamp_field": "sub.timestamp"
+					},
+					"indexing_settings": {},
+					"retention": null
+				  },
+				  "sources": []
+				},
+				{
+					"version": "0.6",
+					"index_config": {
+					  "doc_mapping": {
+						"timestamp_field": "sub.timestamp2"
+					  },
+					  "indexing_settings": {},
+					  "retention": null
+					},
+					"sources": []
+				}
+			]
+			`)
+
+			// When
+			_, err := DecodeTimestampFieldFromIndexConfigs(query)
+
+			// Then
+			require.Error(t, err)
+			require.ErrorContains(t, err, "Index matching the pattern should have the same timestamp fields")
 		})
 	})
 }
