@@ -91,7 +91,7 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 	}
 
 	if !toOk {
-		timeField, err = GetTimestampFieldInfos(index, settings.URL, httpCli)
+		timeField, err = GetTimestampField(index, settings.URL, httpCli)
 		if nil != err {
 			return nil, err
 		}
