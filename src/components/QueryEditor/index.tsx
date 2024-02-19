@@ -1,7 +1,7 @@
 import { css } from '@emotion/css';
 
 import React, { createContext } from 'react';
-import { debounceTime } from 'rxjs';
+import { debounceTime, throttleTime } from 'rxjs';
 import { useObservableCallback, useSubscription } from 'observable-hooks'
 
 import { CoreApp, Field, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
@@ -100,7 +100,7 @@ const QueryEditorForm = ({ value, onRunQuery }: Props) => {
   }
 
   const [onChangeCB, textChanged$] = useObservableCallback<string>(event$ => event$.pipe(debounceTime(1000)))
-  const [onSubmitCB, submitted$] = useObservableCallback<string>(event$=>event$.pipe(debounceTime(500)))
+  const [onSubmitCB, submitted$] = useObservableCallback<string>(event$=>event$.pipe(throttleTime(500)))
 
   useSubscription(textChanged$, onChange)
   useSubscription(submitted$, onSubmit)
