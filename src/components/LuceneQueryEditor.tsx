@@ -4,7 +4,7 @@ import { useObservableCallback, useSubscription } from 'observable-hooks'
 import { css } from "@emotion/css";
 
 
-import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorRef, keymap } from '@uiw/react-codemirror';
 import {linter, Diagnostic, lintGutter} from "@codemirror/lint"
 import {autocompletion, CompletionContext} from "@codemirror/autocomplete"
 import { LuceneQuery } from "utils/lucene";
@@ -15,6 +15,7 @@ export type LuceneQueryEditorProps = {
   value: string,
   autocompleter: (word: string) => any,
   onChange: (query: string) => void
+  onSubmit: (query: string) => void
 }
 
 export function LuceneQueryEditor(props: LuceneQueryEditorProps){
@@ -61,6 +62,14 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
     placeholder={props.placeholder}
     value={props.value}
     onChange={onChange}
-    extensions={[queryLinter, lintGutter(), autocomplete]}
+    indentWithTab={false}
+    extensions={[
+      queryLinter, lintGutter(),
+      autocomplete,
+      keymap.of([{key:'Shift-Enter', run:(target)=>{
+        props.onSubmit(target.state.doc.toString())
+        return true;
+      }}])
+    ]}
     />);
 }

@@ -34,7 +34,7 @@ export const QueryEditor = ({ query, onChange, onRunQuery, datasource, range, ap
       query={query}
       range={range || getDefaultTimeRange()}
     >
-      <QueryEditorForm value={query} />
+      <QueryEditorForm value={query} onRunQuery={onRunQuery} />
     </ElasticsearchProvider>
   );
 };
@@ -54,21 +54,33 @@ export const useSearchableFields = getHook(SearchableFieldsContext)
 
 interface Props {
   value: ElasticsearchQuery;
+  onRunQuery: (query: string) => void
 }
 
-export const ElasticSearchQueryField = ({ value, onChange }: { value?: string; onChange: (v: string) => void }) => {
+type ElasticSearchQueryFieldProps = {
+  value?: string;
+  onChange: (v: string) => void
+  onSubmit: (v: string) => void
+}
+export const ElasticSearchQueryField = ({ value, onChange, onSubmit }: ElasticSearchQueryFieldProps) => {
   const styles = useStyles2(getStyles);
   const datasource = useDatasource()
   const { getSuggestions } = useDatasourceFields(datasource);
 
   return (
     <div className={styles.queryItem}>
-      <LuceneQueryEditor placeholder="Enter a lucene query" value={value || ''} autocompleter={getSuggestions} onChange={onChange}/>
+      <LuceneQueryEditor 
+        placeholder="Enter a lucene query - Type Shift-Enter to run query, Ctrl-Space to autocomplete"
+        value={value || ''}
+        autocompleter={getSuggestions}
+        onChange={onChange}
+        onSubmit={onSubmit}
+        />
     </div>
   );
 };
 
-const QueryEditorForm = ({ value }: Props) => {
+const QueryEditorForm = ({ value, onRunQuery }: Props) => {
   const dispatch = useDispatch();
   const nextId = useNextId();
   const styles = useStyles2(getStyles);
@@ -87,7 +99,7 @@ const QueryEditorForm = ({ value }: Props) => {
       </div>
       <div className={styles.root}>
         <InlineLabel width={17}>Lucene Query</InlineLabel>
-        <ElasticSearchQueryField onChange={(query) => dispatch(changeQuery(query))} value={value?.query} />
+        <ElasticSearchQueryField onChange={(query) => dispatch(changeQuery(query))} value={value?.query} onSubmit={onRunQuery} />
       </div>
 
       <MetricAggregationsEditor nextId={nextId} />
