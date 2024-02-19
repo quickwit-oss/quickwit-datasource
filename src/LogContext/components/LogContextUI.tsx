@@ -69,7 +69,7 @@ export function LogContextUI(props: LogContextUIProps ){
             value={builder.query}
             autocompleter={getSuggestions}
             onChange={builder.setQuery}
-            onSubmit={()=>runQuery()}
+            onSubmit={runQuery}
             />
         </div>
       </DatasourceContext.Provider>

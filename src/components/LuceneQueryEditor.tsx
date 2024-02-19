@@ -1,6 +1,4 @@
 import React, { useRef, useCallback } from "react";
-import { debounceTime } from 'rxjs';
-import { useObservableCallback, useSubscription } from 'observable-hooks'
 import { css } from "@emotion/css";
 
 
@@ -50,10 +48,6 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
 
   const autocomplete = autocompletion({ override: [datasourceCompletions] })
 
-  const [onChange, textChanged$] = useObservableCallback<string>(event$ => event$.pipe(debounceTime(1000)))
-
-  useSubscription(textChanged$, props.onChange)
-
   return (<CodeMirror 
     ref={editorRef}
     className={css`height:100%`} // XXX : need to set height for both wrapper elements
@@ -61,7 +55,7 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
     theme={'dark'} 
     placeholder={props.placeholder}
     value={props.value}
-    onChange={onChange}
+    onChange={props.onChange}
     indentWithTab={false}
     extensions={[
       queryLinter, lintGutter(),

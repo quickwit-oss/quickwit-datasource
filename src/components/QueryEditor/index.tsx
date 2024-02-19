@@ -1,6 +1,8 @@
 import { css } from '@emotion/css';
 
 import React, { createContext } from 'react';
+import { debounceTime } from 'rxjs';
+import { useObservableCallback, useSubscription } from 'observable-hooks'
 
 import { CoreApp, Field, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
 import { InlineLabel, useStyles2 } from '@grafana/ui';
@@ -54,7 +56,7 @@ export const useSearchableFields = getHook(SearchableFieldsContext)
 
 interface Props {
   value: ElasticsearchQuery;
-  onRunQuery: (query: string) => void
+  onRunQuery: () => void
 }
 
 type ElasticSearchQueryFieldProps = {
@@ -89,6 +91,20 @@ const QueryEditorForm = ({ value, onRunQuery }: Props) => {
     (metric) => metricAggregationConfig[metric.type].impliedQueryType === 'metrics'
   );
 
+  const onChange = (query: string) => {
+    dispatch(changeQuery(query))
+  }
+  const onSubmit = (query: string) => {
+    onChange(query)
+    onRunQuery()
+  }
+
+  const [onChangeCB, textChanged$] = useObservableCallback<string>(event$ => event$.pipe(debounceTime(1000)))
+  const [onSubmitCB, submitted$] = useObservableCallback<string>(event$=>event$.pipe(debounceTime(500)))
+
+  useSubscription(textChanged$, onChange)
+  useSubscription(submitted$, onSubmit)
+
   return (
     <>
       <div className={styles.root}>
@@ -99,7 +115,10 @@ const QueryEditorForm = ({ value, onRunQuery }: Props) => {
       </div>
       <div className={styles.root}>
         <InlineLabel width={17}>Lucene Query</InlineLabel>
-        <ElasticSearchQueryField onChange={(query) => dispatch(changeQuery(query))} value={value?.query} onSubmit={onRunQuery} />
+        <ElasticSearchQueryField
+          onChange={onChangeCB}
+          value={value?.query}
+          onSubmit={onSubmitCB}/>
       </div>
 
       <MetricAggregationsEditor nextId={nextId} />
