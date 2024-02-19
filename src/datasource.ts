@@ -97,7 +97,10 @@ export class QuickwitDataSource
      return super.query(request)
        .pipe(map((response) => {
           response.data.forEach((dataFrame) => {
-            enhanceDataFrameWithDataLinks(dataFrame, this.dataLinks, this.logMessageField);
+            const metrics = request.targets[0]!.metrics
+            if (metrics && metrics[0].type === 'logs'){
+              enhanceDataFrameWithDataLinks(dataFrame, this.dataLinks, this.logMessageField);
+            }
           });
          return response;
        }));
@@ -772,8 +775,8 @@ export function enhanceDataFrameWithDataLinks(dataFrame: DataFrame, dataLinks: D
         config: {},
         values: displayedMessages,
     }
-    console.log(dataFrame);
-    dataFrame.fields = [newField, ...dataFrame.fields];
+    const [timestamp, ...rest] = dataFrame.fields;
+    dataFrame.fields = [timestamp, newField, ...rest];
   }
   
   if (!dataLinks.length) {
