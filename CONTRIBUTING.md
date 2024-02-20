@@ -55,6 +55,12 @@ $ npm run test
 $ go test -v ./pkg/...
 ```
 
+#### Storybook
+
+```bash
+$ npm run storybook
+```
+
 ## Release
 
 TODO
