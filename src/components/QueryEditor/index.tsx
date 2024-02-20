@@ -20,7 +20,7 @@ import { changeQuery } from './state';
 import { QuickwitOptions } from '../../quickwit';
 import { QueryTypeSelector } from './QueryTypeSelector';
 
-import { getHook } from 'utils/context';
+import { getHook } from '@/utils/context';
 import { LuceneQueryEditor } from '@/components/LuceneQueryEditor';
 import { useDatasourceFields } from '@/datasource/utils';
 

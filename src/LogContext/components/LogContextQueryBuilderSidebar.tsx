@@ -1,36 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
-// import { Field } from '@grafana/data';
+import React from "react";
 import { useTheme2, CollapsableSection, Icon } from '@grafana/ui';
-import { LogContextProps } from "./LogContextUI";
 import { css, cx } from "@emotion/css";
-import { LuceneQuery } from "utils/lucene";
-import { LuceneQueryBuilder } from '@/QueryBuilder/lucene';
+import { Field } from "../types";
+import { Filter } from "LogContext/types";
 
-
-// TODO : define sensible defaults here
-const excludedFields = [
-  '_source',
-  'sort',
-  'attributes',
-  'attributes.message',
-  'body',
-  'body.message',
-  'resource_attributes',
-  'observed_timestamp_nanos',
-  'timestamp_nanos',
-];
-
-function isPrimitive(valT: any) {
-  return ['string', 'number', "boolean", "undefined"].includes(valT)
-}
-
-type FieldContingency = { [value: string]: {
-  count: number, pinned: boolean, active?: boolean
-}};
-type Field = {
-  name: string,
-  contingency: FieldContingency
-}
 
 function LogContextFieldSection(field: Field) { 
   const theme = useTheme2()
@@ -98,65 +71,11 @@ const lcSidebarStyle = css`
 `
 
 type QueryBuilderProps = {
-  builder: LuceneQueryBuilder,
-  searchableFields: any[],
-  updateQuery: (query: LuceneQuery) => void
+  fields: Field[] 
+  onToggleFilter?: (filter: Filter) => void
 }
 
-export function LogContextQueryBuilderSidebar(props: LogContextProps & QueryBuilderProps) {
-
-  const {row, builder, updateQuery, searchableFields} = props;
-  const [fields, setFields] = useState<Field[]>([]);
-
-  const filteredFields = useMemo(() => {
-    const searchableFieldsNames = searchableFields.map(f=>f.text);
-    return row.dataFrame.fields
-      .filter(f=>searchableFieldsNames.includes(f.name))
-      // exclude some low-filterability fields
-      .filter((f)=> !excludedFields.includes(f.name) && isPrimitive(f.type))
-      // sort fields by name
-      .sort((f1, f2)=> (f1.name>f2.name ? 1 : -1))
-  }, [row, searchableFields]);
-
-  useEffect(() => {
-    const fields = filteredFields
-      .map((f) => {
-        const contingency: FieldContingency = {};
-        f.values.forEach((value, i) => {
-          if (!contingency[value]) {
-            contingency[value] = {
-              count: 0,
-              pinned: false,
-              active: builder.parsedQuery ? !!builder.parsedQuery.findFilter(f.name, `${value}`) : false
-            }
-          }
-          contingency[value].count += 1;  
-          if (i === row.rowIndex) {
-            contingency[value].pinned = true;
-          }
-        });
-        return { name: f.name, contingency };
-      })
-
-    setFields(fields);
-  }, [filteredFields, row.rowIndex, builder.parsedQuery]);
-
-
-  const selectQueryFilter = (key: string, value: string): void => {
-    // Compute mutation to apply to the query and send to parent
-    // check if that filter is in the query
-    if (!builder.parsedQuery) { return; }
-
-    const newParsedQuery = (
-      builder.parsedQuery.hasFilter(key, value)
-        ? builder.parsedQuery.removeFilter(key, value)
-        : builder.parsedQuery.addFilter(key, value)
-    )
-
-    if (newParsedQuery) {
-      updateQuery(newParsedQuery);
-    }
-  }
+export function LogContextQueryBuilderSidebar(props: QueryBuilderProps) {
 
   const renderFieldSection = (field: Field)=>{
     return (
@@ -172,7 +91,7 @@ export function LogContextQueryBuilderSidebar(props: LogContextProps & QueryBuil
             .map(([fieldValue, contingency], i) => (
               <LogContextFieldItem
                 label={fieldValue} contingency={contingency} key={`field-opt${i}`}
-                onClick={() => {selectQueryFilter(field.name, fieldValue)}}
+                onClick={() => {props.onToggleFilter && props.onToggleFilter({name:field.name, value:fieldValue})}}
                 active={contingency.active}
                 />
             ))
@@ -184,7 +103,7 @@ export function LogContextQueryBuilderSidebar(props: LogContextProps & QueryBuil
 
   return (
     <div className={lcSidebarStyle}>
-      {fields && fields.map((field) => {
+      {props.fields && props.fields.map((field) => {
         return( renderFieldSection(field) );
       }) } </div>
   );

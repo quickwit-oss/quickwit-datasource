@@ -15,7 +15,7 @@ import {
 
 import { ElasticsearchQuery, Logs} from '../types';
 
-import { LogContextUI } from 'LogContext/components/LogContextUI';
+import { LogContextUI } from './components/LogContextUI';
 
 export interface LogRowContextOptions {
     direction?: LogRowContextQueryDirection;
