@@ -9,7 +9,7 @@ import { ElasticsearchQuery } from '@/types';
 import { createReducer as createBucketAggsReducer } from './BucketAggregationsEditor/state/reducer';
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';
 import { aliasPatternReducer, queryReducer, initQuery, initExploreQuery } from './state';
-import { getHook } from 'utils/context';
+import { getHook } from '@/utils/context';
 
 export const RangeContext = createContext<TimeRange | undefined>(undefined);
 export const useRange = getHook(RangeContext);

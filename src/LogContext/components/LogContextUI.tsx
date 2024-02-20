@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { LogRowModel } from '@grafana/data';
+import { LogRowModel, Field as GrafanaField } from '@grafana/data';
 import { ElasticsearchQuery as DataQuery } from '../../types';
 import { LuceneQueryEditor } from "../../components/LuceneQueryEditor";
 
@@ -7,9 +7,27 @@ import { css } from "@emotion/css";
 import { Button } from "@grafana/ui";
 import { useQueryBuilder } from '@/QueryBuilder/lucene';
 import { LogContextQueryBuilderSidebar } from "./LogContextQueryBuilderSidebar";
-import { DatasourceContext } from "components/QueryEditor/ElasticsearchQueryContext";
-import { QuickwitDataSource } from "datasource";
-import { useDatasourceFields } from "datasource.utils";
+import { DatasourceContext } from "@/components/QueryEditor/ElasticsearchQueryContext";
+import { QuickwitDataSource } from "@/datasource";
+import { useDatasourceFields } from "@/datasource.utils";
+import { Field, FieldContingency, Filter } from "../types";
+
+// TODO : define sensible defaults here
+// const excludedFields = [
+//   '_source',
+//   'sort',
+//   'attributes',
+//   'attributes.message',
+//   'body',
+//   'body.message',
+//   'resource_attributes',
+//   'observed_timestamp_nanos',
+//   'timestamp_nanos',
+// ];
+
+function isPrimitive(valT: any) {
+  return ['string', 'number', "boolean", "undefined"].includes(valT)
+}
 
 const logContextUiStyle = css`
   display: flex;
@@ -32,7 +50,7 @@ export function LogContextUI(props: LogContextUIProps ){
   const builder = useQueryBuilder();
   const {query, parsedQuery, setQuery, setParsedQuery} = builder;
   const [canRunQuery, setCanRunQuery] = useState<boolean>(false);
-  const { origQuery, updateQuery, runContextQuery } = props;
+  const {row, origQuery, updateQuery, runContextQuery } = props;
   const {fields, getSuggestions} = useDatasourceFields(props.datasource);
 
   useEffect(()=>{
@@ -58,10 +76,56 @@ export function LogContextUI(props: LogContextUIProps ){
     </div>
   ), [setQuery, canRunQuery, origQuery, runQuery])
 
+  const processFilter = useCallback((f: GrafanaField<any, any[]>): Field => {
+        let contingency: FieldContingency = {};
+        f.values.forEach((value: string, i) => {
+          if (!contingency[value]) {
+            contingency[value] = {
+              count: 0,
+              pinned: false,
+              active: builder.parsedQuery ? !!builder.parsedQuery.findFilter(f.name, `${value}`) : false
+            }
+          }
+          contingency[value].count += 1;  
+          if (i === row.rowIndex) {
+            contingency[value].pinned = true;
+          }
+        });
+        return { name: f.name, contingency };
+  },[builder.parsedQuery, row.rowIndex])
+
+  const filteredFields = useMemo(() => {
+    const searchableFieldsNames = fields.map(f=>f.text);
+    return row.dataFrame.fields
+      .filter(f=>searchableFieldsNames.includes(f.name))
+      // exclude some low-filterability fields
+      .filter((f)=> isPrimitive(f.type))
+      // sort fields by name
+      .sort((f1, f2)=> (f1.name>f2.name ? 1 : -1))
+      .map(processFilter)
+
+  }, [row, fields, processFilter]);
+
+  const toggleFilter = (filter: Filter): void => {
+    // Compute mutation to apply to the query and send to parent
+    // check if that filter is in the query
+    if (!builder.parsedQuery) { return; }
+
+    const newParsedQuery = (
+      builder.parsedQuery.hasFilter(filter.name, filter.value)
+        ? builder.parsedQuery.removeFilter(filter.name, filter.value)
+        : builder.parsedQuery.addFilter(filter.name, filter.value)
+    )
+
+    if (newParsedQuery) {
+      setParsedQuery(newParsedQuery)
+    }
+  }
+
   return (
     <div className={logContextUiStyle}>
       <DatasourceContext.Provider value={props.datasource}>
-        <LogContextQueryBuilderSidebar {...props} builder={builder} updateQuery={setParsedQuery} searchableFields={fields}/>
+        <LogContextQueryBuilderSidebar fields={filteredFields} onToggleFilter={toggleFilter}/>
         <div className={css`width:100%; display:flex; flex-direction:column; gap:0.5rem; min-width:0;`}>
           {ActionBar}
           <LuceneQueryEditor

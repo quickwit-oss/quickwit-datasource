@@ -5,7 +5,7 @@ import { css } from "@emotion/css";
 import CodeMirror, { ReactCodeMirrorRef, keymap } from '@uiw/react-codemirror';
 import {linter, Diagnostic, lintGutter} from "@codemirror/lint"
 import {autocompletion, CompletionContext} from "@codemirror/autocomplete"
-import { LuceneQuery } from "utils/lucene";
+import { LuceneQuery } from "@/utils/lucene";
 
 
 export type LuceneQueryEditorProps = {
