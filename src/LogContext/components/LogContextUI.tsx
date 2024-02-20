@@ -8,8 +8,8 @@ import { Button } from "@grafana/ui";
 import { useQueryBuilder } from '@/QueryBuilder/lucene';
 import { LogContextQueryBuilderSidebar } from "./LogContextQueryBuilderSidebar";
 import { DatasourceContext } from "components/QueryEditor/ElasticsearchQueryContext";
-import { QuickwitDataSource } from "datasource";
-import { useDatasourceFields } from "datasource.utils";
+import { QuickwitDataSource } from "@/datasource";
+import { useDatasourceFields } from "@/datasource/utils";
 
 const logContextUiStyle = css`
   display: flex;

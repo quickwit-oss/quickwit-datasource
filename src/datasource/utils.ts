@@ -1,4 +1,4 @@
-import { QuickwitDataSource } from "datasource";
+import { QuickwitDataSource } from "@/datasource";
 import { useState, useEffect, useCallback } from "react";
 import{ MetricFindValue } from '@grafana/data';
 
