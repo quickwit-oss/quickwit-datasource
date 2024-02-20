@@ -1,4 +1,4 @@
-import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, FieldType } from "@grafana/data";
+import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType } from "@grafana/data";
 import { getDataSourceSrv } from "@grafana/runtime";
 import { QuickwitDataSource } from 'datasource';
 import { DataLinkConfig, ElasticsearchQuery } from "../types";
@@ -20,6 +20,10 @@ function getCustomFieldName(fieldname: string) { return `$qw_${fieldname}`; }
 export function processLogsDataFrame(datasource: QuickwitDataSource, dataFrame: DataFrame) {
   // Ignore log volume dataframe, no need to add links or a displayed message field.
   if (!dataFrame.refId || dataFrame.refId.startsWith('log-volume')) {
+    return;
+  }
+  // Skip empty dataframes
+  if (dataFrame.length===0 || dataFrame.fields.length === 0) {
     return;
   }
   if (datasource.logMessageField) {
@@ -45,7 +49,7 @@ export function processLogsDataFrame(datasource: QuickwitDataSource, dataFrame: 
       displayedMessages[idx] = displayedMessage.trim();
     }
 
-    const newField = {
+    const newField: Field = {
       name: getCustomFieldName('message'),
       type: FieldType.string,
       config: {},
