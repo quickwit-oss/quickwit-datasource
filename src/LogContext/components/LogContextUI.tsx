@@ -9,7 +9,7 @@ import { useQueryBuilder } from '@/QueryBuilder/lucene';
 import { LogContextQueryBuilderSidebar } from "./LogContextQueryBuilderSidebar";
 import { DatasourceContext } from "@/components/QueryEditor/ElasticsearchQueryContext";
 import { QuickwitDataSource } from "@/datasource";
-import { useDatasourceFields } from "@/datasource.utils";
+import { useDatasourceFields } from "@/datasource/utils";
 import { Field, FieldContingency, Filter } from "../types";
 
 // TODO : define sensible defaults here

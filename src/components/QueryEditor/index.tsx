@@ -22,7 +22,7 @@ import { QueryTypeSelector } from './QueryTypeSelector';
 
 import { getHook } from '@/utils/context';
 import { LuceneQueryEditor } from '@/components/LuceneQueryEditor';
-import { useDatasourceFields } from 'datasource.utils';
+import { useDatasourceFields } from '@/datasource/utils';
 
 export type ElasticQueryEditorProps = QueryEditorProps<ElasticDatasource, ElasticsearchQuery, QuickwitOptions>;
 
