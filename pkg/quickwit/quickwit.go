@@ -154,7 +154,7 @@ func (ds *QuickwitDatasource) CallResource(ctx context.Context, req *backend.Cal
 		return err
 	}
 
-	resourcePath, err := url.Parse(req.Path)
+	resourcePath, err := url.Parse(req.URL)
 	if err != nil {
 		return err
 	}
@@ -162,6 +162,8 @@ func (ds *QuickwitDatasource) CallResource(ctx context.Context, req *backend.Cal
 	// We take the path and the query-string only
 	qwUrl.RawQuery = resourcePath.RawQuery
 	qwUrl.Path = path.Join(qwUrl.Path, resourcePath.Path)
+
+	qwlog.Info("CallResource", "url", qwUrl.String())
 
 	request, err := http.NewRequestWithContext(ctx, req.Method, qwUrl.String(), bytes.NewBuffer(req.Body))
 	if err != nil {
