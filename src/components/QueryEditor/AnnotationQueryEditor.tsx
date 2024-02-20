@@ -34,6 +34,8 @@ export function ElasticsearchAnnotationsQueryEditor(props: Props) {
               target: newTarget,
             });
           }}
+          // XXX : ain't used at the moment, fix the build
+          onSubmit={()=>null}
         />
       </div>
 

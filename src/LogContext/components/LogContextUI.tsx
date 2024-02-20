@@ -64,7 +64,13 @@ export function LogContextUI(props: LogContextUIProps ){
         <LogContextQueryBuilderSidebar {...props} builder={builder} updateQuery={setParsedQuery} searchableFields={fields}/>
         <div className={css`width:100%; display:flex; flex-direction:column; gap:0.5rem; min-width:0;`}>
           {ActionBar}
-          <LuceneQueryEditor value={builder.query} autocompleter={getSuggestions} onChange={builder.setQuery}/>
+          <LuceneQueryEditor
+            placeholder="Shift-Enter to run the query, Ctrl-Space to autocomplete"
+            value={builder.query}
+            autocompleter={getSuggestions}
+            onChange={builder.setQuery}
+            onSubmit={runQuery}
+            />
         </div>
       </DatasourceContext.Provider>
     </div>

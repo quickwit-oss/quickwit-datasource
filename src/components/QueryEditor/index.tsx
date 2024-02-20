@@ -1,6 +1,8 @@
 import { css } from '@emotion/css';
 
 import React, { createContext } from 'react';
+import { debounceTime, throttleTime } from 'rxjs';
+import { useObservableCallback, useSubscription } from 'observable-hooks'
 
 import { CoreApp, Field, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
 import { InlineLabel, useStyles2 } from '@grafana/ui';
@@ -34,7 +36,7 @@ export const QueryEditor = ({ query, onChange, onRunQuery, datasource, range, ap
       query={query}
       range={range || getDefaultTimeRange()}
     >
-      <QueryEditorForm value={query} />
+      <QueryEditorForm value={query} onRunQuery={onRunQuery} />
     </ElasticsearchProvider>
   );
 };
@@ -54,21 +56,33 @@ export const useSearchableFields = getHook(SearchableFieldsContext)
 
 interface Props {
   value: ElasticsearchQuery;
+  onRunQuery: () => void
 }
 
-export const ElasticSearchQueryField = ({ value, onChange }: { value?: string; onChange: (v: string) => void }) => {
+type ElasticSearchQueryFieldProps = {
+  value?: string;
+  onChange: (v: string) => void
+  onSubmit: (v: string) => void
+}
+export const ElasticSearchQueryField = ({ value, onChange, onSubmit }: ElasticSearchQueryFieldProps) => {
   const styles = useStyles2(getStyles);
   const datasource = useDatasource()
   const { getSuggestions } = useDatasourceFields(datasource);
 
   return (
     <div className={styles.queryItem}>
-      <LuceneQueryEditor placeholder="Enter a lucene query" value={value || ''} autocompleter={getSuggestions} onChange={onChange}/>
+      <LuceneQueryEditor 
+        placeholder="Enter a lucene query - Type Shift-Enter to run query, Ctrl-Space to autocomplete"
+        value={value || ''}
+        autocompleter={getSuggestions}
+        onChange={onChange}
+        onSubmit={onSubmit}
+        />
     </div>
   );
 };
 
-const QueryEditorForm = ({ value }: Props) => {
+const QueryEditorForm = ({ value, onRunQuery }: Props) => {
   const dispatch = useDispatch();
   const nextId = useNextId();
   const styles = useStyles2(getStyles);
@@ -76,6 +90,20 @@ const QueryEditorForm = ({ value }: Props) => {
   const showBucketAggregationsEditor = value.metrics?.every(
     (metric) => metricAggregationConfig[metric.type].impliedQueryType === 'metrics'
   );
+
+  const onChange = (query: string) => {
+    dispatch(changeQuery(query))
+  }
+  const onSubmit = (query: string) => {
+    onChange(query)
+    onRunQuery()
+  }
+
+  const [onChangeCB, textChanged$] = useObservableCallback<string>(event$ => event$.pipe(debounceTime(1000)))
+  const [onSubmitCB, submitted$] = useObservableCallback<string>(event$=>event$.pipe(throttleTime(500)))
+
+  useSubscription(textChanged$, onChange)
+  useSubscription(submitted$, onSubmit)
 
   return (
     <>
@@ -87,7 +115,10 @@ const QueryEditorForm = ({ value }: Props) => {
       </div>
       <div className={styles.root}>
         <InlineLabel width={17}>Lucene Query</InlineLabel>
-        <ElasticSearchQueryField onChange={(query) => dispatch(changeQuery(query))} value={value?.query} />
+        <ElasticSearchQueryField
+          onChange={onChangeCB}
+          value={value?.query}
+          onSubmit={onSubmitCB}/>
       </div>
 
       <MetricAggregationsEditor nextId={nextId} />

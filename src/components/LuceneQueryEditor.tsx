@@ -1,10 +1,8 @@
 import React, { useRef, useCallback } from "react";
-import { debounceTime } from 'rxjs';
-import { useObservableCallback, useSubscription } from 'observable-hooks'
 import { css } from "@emotion/css";
 
 
-import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorRef, keymap } from '@uiw/react-codemirror';
 import {linter, Diagnostic, lintGutter} from "@codemirror/lint"
 import {autocompletion, CompletionContext} from "@codemirror/autocomplete"
 import { LuceneQuery } from "utils/lucene";
@@ -15,6 +13,7 @@ export type LuceneQueryEditorProps = {
   value: string,
   autocompleter: (word: string) => any,
   onChange: (query: string) => void
+  onSubmit: (query: string) => void
 }
 
 export function LuceneQueryEditor(props: LuceneQueryEditorProps){
@@ -49,10 +48,6 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
 
   const autocomplete = autocompletion({ override: [datasourceCompletions] })
 
-  const [onChange, textChanged$] = useObservableCallback<string>(event$ => event$.pipe(debounceTime(1000)))
-
-  useSubscription(textChanged$, props.onChange)
-
   return (<CodeMirror 
     ref={editorRef}
     className={css`height:100%`} // XXX : need to set height for both wrapper elements
@@ -60,7 +55,15 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
     theme={'dark'} 
     placeholder={props.placeholder}
     value={props.value}
-    onChange={onChange}
-    extensions={[queryLinter, lintGutter(), autocomplete]}
+    onChange={props.onChange}
+    indentWithTab={false}
+    extensions={[
+      queryLinter, lintGutter(),
+      autocomplete,
+      keymap.of([{key:'Shift-Enter', run:(target)=>{
+        props.onSubmit(target.state.doc.toString())
+        return true;
+      }}])
+    ]}
     />);
 }
