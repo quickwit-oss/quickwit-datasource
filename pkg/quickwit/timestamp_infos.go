@@ -74,7 +74,7 @@ func GetTimestampFieldFromIndex(index string, qwickwitUrl string, cli *http.Clie
 }
 
 func GetTimestampFieldFromIndexPattern(indexPattern string, qwickwitUrl string, cli *http.Client) (string, error) {
-	mappingEndpointUrl := qwickwitUrl + "/indexes?index_id_pattern=" + indexPattern
+	mappingEndpointUrl := qwickwitUrl + "/indexes?index_id_patterns=" + indexPattern
 	qwlog.Debug("Calling quickwit endpoint: " + mappingEndpointUrl)
 	r, err := cli.Get(mappingEndpointUrl)
 	if err != nil {
