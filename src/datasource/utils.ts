@@ -27,7 +27,7 @@ export function useDatasourceFields(datasource: QuickwitDataSource) {
   const getSuggestions = useCallback(async (word: string): Promise<Suggestion> => {
     let suggestions: Suggestion = { from: 0, options: [] };
 
-    const wordIsField = word.match(/([\w\.]+):"?(\S*)/);
+    const wordIsField = word.match(/([^:\s]+):"?([^"\s]*)"?/);
     if (wordIsField?.length) {
       const [_match, fieldName, _fieldValue] = wordIsField;
       const candidateValues = await datasource.getTagValues({ key: fieldName });
