@@ -277,14 +277,15 @@ export class QuickwitDataSource
   getTerms(queryDef: TermsQuery, range = getDefaultTimeRange()): Observable<MetricFindValue[]> {
     const dataquery = this.getDataQueryRequest(queryDef, range)
     return super.query(dataquery).pipe(
-      mergeMap(res=> res.data.map((df: DataFrame)=>{
-
-        return df.fields[0]!.values.map((bucket)=>({
-          text: bucket,
-          value: bucket,
-        }))
+      mergeMap(res=> {
+        return res.data.map((df: DataFrame)=>{
+          if (df.fields.length === 0) { return [] }
+          return df.fields[0].values.map((bucket)=>({
+            text: bucket,
+            value: bucket,
+          }))
+        })
       })
-      )
     )
   }
 
@@ -335,7 +336,8 @@ export class QuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys(spec?: FieldCapsSpec) {
-    return lastValueFrom(this.getFields(spec));
+    const fields = this.getFields(spec)
+    return lastValueFrom(fields, {defaultValue:[]});
   }
 
   /**
@@ -343,7 +345,8 @@ export class QuickwitDataSource
    */
   getTagValues(options: any) {
     const range = getDefaultTimeRange();
-    return lastValueFrom(this.getTerms({ field: options.key }, range));
+    const terms = this.getTerms({ field: options.key }, range)
+    return lastValueFrom(terms, {defaultValue:[]});
   }
 
   /**
@@ -436,12 +439,12 @@ export class QuickwitDataSource
     if (query) {
       if (parsedQuery.find === 'fields') {
         parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-        return lastValueFrom(this.getFields({aggregatable:true, type:parsedQuery.type, _range:range}));
+        return lastValueFrom(this.getFields({aggregatable:true, type:parsedQuery.type, _range:range}), {defaultValue:[]});
       }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);
-        return lastValueFrom(this.getTerms(parsedQuery, range));
+        return lastValueFrom(this.getTerms(parsedQuery, range), {defaultValue:[]});
       }
     }
     return Promise.resolve([]);
