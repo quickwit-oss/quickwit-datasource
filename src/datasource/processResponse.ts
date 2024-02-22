@@ -1,9 +1,9 @@
 import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType } from "@grafana/data";
 import { getDataSourceSrv } from "@grafana/runtime";
-import { QuickwitDataSource } from 'datasource';
+import { BaseQuickwitDataSource } from './base';
 import { DataLinkConfig, ElasticsearchQuery } from "../types";
 
-export function getQueryResponseProcessor(datasource: QuickwitDataSource, request: DataQueryRequest<ElasticsearchQuery>) {
+export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, request: DataQueryRequest<ElasticsearchQuery>) {
   return {
     processResponse: (response: DataQueryResponse) => {
       response.data.forEach((dataFrame) => {
@@ -17,7 +17,7 @@ export function getQueryResponseProcessor(datasource: QuickwitDataSource, reques
   };
 }
 function getCustomFieldName(fieldname: string) { return `$qw_${fieldname}`; }
-export function processLogsDataFrame(datasource: QuickwitDataSource, dataFrame: DataFrame) {
+export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFrame: DataFrame) {
   // Ignore log volume dataframe, no need to add links or a displayed message field.
   if (!dataFrame.refId || dataFrame.refId.startsWith('log-volume')) {
     return;

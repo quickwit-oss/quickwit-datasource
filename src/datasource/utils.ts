@@ -1,4 +1,4 @@
-import { QuickwitDataSource } from "@/datasource";
+import { BaseQuickwitDataSource } from "./base";
 import { useState, useEffect, useCallback } from "react";
 import{ MetricFindValue } from '@grafana/data';
 
@@ -15,7 +15,7 @@ export type Suggestion = {
   }>
 }
 
-export function useDatasourceFields(datasource: QuickwitDataSource) {
+export function useDatasourceFields(datasource: BaseQuickwitDataSource) {
   const [fields, setFields] = useState<MetricFindValue[]>([]);
 
   useEffect(() => {

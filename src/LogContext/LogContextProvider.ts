@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
-import { lastValueFrom } from 'rxjs';
-import { QuickwitDataSource } from 'datasource';
-import { catchError } from 'rxjs/operators';
+import { lastValueFrom, catchError } from 'rxjs';
+
+import { BaseQuickwitDataSource } from '@/datasource/base';
 
 import {
   CoreApp,
@@ -43,10 +43,10 @@ function createContextTimeRange(rowTimeEpochMs: number, direction: string) {
 }
 
 export class LogContextProvider {
-  datasource: QuickwitDataSource;
+  datasource: BaseQuickwitDataSource;
   contextQuery: string | null;
 
-  constructor(datasource: QuickwitDataSource) {
+  constructor(datasource: BaseQuickwitDataSource) {
     this.datasource = datasource;
     this.contextQuery = null;
   }

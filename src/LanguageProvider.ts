@@ -1,14 +1,14 @@
 import { AbstractLabelOperator, AbstractLabelMatcher, LanguageProvider, AbstractQuery } from '@grafana/data';
 
-import { ElasticDatasource } from './datasource';
+import { BaseQuickwitDataSource } from '@/datasource/base';
 import { ElasticsearchQuery } from './types';
 
 export default class ElasticsearchLanguageProvider extends LanguageProvider {
   declare request: (url: string, params?: any) => Promise<any>;
   declare start: () => Promise<any[]>;
-  datasource: ElasticDatasource;
+  datasource: BaseQuickwitDataSource;
 
-  constructor(datasource: ElasticDatasource, initialValues?: any) {
+  constructor(datasource: BaseQuickwitDataSource, initialValues?: any) {
     super();
     this.datasource = datasource;
 
