@@ -1,4 +1,4 @@
-import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType } from "@grafana/data";
+import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType, ArrayVector } from "@grafana/data";
 import { getDataSourceSrv } from "@grafana/runtime";
 import { QuickwitDataSource } from 'datasource';
 import { DataLinkConfig, ElasticsearchQuery } from "../types";
@@ -35,15 +35,19 @@ export function processLogsDataFrame(datasource: QuickwitDataSource, dataFrame: 
         field_idx_list.push(field_idx);
       }
     }
+
+    // XXX : Compatibility - prior to grafana-10.0.0, Field.values only supports Vector interface
+    const getFieldValue = (field: typeof dataFrame.fields[0], idx: number) => ( field.values.get(idx) )
+
     const displayedMessages = Array(dataFrame.length);
     for (let idx = 0; idx < dataFrame.length; idx++) {
       let displayedMessage = "";
       // If we have only one field, we assume the field name is obvious for the user and we don't need to show it.
       if (field_idx_list.length === 1) {
-        displayedMessage = `${dataFrame.fields[field_idx_list[0]].values[idx]}`;
+        displayedMessage = `${getFieldValue(dataFrame.fields[field_idx_list[0]], idx)}`;
       } else {
         for (const field_idx of field_idx_list) {
-          displayedMessage += ` ${dataFrame.fields[field_idx].name}=${dataFrame.fields[field_idx].values[idx]}`;
+          displayedMessage += ` ${dataFrame.fields[field_idx].name}=${getFieldValue(dataFrame.fields[field_idx], idx)}`;
         }
       }
       displayedMessages[idx] = displayedMessage.trim();
@@ -53,7 +57,8 @@ export function processLogsDataFrame(datasource: QuickwitDataSource, dataFrame: 
       name: getCustomFieldName('message'),
       type: FieldType.string,
       config: {},
-      values: displayedMessages,
+    // XXX : Compatibility - prior to grafana-10.0.0, Field.values only supports Vector interface
+      values: new ArrayVector(displayedMessages),
     };
     const [timestamp, ...rest] = dataFrame.fields;
     dataFrame.fields = [timestamp, newField, ...rest];
