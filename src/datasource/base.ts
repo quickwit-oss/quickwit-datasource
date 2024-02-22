@@ -1,4 +1,3 @@
-import { first as _first, map as _map } from 'lodash';
 import { Observable, lastValueFrom, from, of } from 'rxjs';
 import { map, mergeMap } from 'rxjs/operators';
 
@@ -10,10 +9,8 @@ import {
   DataQueryRequest,
   DataQueryResponse,
   DataSourceInstanceSettings,
-  DataSourceWithLogsContextSupport,
   DataSourceWithQueryImportSupport,
   getDefaultTimeRange,
-  LogRowModel,
   MetricFindValue,
   QueryFixAction,
   ScopedVars,
@@ -32,10 +29,8 @@ import { isMetricAggregationWithField } from 'components/QueryEditor/MetricAggre
 import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregationsEditor/utils';
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
-import { ReactNode } from 'react';
 import { fieldTypeMap } from 'utils';
 import { addAddHocFilter } from 'modifyQuery';
-import { LogContextProvider, LogRowContextOptions } from '@/LogContext/LogContextProvider';
 import { getQueryResponseProcessor } from 'datasource/processResponse';
 
 import { SECOND } from 'utils/time';
@@ -53,7 +48,6 @@ type FieldCapsSpec = {
 export class BaseQuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
   implements
-    DataSourceWithLogsContextSupport,
     DataSourceWithQueryImportSupport<ElasticsearchQuery>
 {
   index: string;
@@ -63,7 +57,6 @@ export class BaseQuickwitDataSource
   dataLinks: DataLinkConfig[];
   languageProvider: ElasticsearchLanguageProvider;
 
-  private logContextProvider: LogContextProvider;
 
   constructor(
     instanceSettings: DataSourceInstanceSettings<QuickwitOptions>,
@@ -77,7 +70,6 @@ export class BaseQuickwitDataSource
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
     this.languageProvider = new ElasticsearchLanguageProvider(this);
-    this.logContextProvider = new LogContextProvider(this);
   }
 
   query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
@@ -283,28 +275,6 @@ export class BaseQuickwitDataSource
     return text;
   }
 
-  // Log Context
-
-  // NOTE : deprecated since grafana-data 10.3
-  showContextToggle(row?: LogRowModel | undefined): boolean {
-    return true;
-  }
-
-  getLogRowContext = async (
-      row: LogRowModel,
-      options?: LogRowContextOptions,
-      origQuery?: ElasticsearchQuery
-      ): Promise<{ data: DataFrame[] }> => {
-    return await this.logContextProvider.getLogRowContext(row, options, origQuery);
-  }
-
-  getLogRowContextUi(
-    row: LogRowModel,
-    runContextQuery?: (() => void),
-    origQuery?: ElasticsearchQuery
-    ): ReactNode {
-    return this.logContextProvider.getLogRowContextUi(row, runContextQuery, origQuery);
-  }
 
   /**
    * Returns false if the query should be skipped

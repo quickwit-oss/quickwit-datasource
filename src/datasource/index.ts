@@ -1,8 +1,10 @@
 import { BaseQuickwitDataSource } from './base';
 
 import { withSupplementaryQueries } from './supplementaryQueries';
+import { withLogContext } from './logsContext';
 
 const mixins = [
+  withLogContext,
   withSupplementaryQueries,
 ]
 const qwds = mixins.reduce(( qwds, fn) => fn(qwds), BaseQuickwitDataSource)
