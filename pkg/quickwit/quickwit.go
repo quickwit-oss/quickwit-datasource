@@ -45,10 +45,11 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 	if err != nil {
 		return nil, fmt.Errorf("error getting http options: %w", err)
 	}
+	httpCliOpts.ForwardHTTPHeaders = true
 
 	// Set SigV4 service namespace
 	if httpCliOpts.SigV4 != nil {
-		httpCliOpts.SigV4.Service = "quicwkit"
+		httpCliOpts.SigV4.Service = "quickwit"
 	}
 
 	httpCli, err := httpclient.New(httpCliOpts)
