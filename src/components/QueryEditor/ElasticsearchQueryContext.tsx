@@ -2,7 +2,7 @@ import React, { createContext, PropsWithChildren, useCallback, useEffect, useSta
 
 import { CoreApp, TimeRange } from '@grafana/data';
 
-import { ElasticDatasource } from '@/datasource';
+import { BaseQuickwitDataSource } from '@/datasource/base';
 import { combineReducers, useStatelessReducer, DispatchContext } from '@/hooks/useStatelessReducer';
 import { ElasticsearchQuery } from '@/types';
 
@@ -17,7 +17,7 @@ export const useRange = getHook(RangeContext);
 export const QueryContext = createContext<ElasticsearchQuery | undefined>(undefined);
 export const useQuery = getHook(QueryContext);
 
-export const DatasourceContext = createContext<ElasticDatasource | undefined>(undefined);
+export const DatasourceContext = createContext<BaseQuickwitDataSource | undefined>(undefined);
 export const useDatasource = getHook(DatasourceContext);
 
 interface Props {
@@ -25,7 +25,7 @@ interface Props {
   app: CoreApp;
   onChange: (query: ElasticsearchQuery) => void;
   onRunQuery: () => void;
-  datasource: ElasticDatasource;
+  datasource: BaseQuickwitDataSource;
   range: TimeRange;
 }
 

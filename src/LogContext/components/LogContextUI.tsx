@@ -8,7 +8,7 @@ import { Button } from "@grafana/ui";
 import { useQueryBuilder } from '@/QueryBuilder/lucene';
 import { LogContextQueryBuilderSidebar } from "./LogContextQueryBuilderSidebar";
 import { DatasourceContext } from "@/components/QueryEditor/ElasticsearchQueryContext";
-import { QuickwitDataSource } from "@/datasource";
+import { BaseQuickwitDataSource } from "@/datasource/base";
 import { useDatasourceFields } from "@/datasource/utils";
 import { Field, FieldContingency, Filter } from "../types";
 
@@ -42,7 +42,7 @@ export interface LogContextProps {
   origQuery?: DataQuery
 }
 export interface LogContextUIProps extends LogContextProps {
-  datasource: QuickwitDataSource,
+  datasource: BaseQuickwitDataSource,
   updateQuery: (query: string) => void
 }
 
