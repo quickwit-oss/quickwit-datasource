@@ -36,17 +36,23 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
 
   const {autocompleter} = props;
   const datasourceCompletions = useCallback(async (context: CompletionContext)=>{
+    let suggestions;
     let word = context.matchBefore(/\S*/);
     if (!word){ return null }
-    const suggestions = await autocompleter(word?.text);
-    return {
-      from: word.from + suggestions.from,
-      options: suggestions.options
+      suggestions = await autocompleter(word?.text);
+    if (suggestions && suggestions.options.length > 0 ) {
+      return {
+        from: word.from + suggestions.from,
+        options: suggestions.options
+      }
     }
+    return null
   }, [autocompleter])
 
 
-  const autocomplete = autocompletion({ override: [datasourceCompletions] })
+  const autocomplete = autocompletion({
+    override: [datasourceCompletions]
+  })
 
   return (<CodeMirror 
     ref={editorRef}
