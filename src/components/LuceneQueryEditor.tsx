@@ -51,7 +51,8 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
 
 
   const autocomplete = autocompletion({
-    override: [datasourceCompletions]
+    override: [datasourceCompletions],
+    activateOnTyping: false,
   })
 
   return (<CodeMirror 
