@@ -3,13 +3,13 @@ import React from 'react';
 import { useDispatch } from '@/hooks/useStatelessReducer';
 import { IconButton } from '../../IconButton';
 import { useQuery } from '../ElasticsearchQueryContext';
-import { QueryEditorRow } from '../QueryEditorRow';
+import { QueryEditorRow, QueryEditorBaseRow } from '../QueryEditorRow';
 
 import { MetricAggregation } from '@/types';
 import { MetricEditor } from './MetricEditor';
 import { addMetric, removeMetric, toggleMetricVisibility } from './state/actions';
 import { metricAggregationConfig } from './utils';
-import { QueryEditorSpecialMetricRow } from '../QueryEditorSpecialMetricRow';
+import { SettingsEditor } from './SettingsEditor';
 
 interface Props {
   nextId: MetricAggregation['id'];
@@ -25,9 +25,13 @@ export const MetricAggregationsEditor = ({ nextId }: Props) => {
       {metrics?.map((metric, index) => {
         switch (metric.type) {
           case 'logs':
-            return <QueryEditorSpecialMetricRow key={`${metric.type}-${metric.id}`} name="Logs" metric={metric} />;
+            return <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Logs">
+                <SettingsEditor metric={metric} previousMetrics={[]} />
+              </QueryEditorBaseRow>;
           case 'raw_data':
-            return <QueryEditorSpecialMetricRow key={`${metric.type}-${metric.id}`} name="Raw Data" metric={metric} />;
+            return <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Raw Data">
+                <SettingsEditor metric={metric} previousMetrics={[]} />
+              </QueryEditorBaseRow>;
           default:
             return (
               <QueryEditorRow
