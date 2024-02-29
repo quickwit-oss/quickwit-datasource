@@ -16,9 +16,10 @@ import { MovingAverageSettingsEditor } from './MovingAverageSettingsEditor';
 import { SettingField } from './SettingField';
 import { TopMetricsSettingsEditor } from './TopMetricsSettingsEditor';
 import { useDescription } from './useDescription';
+import { LogsSettingsEditor } from './LogsSettingsEditor';
 
 // TODO: Move this somewhere and share it with BucketsAggregation Editor
-const inlineFieldProps: Partial<ComponentProps<typeof InlineField>> = {
+export const inlineFieldProps: Partial<ComponentProps<typeof InlineField>> = {
   labelWidth: 16,
 };
 
@@ -84,7 +85,9 @@ export const SettingsEditor = ({ metric, previousMetrics }: Props) => {
         </InlineField>
       )}
 
-      {metric.type === 'logs' && <SettingField label="Limit" metric={metric} settingName="limit" placeholder="100" />}
+      {metric.type === 'logs' && (
+        <LogsSettingsEditor metric={metric}></LogsSettingsEditor>
+      )}
 
       {metric.type === 'cardinality' && (
         <SettingField label="Precision Threshold" metric={metric} settingName="precision_threshold" />

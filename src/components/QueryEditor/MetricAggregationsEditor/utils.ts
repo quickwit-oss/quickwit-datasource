@@ -1,4 +1,4 @@
-import { MetricsConfiguration, MetricAggregation, PipelineMetricAggregationType } from '@/types';
+import { MetricsConfiguration, MetricAggregation, PipelineMetricAggregationType, LogsSortDirection } from '@/types';
 
 import {
   defaultPipelineVariable,
@@ -244,6 +244,7 @@ export const metricAggregationConfig: MetricsConfiguration = {
     defaults: {
       settings: {
         limit: '100',
+        sortDirection:'desc' as LogsSortDirection
       },
     },
   },

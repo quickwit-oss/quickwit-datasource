@@ -13,7 +13,7 @@ import {
   rangeUtil,
 } from '@grafana/data';
 
-import { ElasticsearchQuery, Logs} from '../types';
+import { ElasticsearchQuery, Logs, LogsSortDirection} from '../types';
 
 import { LogContextUI } from './components/LogContextUI';
 
@@ -64,7 +64,7 @@ export class LogContextProvider {
       settings: {
         limit: options?.limit ? options?.limit.toString() : '10',
         // Sorting of results in the context query
-        sortDirection: direction === LogRowContextQueryDirection.Backward ? 'desc' : 'asc',
+        sortDirection: direction === LogRowContextQueryDirection.Backward ? LogsSortDirection.DESC : LogsSortDirection.ASC,
         // Used to get the next log lines before/after the current log line using sort field of selected log line
         searchAfter: searchAfter,
       },
