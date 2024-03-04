@@ -243,7 +243,7 @@ export const metricAggregationConfig: MetricsConfiguration = {
     hasMeta: false,
     defaults: {
       settings: {
-        limit: '100',
+        limit: '1000',
         sortDirection:'desc' as LogsSortDirection
       },
     },

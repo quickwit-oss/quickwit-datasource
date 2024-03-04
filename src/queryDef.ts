@@ -32,7 +32,7 @@ export function defaultMetricAgg(id = '1'): MetricAggregation {
 }
 
 export function defaultLogsAgg(id = '1'): MetricAggregation {
-  return { type: 'logs', id };
+  return { type: 'logs', id, ...metricAggregationConfig['logs'].defaults };
 }
 
 export function defaultBucketAgg(id = '1'): DateHistogram {

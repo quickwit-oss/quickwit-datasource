@@ -75,7 +75,7 @@ interface MetricConfiguration<T extends MetricAggregationType> {
   impliedQueryType: QueryType;
   hasSettings: boolean;
   hasMeta: boolean;
-  defaults: Omit<Extract<MetricAggregation|Logs, { type: T }>, 'id' | 'type'>;
+  defaults: Omit<Extract<Exclude<MetricAggregation,SchemaLogs>|Logs, { type: T }>, 'id' | 'type'>;
 }
 
 type BucketConfiguration<T extends BucketAggregationType> = {
