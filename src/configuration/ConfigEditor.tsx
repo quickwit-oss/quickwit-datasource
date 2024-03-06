@@ -91,6 +91,15 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               width={40}
             />
           </InlineField>
+            <InlineField label="Timestamp field" labelWidth={26} tooltip="The timestamp field must be a fast field">
+                <Input
+                    id="quickwit_log_level_field"
+                    value={value.jsonData.timeField}
+                    onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, timeField: event.currentTarget.value}})}
+                    placeholder="timestamp"
+                    width={40}
+                />
+            </InlineField>
         </FieldSet>
       </div>
     </>
