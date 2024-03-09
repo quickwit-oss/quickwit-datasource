@@ -70,6 +70,7 @@ export class BaseQuickwitDataSource
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
     this.languageProvider = new ElasticsearchLanguageProvider(this);
+    this.annotations = {};
   }
 
   query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
