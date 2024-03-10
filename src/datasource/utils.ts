@@ -27,14 +27,14 @@ export function useDatasourceFields(datasource: BaseQuickwitDataSource) {
   const getSuggestions = useCallback(async (word: string): Promise<Suggestion> => {
     let suggestions: Suggestion = { from: 0, options: [] };
 
-    const wordIsField = word.match(/([^:\s]+):"?([^"\s]*)"?/);
+    const wordIsField = word.match(/([^:\s]+):'?([^'\s]*)'?/);
     if (wordIsField?.length) {
       const [_match, fieldName, _fieldValue] = wordIsField;
       const candidateValues = await datasource.getTagValues({ key: fieldName });
       suggestions.from = fieldName.length + 1; // Replace only the value part
       suggestions.options = candidateValues.map(v => ({
         type: 'text',
-        label: typeof v.text === 'number' ? `${v.text}` : `"${v.text}"`
+        label: typeof v.text === 'number' ? `${v.text}` : `'${v.text}'`
       }));
     } else {
       const candidateFields = fields;
