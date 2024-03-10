@@ -1,5 +1,6 @@
 import { extendedStats } from 'queryDef';
-import { MetricAggregation } from '@/types';
+import { Logs, LogsEnd, MetricAggregation } from '@/types';
+import { metricAggregationConfig } from '../utils';
 
 const hasValue = (value: string) => (object: { value: string }) => object.value === value;
 
@@ -32,6 +33,14 @@ export const useDescription = (metric: MetricAggregation): string => {
     case 'raw_data': {
       const size = metric.settings?.size || 100;
       return `Size: ${size}`;
+    }
+
+    case 'logs': {
+      const config = metricAggregationConfig['logs']
+      const logsmetric: Logs = metric
+      const sort = LogsEnd[logsmetric.settings?.sortDirection || config.defaults.settings!.sortDirection!]
+      const limit = logsmetric.settings?.limit || 100
+      return `${sort} ${limit}`
     }
 
     default:

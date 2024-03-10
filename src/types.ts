@@ -15,14 +15,24 @@ import {
 } from './dataquery.gen';
 
 export * from './dataquery.gen';
-export { Elasticsearch as ElasticsearchQuery } from './dataquery.gen';
+export { type Elasticsearch as ElasticsearchQuery } from './dataquery.gen';
 
 // We want to extend the settings of the Logs query with additional properties that
 // are not part of the schema. This is a workaround, because exporting LogsSettings
 // from dataquery.gen.ts and extending that produces error in SettingKeyOf.
+export enum LogsSortDirection {
+  DESC = 'desc',
+  ASC = 'asc',
+}
+
+export const LogsEnd = {
+  [LogsSortDirection.ASC]: 'Head',
+  [LogsSortDirection.DESC]: 'Tail'
+}
+
 type ExtendedLogsSettings = SchemaLogs['settings'] & {
   searchAfter?: unknown[];
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: LogsSortDirection;
 };
 
 export interface Logs extends SchemaLogs {
@@ -65,7 +75,7 @@ interface MetricConfiguration<T extends MetricAggregationType> {
   impliedQueryType: QueryType;
   hasSettings: boolean;
   hasMeta: boolean;
-  defaults: Omit<Extract<MetricAggregation, { type: T }>, 'id' | 'type'>;
+  defaults: Omit<Extract<Exclude<MetricAggregation,SchemaLogs>|Logs, { type: T }>, 'id' | 'type'>;
 }
 
 type BucketConfiguration<T extends BucketAggregationType> = {
