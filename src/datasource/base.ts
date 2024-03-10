@@ -35,6 +35,7 @@ import { getQueryResponseProcessor } from 'datasource/processResponse';
 
 import { SECOND } from 'utils/time';
 import { GConstructor } from 'utils/mixins';
+import { LuceneQuery } from '@/utils/lucene';
 
 export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>
 
@@ -114,24 +115,18 @@ export class BaseQuickwitDataSource
       return query;
     }
 
-    let expression = query.query ?? '';
+    let lquery = LuceneQuery.parse(query.query ?? '')
     switch (action.type) {
       case 'ADD_FILTER': {
-        if (expression.length > 0) {
-          expression += ' AND ';
-        }
-        expression += `${action.options.key}:"${action.options.value}"`;
+        lquery = lquery.addFilter(action.options.key, action.options.value)
         break;
       }
       case 'ADD_FILTER_OUT': {
-        if (expression.length > 0) {
-          expression += ' AND ';
-        }
-        expression += `-${action.options.key}:"${action.options.value}"`;
+        lquery = lquery.addFilter(action.options.key, action.options.value, '-')
         break;
       }
     }
-    return { ...query, query: expression };
+    return { ...query, query: lquery.toString() };
   }
 
   getDataQueryRequest(queryDef: TermsQuery, range: TimeRange) {
