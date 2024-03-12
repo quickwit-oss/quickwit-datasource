@@ -19,16 +19,34 @@ The license for this project is [AGPL-3.0](LICENSE.md), and a [notice](NOTICE.md
 
 ## Version compatibility
 
-We recommand Grafana v9.5 or v10.
+We recommend Grafana v10.X.
 
 Quickwit 0.6 is compatible with 0.2.x versions only.
 
 Quickwit 0.7 is compatible with 0.3.x versions only.
 
+Quickwit 0.8 is compatible with 0.4.x versions only.
 
 ## Installation
 
 You can either download the plugin manually and unzip it into the plugin directory or use the env variable `GF_INSTALL_PLUGINS` to install it.
+
+### 0.4.0 for Quickwit 0.8
+
+Run `grafana-oss` container with the env variable:
+
+```bash
+docker run -p 3000:3000 -e GF_INSTALL_PLUGINS="https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.4.0/quickwit-quickwit-datasource-0.4.0.zip;quickwit-quickwit-datasource" grafana/grafana-oss run
+```
+
+Or download the plugin manually and start Grafana
+
+```bash
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.4.0/quickwit-quickwit-datasource-0.4.0.zip
+mkdir -p plugins
+unzip quickwit-quickwit-datasource-0.4.0.zip -d plugins/quickwit-quickwit-datasource-0.4.0
+docker run -p 3000:3000 -e GF_PATHS_PLUGINS=/data/plugins -v ${PWD}/plugins:/data/plugins grafana/grafana-oss run
+```
 
 ### 0.3.2 for Quickwit 0.7
 
@@ -100,9 +118,25 @@ datasources:
 - Dashboard view.
 - Template variables.
 - Adhoc filters.
+- Annotations
 - Explore Log Context.
 - [Alerting](https://grafana.com/docs/grafana/latest/alerting/).
 
+## FAQ and Limitations
+
+### The editor shows errors in my query
+
+If you’re sure your query is correct and the results are fetched, then you’re fine! The query linting feature is still quite rough around the edges and will improve in future versions of the plugin.
+If results are not fetched, make sure you are using a recent version of Quickwit, as some improvements have been made to the query parser.
+
+### The older logs button stops working
+
+This is probably due to a bug in Grafana up to versions 10.3, the next release of Grafana v10.4 should fix the issue. 
+
+### There are holes in my logs between pages
+
+This may be due to a limitation of the pagination scheme. In order to avoid querying data without controlling the size of the response, we set a limit on how many records to fetch per query. The pagination scheme then tries to fetch the next chunk of results based on the timestamps already collected and may skip some logs if there was more records with a given timestamp.
+To avoid that : try using timestamps with a finer resolution if possible, set the query limits higher or refine your query.
 
 ## Contributing to Quickwit datasource
 
