@@ -36,8 +36,11 @@ import { getQueryResponseProcessor } from 'datasource/processResponse';
 import { SECOND } from 'utils/time';
 import { GConstructor } from 'utils/mixins';
 import { LuceneQuery } from '@/utils/lucene';
+import { uidMaker } from "@/utils/uid" 
 
 export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>
+
+const getQueryUid = uidMaker("query")
 
 type FieldCapsSpec = {
   aggregatable?: boolean,
@@ -129,11 +132,11 @@ export class BaseQuickwitDataSource
     return { ...query, query: lquery.toString() };
   }
 
-  getDataQueryRequest(queryDef: TermsQuery, range: TimeRange) {
+  getDataQueryRequest(queryDef: TermsQuery, range: TimeRange, requestId?: string) {
     let dataQuery = getDataQuery(queryDef, 'getTerms');
     const request: DataQueryRequest = {
       app: CoreApp.Unknown,
-      requestId: 'GetTerms',
+      requestId: requestId || getQueryUid.next(),
       interval: '',
       intervalMs: 0,
       range,
@@ -145,8 +148,8 @@ export class BaseQuickwitDataSource
     return request
   }
 
-  getTerms(queryDef: TermsQuery, range = getDefaultTimeRange()): Observable<MetricFindValue[]> {
-    const dataquery = this.getDataQueryRequest(queryDef, range)
+  getTerms(queryDef: TermsQuery, range = getDefaultTimeRange(), requestId?: string): Observable<MetricFindValue[]> {
+    const dataquery = this.getDataQueryRequest(queryDef, range, requestId)
     return super.query(dataquery).pipe(
       mergeMap(res=> {
         return res.data.map((df: DataFrame)=>{
@@ -282,7 +285,7 @@ export class BaseQuickwitDataSource
     return true;
   }
 
-  metricFindQuery(query: string, options?: { range: TimeRange }): Promise<MetricFindValue[]> {
+  metricFindQuery(query: string, options?: { range: TimeRange, variable?: {name: string} }): Promise<MetricFindValue[]> {
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
@@ -293,7 +296,7 @@ export class BaseQuickwitDataSource
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);
-        return lastValueFrom(this.getTerms(parsedQuery, range), {defaultValue:[]});
+        return lastValueFrom(this.getTerms(parsedQuery, range, options?.variable?.name ? `getVariableTerms-${options?.variable?.name}` : undefined), {defaultValue:[]});
       }
     }
     return Promise.resolve([]);
