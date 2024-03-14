@@ -11,6 +11,7 @@ type OrderByType =  '_key' | '_term' | '_count'
 function getTermsAgg(
   fieldName: string,
   size: number,
+  shard_size: number,
   orderBy: OrderByType = "_key",
   order: 'asc'|'desc' = 'asc'
   ): BucketAggregation {
@@ -20,6 +21,7 @@ function getTermsAgg(
     field: fieldName,
     settings:{
       size: size.toString(),
+      shard_size: shard_size.toString(),
       order: order,
       orderBy: orderBy,
     }
@@ -31,7 +33,8 @@ export function getDataQuery(queryDef: TermsQuery, refId: string): Elasticsearch
     {id:"count1", type:'count'}
   ];
 
-  // Default behaviour is to order results by { _key: asc }
+  // Default behaviour is to order results by { _key: asc } and get 100 terms,
+  // shard_size is set to 100 to limit terms fetched by shard (by default it's 100 * 10).
   // queryDef.order allows selection of asc/desc
   // queryDef.orderBy allows selection of doc_count ordering (defaults desc)
 
@@ -55,7 +58,7 @@ export function getDataQuery(queryDef: TermsQuery, refId: string): Elasticsearch
 
   const bucketAggs: BucketAggregation[] = [];
   if (queryDef.field) {
-    bucketAggs.push(getTermsAgg(queryDef.field, 500, orderBy, order))
+    bucketAggs.push(getTermsAgg(queryDef.field, 100, 100, orderBy, order))
   }
 
   return {
