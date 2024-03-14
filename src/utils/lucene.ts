@@ -196,7 +196,7 @@ export class LuceneQuery {
 
     key = escapeFilter(key);
     value = escapeFilterValue(value);
-    const filter = `${modifier}${key}:"${value}"`;
+    const filter = `${modifier}${key}:'${value}'`;
 
     return LuceneQuery.parse(concatenate(this.toString(), filter));
   }
