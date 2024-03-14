@@ -279,7 +279,8 @@ export class BaseQuickwitDataSource
    * Returns false if the query should be skipped
    */
   filterQuery(query: ElasticsearchQuery): boolean {
-    if (query.hide) {
+    // XXX : if metrics doesn't exist, the query is uninitialized. Skip
+    if ( query.hide || !query.metrics) {
       return false;
     }
     return true;
