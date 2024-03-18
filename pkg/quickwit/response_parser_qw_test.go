@@ -59,9 +59,10 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeField:       "testtime",
-			LogMessageField: "line",
-			LogLevelField:   "lvl",
+			TimeOutputFormat: TimestampNanos,
+			TimeField:        "testtime",
+			LogMessageField:  "line",
+			LogLevelField:    "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames
@@ -125,9 +126,10 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeField:       "testtime",
-			LogMessageField: "line",
-			LogLevelField:   "lvl",
+			TimeOutputFormat: TimestampMicros,
+			TimeField:        "testtime",
+			LogMessageField:  "line",
+			LogLevelField:    "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames
@@ -191,9 +193,10 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeField:       "testtime",
-			LogMessageField: "line",
-			LogLevelField:   "lvl",
+			TimeOutputFormat: TimestampMillis,
+			TimeField:        "testtime",
+			LogMessageField:  "line",
+			LogLevelField:    "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames
@@ -257,9 +260,10 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 			`)
 
 		configuredFields := es.ConfiguredFields{
-			TimeField:       "testtime",
-			LogMessageField: "line",
-			LogLevelField:   "lvl",
+			TimeOutputFormat: TimestampSecs,
+			TimeField:        "testtime",
+			LogMessageField:  "line",
+			LogLevelField:    "lvl",
 		}
 		result, _ := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 		frames := result.response.Responses["A"].Frames
@@ -278,7 +282,7 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 func TestConvertToTime(t *testing.T) {
 	t.Run("Test parse unix timestamps nanosecs of float type", func(t *testing.T) {
 		inputValue := interface{}(1234567890000000000.0)
-		value, _ := ParseToTime(inputValue)
+		value, _ := ParseToTime(inputValue, "unix_timestamp_nanos")
 		require.Equal(t, time.Unix(1234567890, 0), value)
 	})
 }

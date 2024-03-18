@@ -26,9 +26,10 @@ type DatasourceInfo struct {
 }
 
 type ConfiguredFields struct {
-	TimeField       string
-	LogMessageField string
-	LogLevelField   string
+	TimeField        string
+	TimeOutputFormat string
+	LogMessageField  string
+	LogLevelField    string
 }
 
 // Client represents a client which can interact with elasticsearch api
