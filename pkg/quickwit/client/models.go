@@ -260,6 +260,7 @@ type FiltersAggregation struct {
 type TermsAggregation struct {
 	Field       string                 `json:"field"`
 	Size        int                    `json:"size"`
+	ShardSize   int                    `json:"shard_size"`
 	Order       map[string]interface{} `json:"order"`
 	MinDocCount *int                   `json:"min_doc_count,omitempty"`
 	Missing     *string                `json:"missing,omitempty"`

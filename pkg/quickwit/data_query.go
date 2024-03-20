@@ -229,6 +229,11 @@ func addTermsAgg(aggBuilder es.AggBuilder, bucketAgg *BucketAgg, metrics []*Metr
 		} else {
 			a.Size = stringToIntWithDefaultValue(bucketAgg.Settings.Get("size").MustString(), defaultSize)
 		}
+		if shard_size, err := bucketAgg.Settings.Get("shard_size").Int(); err == nil {
+			a.ShardSize = shard_size
+		} else {
+			a.ShardSize = stringToIntWithDefaultValue(bucketAgg.Settings.Get("shard_size").MustString(), defaultSize)
+		}
 
 		if minDocCount, err := bucketAgg.Settings.Get("min_doc_count").Int(); err == nil {
 			a.MinDocCount = &minDocCount
