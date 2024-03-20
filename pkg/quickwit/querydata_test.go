@@ -144,9 +144,10 @@ func queryDataTestWithResponseCode(queriesBytes []byte, responseStatusCode int, 
 
 func queryDataTest(queriesBytes []byte, responseBytes []byte) (queryDataTestResult, error) {
 	configuredFields := es.ConfiguredFields{
-		TimeField:       "testtime",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
 	}
 	return queryDataTestWithResponseCode(queriesBytes, 200, responseBytes, configuredFields)
 }

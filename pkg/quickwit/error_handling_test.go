@@ -39,9 +39,10 @@ func TestErrorAvgMissingField(t *testing.T) {
 	`)
 
 	configuredFields := es.ConfiguredFields{
-		TimeField:       "testtime",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
 	}
 
 	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
@@ -71,9 +72,10 @@ func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
 	`)
 
 	configuredFields := es.ConfiguredFields{
-		TimeField:       "testtime",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
 	}
 
 	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
@@ -117,9 +119,10 @@ func TestErrorTooManyDateHistogramBuckets(t *testing.T) {
 	`)
 
 	configuredFields := es.ConfiguredFields{
-		TimeField:       "testtime",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
 	}
 	result, err := queryDataTestWithResponseCode(query, 200, response, configuredFields)
 	require.NoError(t, err)
@@ -154,9 +157,10 @@ func TestNonElasticError(t *testing.T) {
 	response := []byte(`Access to the database is forbidden`)
 
 	configuredFields := es.ConfiguredFields{
-		TimeField:       "testtime",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
+		TimeOutputFormat: Rfc3339,
+		TimeField:        "testtime",
+		LogMessageField:  "line",
+		LogLevelField:    "lvl",
 	}
 
 	result, err := queryDataTestWithResponseCode(query, 403, response, configuredFields)
