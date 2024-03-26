@@ -8,8 +8,6 @@ import {
   DataFrame,
   DataQueryRequest,
   DataQueryResponse,
-  DataSourceGetTagKeysOptions,
-  DataSourceGetTagValuesOptions,
   DataSourceInstanceSettings,
   DataSourceWithQueryImportSupport,
   getDefaultTimeRange,
@@ -212,7 +210,7 @@ export class BaseQuickwitDataSource
   /**
    * Get tag keys for adhoc filters
    */
-  getTagKeys(options: DataSourceGetTagKeysOptions) {
+  getTagKeys(options: any) {
     const fields = this.getFields({aggregatable:true, range: options.timeRange})
     return lastValueFrom(fields, {defaultValue:[]});
   }
@@ -220,7 +218,7 @@ export class BaseQuickwitDataSource
   /**
    * Get tag values for adhoc filters
    */
-  getTagValues(options: DataSourceGetTagValuesOptions) {
+  getTagValues(options: any) {
     const terms = this.getTerms({ field: options.key }, options.timeRange)
     return lastValueFrom(terms, {defaultValue:[]});
   }
