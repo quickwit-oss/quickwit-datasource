@@ -7,10 +7,11 @@ import { css } from "@emotion/css";
 import { Button } from "@grafana/ui";
 import { useQueryBuilder } from '@/QueryBuilder/lucene';
 import { LogContextQueryBuilderSidebar } from "./LogContextQueryBuilderSidebar";
-import { DatasourceContext, useRange } from "@/components/QueryEditor/ElasticsearchQueryContext";
+import { DatasourceContext } from "@/components/QueryEditor/ElasticsearchQueryContext";
 import { BaseQuickwitDataSource } from "@/datasource/base";
 import { useDatasourceFields } from "@/datasource/utils";
 import { Field, FieldContingency, Filter } from "../types";
+import { createContextTimeRange } from "LogContext/LogContextProvider";
 
 // TODO : define sensible defaults here
 // const excludedFields = [
@@ -51,7 +52,11 @@ export function LogContextUI(props: LogContextUIProps ){
   const {query, parsedQuery, setQuery, setParsedQuery} = builder;
   const [canRunQuery, setCanRunQuery] = useState<boolean>(false);
   const {row, origQuery, updateQuery, runContextQuery } = props;
-  const {fields, getSuggestions} = useDatasourceFields(props.datasource, getDefaultTimeRange());
+
+  const fieldsSuggestionTimeRange = useMemo(()=>createContextTimeRange(row.timeEpochMs), [row])
+  const defaultTimeRange = getDefaultTimeRange()
+  console.log("RANGES", fieldsSuggestionTimeRange, defaultTimeRange)
+  const {fields, getSuggestions} = useDatasourceFields(props.datasource, fieldsSuggestionTimeRange);
 
   useEffect(()=>{
     setQuery(origQuery?.query || '')
