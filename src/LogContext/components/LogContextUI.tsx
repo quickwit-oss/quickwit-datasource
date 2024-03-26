@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { LogRowModel, Field as GrafanaField, getDefaultTimeRange } from '@grafana/data';
+import { LogRowModel, Field as GrafanaField } from '@grafana/data';
 import { ElasticsearchQuery as DataQuery } from '../../types';
 import { LuceneQueryEditor } from "../../components/LuceneQueryEditor";
 
@@ -54,8 +54,6 @@ export function LogContextUI(props: LogContextUIProps ){
   const {row, origQuery, updateQuery, runContextQuery } = props;
 
   const fieldsSuggestionTimeRange = useMemo(()=>createContextTimeRange(row.timeEpochMs), [row])
-  const defaultTimeRange = getDefaultTimeRange()
-  console.log("RANGES", fieldsSuggestionTimeRange, defaultTimeRange)
   const {fields, getSuggestions} = useDatasourceFields(props.datasource, fieldsSuggestionTimeRange);
 
   useEffect(()=>{

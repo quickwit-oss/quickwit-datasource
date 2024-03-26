@@ -17,9 +17,10 @@ export type Suggestion = {
 
 export function useDatasourceFields(datasource: BaseQuickwitDataSource, range: TimeRange) {
   const [fields, setFields] = useState<MetricFindValue[]>([]);
+
   useEffect(() => {
     if (datasource.getTagKeys) {
-      datasource.getTagKeys({ searchable: true, range: range}).then(setFields);
+      datasource.getTagKeys({ searchable: true, timeRange: range}).then(setFields);
     }
   }, [datasource, range, setFields]);
 
@@ -29,7 +30,7 @@ export function useDatasourceFields(datasource: BaseQuickwitDataSource, range: T
     const wordIsField = word.match(/([^:\s]+):"?([^"\s]*)"?/);
     if (wordIsField?.length) {
       const [_match, fieldName, _fieldValue] = wordIsField;
-      const candidateValues = await datasource.getTagValues({ key: fieldName });
+      const candidateValues = await datasource.getTagValues({ key: fieldName, timeRange: range });
       suggestions.from = fieldName.length + 1; // Replace only the value part
       suggestions.options = candidateValues.map(v => ({
         type: 'text',
@@ -46,7 +47,7 @@ export function useDatasourceFields(datasource: BaseQuickwitDataSource, range: T
     }
     return suggestions;
 
-  }, [datasource, fields]);
+  }, [datasource, fields, range]);
 
   return {fields, getSuggestions}
 }
