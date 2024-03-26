@@ -13,7 +13,7 @@ import { useDispatch } from '@/hooks/useStatelessReducer';
 import { ElasticsearchQuery } from '@/types';
 
 import { BucketAggregationsEditor } from './BucketAggregationsEditor';
-import { ElasticsearchProvider, useDatasource } from './ElasticsearchQueryContext';
+import { ElasticsearchProvider, useDatasource, useRange } from './ElasticsearchQueryContext';
 import { MetricAggregationsEditor } from './MetricAggregationsEditor';
 import { metricAggregationConfig } from './MetricAggregationsEditor/utils';
 import { changeQuery } from './state';
@@ -67,7 +67,8 @@ type ElasticSearchQueryFieldProps = {
 export const ElasticSearchQueryField = ({ value, onChange, onSubmit }: ElasticSearchQueryFieldProps) => {
   const styles = useStyles2(getStyles);
   const datasource = useDatasource()
-  const { getSuggestions } = useDatasourceFields(datasource);
+  const range = useRange();
+  const { getSuggestions } = useDatasourceFields(datasource, range);
 
   return (
     <div className={styles.queryItem}>

@@ -11,6 +11,7 @@ import {
   dateTime,
   LogRowModel,
   rangeUtil,
+  TimeRange,
 } from '@grafana/data';
 
 import { ElasticsearchQuery, Logs, LogsSortDirection} from '../types';
@@ -26,20 +27,16 @@ export enum LogRowContextQueryDirection {
     Forward = 'FORWARD',
 }
 
-function createContextTimeRange(rowTimeEpochMs: number, direction: string) {
+export function createContextTimeRange(rowTimeEpochMs: number, direction?: LogRowContextQueryDirection): TimeRange {
   const offset = 7;
-  // For log context, we want to request data from 7 subsequent/previous indices
-  if (direction === LogRowContextQueryDirection.Forward) {
-    return {
-      from: dateTime(rowTimeEpochMs).utc(),
-      to: dateTime(rowTimeEpochMs).add(offset, 'hours').utc(),
-    };
-  } else {
-    return {
-      from: dateTime(rowTimeEpochMs).subtract(offset, 'hours').utc(),
-      to: dateTime(rowTimeEpochMs).utc(),
-    };
+  const timeFrom = dateTime(rowTimeEpochMs)
+  const timeTo = dateTime(rowTimeEpochMs)
+
+  const timeRange = {
+    from: (direction === LogRowContextQueryDirection.Forward) ? timeFrom.utc() : timeFrom.subtract(offset, 'hours').utc(),
+    to: (direction === LogRowContextQueryDirection.Backward) ? timeTo.utc() : timeTo.add(offset, 'hours').utc(),
   }
+  return { ...timeRange, raw:timeRange }
 }
 
 export class LogContextProvider {
@@ -76,12 +73,7 @@ export class LogContextProvider {
       query: this.contextQuery == null ? origQuery?.query : this.contextQuery,
     };
 
-    const timeRange = createContextTimeRange(row.timeEpochMs, direction);
-    const range = {
-      from: timeRange.from,
-      to: timeRange.to,
-      raw: timeRange,
-    };
+    const range = createContextTimeRange(row.timeEpochMs, direction);
 
     const interval = rangeUtil.calculateInterval(range, 1);
 

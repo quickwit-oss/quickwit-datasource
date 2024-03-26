@@ -46,7 +46,7 @@ type FieldCapsSpec = {
   aggregatable?: boolean,
   searchable?: boolean,
   type?: string[],
-  _range?: TimeRange
+  range?: TimeRange
 }
 
 export class BaseQuickwitDataSource
@@ -163,7 +163,8 @@ export class BaseQuickwitDataSource
     )
   }
 
-  getFields(spec: FieldCapsSpec={}, range = getDefaultTimeRange()): Observable<MetricFindValue[]> {
+  getFields(spec: FieldCapsSpec={}): Observable<MetricFindValue[]> {
+    const range = spec.range || getDefaultTimeRange();
     return from(this.getResource('_elastic/' + this.index + '/_field_caps', {
       start_timestamp: Math.floor(range.from.valueOf()/SECOND),
       end_timestamp: Math.ceil(range.to.valueOf()/SECOND),
@@ -209,8 +210,8 @@ export class BaseQuickwitDataSource
   /**
    * Get tag keys for adhoc filters
    */
-  getTagKeys(spec?: FieldCapsSpec) {
-    const fields = this.getFields(spec)
+  getTagKeys(options: any) {
+    const fields = this.getFields({aggregatable:true, range: options.timeRange})
     return lastValueFrom(fields, {defaultValue:[]});
   }
 
@@ -218,8 +219,7 @@ export class BaseQuickwitDataSource
    * Get tag values for adhoc filters
    */
   getTagValues(options: any) {
-    const range = getDefaultTimeRange();
-    const terms = this.getTerms({ field: options.key }, range)
+    const terms = this.getTerms({ field: options.key }, options.timeRange)
     return lastValueFrom(terms, {defaultValue:[]});
   }
 
@@ -292,7 +292,7 @@ export class BaseQuickwitDataSource
     if (query) {
       if (parsedQuery.find === 'fields') {
         parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-        return lastValueFrom(this.getFields({aggregatable:true, type:parsedQuery.type, _range:range}), {defaultValue:[]});
+        return lastValueFrom(this.getFields({aggregatable:true, type:parsedQuery.type, range:range}), {defaultValue:[]});
       }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);

@@ -11,6 +11,7 @@ import { DatasourceContext } from "@/components/QueryEditor/ElasticsearchQueryCo
 import { BaseQuickwitDataSource } from "@/datasource/base";
 import { useDatasourceFields } from "@/datasource/utils";
 import { Field, FieldContingency, Filter } from "../types";
+import { createContextTimeRange } from "LogContext/LogContextProvider";
 
 // TODO : define sensible defaults here
 // const excludedFields = [
@@ -51,7 +52,9 @@ export function LogContextUI(props: LogContextUIProps ){
   const {query, parsedQuery, setQuery, setParsedQuery} = builder;
   const [canRunQuery, setCanRunQuery] = useState<boolean>(false);
   const {row, origQuery, updateQuery, runContextQuery } = props;
-  const {fields, getSuggestions} = useDatasourceFields(props.datasource);
+
+  const fieldsSuggestionTimeRange = useMemo(()=>createContextTimeRange(row.timeEpochMs), [row])
+  const {fields, getSuggestions} = useDatasourceFields(props.datasource, fieldsSuggestionTimeRange);
 
   useEffect(()=>{
     setQuery(origQuery?.query || '')
