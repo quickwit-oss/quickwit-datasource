@@ -1,6 +1,6 @@
 import { BaseQuickwitDataSource } from "./base";
 import { useState, useEffect, useCallback } from "react";
-import{ MetricFindValue } from '@grafana/data';
+import{ MetricFindValue, TimeRange } from '@grafana/data';
 
 /**
  * Provide suggestions based on datasource fields
@@ -15,14 +15,13 @@ export type Suggestion = {
   }>
 }
 
-export function useDatasourceFields(datasource: BaseQuickwitDataSource) {
+export function useDatasourceFields(datasource: BaseQuickwitDataSource, range: TimeRange) {
   const [fields, setFields] = useState<MetricFindValue[]>([]);
-
   useEffect(() => {
     if (datasource.getTagKeys) {
-      datasource.getTagKeys({ searchable: true }).then(setFields);
+      datasource.getTagKeys({ searchable: true, range: range}).then(setFields);
     }
-  }, [datasource, setFields]);
+  }, [datasource, range, setFields]);
 
   const getSuggestions = useCallback(async (word: string): Promise<Suggestion> => {
     let suggestions: Suggestion = { from: 0, options: [] };

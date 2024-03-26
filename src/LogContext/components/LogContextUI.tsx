@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { LogRowModel, Field as GrafanaField } from '@grafana/data';
+import { LogRowModel, Field as GrafanaField, getDefaultTimeRange } from '@grafana/data';
 import { ElasticsearchQuery as DataQuery } from '../../types';
 import { LuceneQueryEditor } from "../../components/LuceneQueryEditor";
 
@@ -7,7 +7,7 @@ import { css } from "@emotion/css";
 import { Button } from "@grafana/ui";
 import { useQueryBuilder } from '@/QueryBuilder/lucene';
 import { LogContextQueryBuilderSidebar } from "./LogContextQueryBuilderSidebar";
-import { DatasourceContext } from "@/components/QueryEditor/ElasticsearchQueryContext";
+import { DatasourceContext, useRange } from "@/components/QueryEditor/ElasticsearchQueryContext";
 import { BaseQuickwitDataSource } from "@/datasource/base";
 import { useDatasourceFields } from "@/datasource/utils";
 import { Field, FieldContingency, Filter } from "../types";
@@ -51,7 +51,7 @@ export function LogContextUI(props: LogContextUIProps ){
   const {query, parsedQuery, setQuery, setParsedQuery} = builder;
   const [canRunQuery, setCanRunQuery] = useState<boolean>(false);
   const {row, origQuery, updateQuery, runContextQuery } = props;
-  const {fields, getSuggestions} = useDatasourceFields(props.datasource);
+  const {fields, getSuggestions} = useDatasourceFields(props.datasource, getDefaultTimeRange());
 
   useEffect(()=>{
     setQuery(origQuery?.query || '')

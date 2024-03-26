@@ -62,7 +62,7 @@ export const useFields = (type: AggregationType | string[]) => {
   return async (q?: string) => {
     // _mapping doesn't support filtering, we avoid sending a request everytime q changes
     if (!rawFields) {
-      rawFields = await lastValueFrom(datasource.getFields({aggregatable:true, type:filter, _range:range}));
+      rawFields = await lastValueFrom(datasource.getFields({aggregatable:true, type:filter, range:range}));
     }
 
     return rawFields.filter(({ text }) => q === undefined || text.includes(q)).map(toSelectableValue);
