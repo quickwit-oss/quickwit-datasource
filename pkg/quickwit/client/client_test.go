@@ -93,7 +93,7 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 		jBody, err := simplejson.NewJson(bodyBytes)
 		require.NoError(t, err)
 
-		assert.Equal(t, "my-index", jHeader.Get("index").MustString())
+		assert.Equal(t, "my-index", jHeader.Get("index").MustStringArray()[0])
 		assert.True(t, jHeader.Get("ignore_unavailable").MustBool(false))
 		assert.Empty(t, jHeader.Get("max_concurrent_shard_requests"))
 		assert.False(t, jHeader.Get("ignore_throttled").MustBool())
