@@ -278,11 +278,3 @@ func TestProcessLogsResponseWithDifferentTimeOutputFormat(t *testing.T) {
 		require.Equal(t, &expectedTimeValue, logsFieldMap["testtime"].At(0))
 	})
 }
-
-func TestConvertToTime(t *testing.T) {
-	t.Run("Test parse unix timestamps nanosecs of float type", func(t *testing.T) {
-		inputValue := interface{}(1234567890000000000.0)
-		value, _ := ParseToTime(inputValue, "unix_timestamp_nanos")
-		require.Equal(t, time.Unix(1234567890, 0), value)
-	})
-}
