@@ -37,7 +37,7 @@ func NewSearchRequestBuilder(interval time.Duration) *SearchRequestBuilder {
 // Build builds and return a search request
 func (b *SearchRequestBuilder) Build() (*SearchRequest, error) {
 	sr := SearchRequest{
-		Index:       b.index,
+		Index:       strings.Split(b.index, ","),
 		Interval:    b.interval,
 		Size:        b.size,
 		Sort:        b.sort,

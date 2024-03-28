@@ -205,7 +205,7 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 		mr := multiRequest{
 			header: map[string]interface{}{
 				"ignore_unavailable": true,
-				"index":              c.index,
+				"index":              strings.Split(c.index, ","),
 			},
 			body:     searchReq,
 			interval: searchReq.Interval,

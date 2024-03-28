@@ -8,7 +8,7 @@ import (
 
 // SearchRequest represents a search request
 type SearchRequest struct {
-	Index       string
+	Index       []string
 	Interval    time.Duration
 	Size        int
 	Sort        []map[string]map[string]interface{}
