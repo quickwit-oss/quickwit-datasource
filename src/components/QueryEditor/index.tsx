@@ -1,8 +1,10 @@
 import { css } from '@emotion/css';
 
-import React, { createContext } from 'react';
+import React, { createContext, useRef } from 'react';
 import { debounceTime, throttleTime } from 'rxjs';
 import { useObservableCallback, useSubscription } from 'observable-hooks'
+
+import { useEventListener } from 'usehooks-ts'
 
 import { CoreApp, Field, getDefaultTimeRange, GrafanaTheme2, QueryEditorProps } from '@grafana/data';
 import { InlineLabel, useStyles2 } from '@grafana/ui';
@@ -84,6 +86,15 @@ export const ElasticSearchQueryField = ({ value, onChange, onSubmit }: ElasticSe
 };
 
 const QueryEditorForm = ({ value, onRunQuery }: Props) => {
+  const editorRef = useRef<HTMLDivElement>(null)
+  const handleKeyBindings = (e: KeyboardEvent) => {
+    // Shift+Enter triggers onRunQuery if the active element is inside the editor
+    if (e.key === "Enter" && e.shiftKey && editorRef.current?.contains(document.activeElement)) {
+      onRunQuery()
+    }
+    e.stopPropagation();
+  }
+  useEventListener("keypress", handleKeyBindings)
 
   const dispatch = useDispatch();
   const nextId = useNextId();
@@ -108,8 +119,8 @@ const QueryEditorForm = ({ value, onRunQuery }: Props) => {
   useSubscription(submitted$, onSubmit)
 
   return (
-    <>
-      <div className={styles.root}>
+    <div ref={editorRef}>
+      <div className={styles.root} >
         <InlineLabel width={17}>Query type</InlineLabel>
         <div className={styles.queryItem}>
           <QueryTypeSelector />
@@ -125,6 +136,6 @@ const QueryEditorForm = ({ value, onRunQuery }: Props) => {
 
       <MetricAggregationsEditor nextId={nextId} />
       {showBucketAggregationsEditor && <BucketAggregationsEditor nextId={nextId} />}
-    </>
+    </div>
   );
 };
