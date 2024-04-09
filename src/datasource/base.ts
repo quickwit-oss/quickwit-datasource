@@ -37,6 +37,7 @@ import { SECOND } from 'utils/time';
 import { GConstructor } from 'utils/mixins';
 import { LuceneQuery } from '@/utils/lucene';
 import { uidMaker } from "@/utils/uid" 
+import { DefaultsConfigOverrides } from 'store/defaults/conf';
 
 export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>
 
@@ -59,6 +60,9 @@ export class BaseQuickwitDataSource
   logMessageField?: string;
   logLevelField?: string;
   dataLinks: DataLinkConfig[];
+  queryEditorConfig?: {
+    defaults?: DefaultsConfigOverrides
+  };
   languageProvider: ElasticsearchLanguageProvider;
 
 
@@ -73,6 +77,7 @@ export class BaseQuickwitDataSource
     this.logMessageField = settingsData.logMessageField || '';
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
+    this.queryEditorConfig = settingsData.queryEditorConfig || {};
     this.languageProvider = new ElasticsearchLanguageProvider(this);
     this.annotations = {};
   }

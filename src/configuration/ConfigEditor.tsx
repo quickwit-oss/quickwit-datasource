@@ -5,6 +5,7 @@ import { QuickwitOptions } from '../quickwit';
 import { coerceOptions } from './utils';
 import { Divider } from '../components/Divider';
 import { DataLinks } from './DataLinks';
+import _ from 'lodash';
 
 interface Props extends DataSourcePluginOptionsEditorProps<QuickwitOptions> {}
 
@@ -88,6 +89,17 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               value={value.jsonData.logLevelField}
               onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, logLevelField: event.currentTarget.value}})}
               placeholder="level"
+              width={40}
+            />
+          </InlineField>
+        </FieldSet>
+        <FieldSet label="Editor settings">
+          <InlineField label="Default logs limit" labelWidth={26} tooltip="The log level field must be a fast field">
+            <Input
+              id="quickwit_defaults_metricaggregation_logs_limit"
+              value={value.jsonData.queryEditorConfig?.defaults?.['metricAggregation.logs.settings.limit']}
+              onChange={(event) => onChange(_.merge(value, {jsonData:{queryEditorConfig:{defaults:{'metricAggregation.logs.settings.limit':event.currentTarget.value}}}}))}
+              placeholder="100"
               width={40}
             />
           </InlineField>
