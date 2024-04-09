@@ -84,6 +84,7 @@ export const ElasticSearchQueryField = ({ value, onChange, onSubmit }: ElasticSe
 };
 
 const QueryEditorForm = ({ value, onRunQuery }: Props) => {
+
   const dispatch = useDispatch();
   const nextId = useNextId();
   const styles = useStyles2(getStyles);

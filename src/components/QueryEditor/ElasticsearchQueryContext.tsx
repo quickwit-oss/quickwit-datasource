@@ -1,4 +1,4 @@
-import React, { createContext, PropsWithChildren, useCallback, useEffect, useState } from 'react';
+import React, { createContext, PropsWithChildren, useCallback, useEffect, useState, FunctionComponent } from 'react';
 
 import { CoreApp, TimeRange } from '@grafana/data';
 
@@ -10,6 +10,9 @@ import { createReducer as createBucketAggsReducer } from './BucketAggregationsEd
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';
 import { aliasPatternReducer, queryReducer, initQuery, initExploreQuery } from './state';
 import { getHook } from '@/utils/context';
+import { Provider, useDispatch } from "react-redux";
+import { initDefaults } from '@/store/defaults';
+import { store } from "@/store"
 
 export const RangeContext = createContext<TimeRange | undefined>(undefined);
 export const useRange = getHook(RangeContext);
@@ -29,7 +32,17 @@ interface Props {
   range: TimeRange;
 }
 
-export const ElasticsearchProvider = ({
+function withStore<P extends PropsWithChildren<Props>>(Component: FunctionComponent<P>): FunctionComponent<P>{
+  const newComp = (props: P) => (
+    <Provider store={store}>
+      <Component {...props}/>
+    </Provider>
+  )
+  newComp.displayName = Component.displayName
+  return newComp
+}
+
+export const ElasticsearchProvider = withStore(({
   children,
   onChange,
   onRunQuery,
@@ -37,7 +50,13 @@ export const ElasticsearchProvider = ({
   app,
   datasource,
   range,
-}: PropsWithChildren<Props>) => {
+}: PropsWithChildren<Props>): JSX.Element => {
+
+  const storeDispatch = useDispatch();
+  useEffect(()=>{
+    storeDispatch(initDefaults(datasource.queryEditorConfig?.defaults))
+  }, [storeDispatch, datasource])
+
   const onStateChange = useCallback(
     (query: ElasticsearchQuery) => {
       onChange(query);
@@ -77,7 +96,7 @@ export const ElasticsearchProvider = ({
   }, [shouldRunInit, dispatch, isUninitialized, app]);
 
   if (isUninitialized) {
-    return null;
+    return (<></>);
   }
 
   return (
@@ -89,4 +108,4 @@ export const ElasticsearchProvider = ({
       </QueryContext.Provider>
     </DatasourceContext.Provider>
   );
-};
+});

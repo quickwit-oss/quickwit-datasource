@@ -1,5 +1,5 @@
 import { Action } from '@reduxjs/toolkit';
-import { defaultLogsAgg, defaultMetricAgg } from '@/queryDef';
+import { defaultMetricAgg } from '@/queryDef';
 import { ElasticsearchQuery, MetricAggregation } from '@/types';
 import { removeEmpty } from '@/utils';
 import { initExploreQuery, initQuery } from '../../state';
@@ -17,7 +17,11 @@ import {
   toggleMetricVisibility,
 } from './actions';
 
+import { store } from "@/store"
+
 export const reducer = (state: ElasticsearchQuery['metrics'], action: Action): ElasticsearchQuery['metrics'] => {
+  const defaultsMetricAggregation = store.getState().defaults.metricAggregation;
+
   if (addMetric.match(action)) {
     return [...state!, defaultMetricAgg(action.payload)];
   }
@@ -55,7 +59,7 @@ export const reducer = (state: ElasticsearchQuery['metrics'], action: Action): E
         return {
           id: metric.id,
           type: action.payload.type,
-          ...metricAggregationConfig[action.payload.type].defaults,
+          ...defaultsMetricAggregation[action.payload.type as keyof typeof defaultsMetricAggregation],
         } as MetricAggregation;
       });
   }
@@ -164,7 +168,7 @@ export const reducer = (state: ElasticsearchQuery['metrics'], action: Action): E
     if (state && state.length > 0) {
       return state;
     }
-    return [defaultLogsAgg('3')];
+    return [{ type: 'logs', id: '3', ...defaultsMetricAggregation.logs }];
   }
 
   return state;

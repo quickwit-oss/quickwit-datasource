@@ -31,10 +31,6 @@ export function defaultMetricAgg(id = '1'): MetricAggregation {
   return { type: 'count', id };
 }
 
-export function defaultLogsAgg(id = '1'): MetricAggregation {
-  return { type: 'logs', id, ...metricAggregationConfig['logs'].defaults };
-}
-
 export function defaultBucketAgg(id = '1'): DateHistogram {
   return { type: 'date_histogram', id, settings: { interval: 'auto' } };
 }
