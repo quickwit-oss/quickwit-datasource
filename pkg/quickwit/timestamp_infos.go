@@ -54,6 +54,7 @@ func GetTimestampFieldFromIndex(index string, qwickwitUrl string, cli *http.Clie
 		qwlog.Error(errMsg)
 		return "", "", err
 	}
+	defer r.Body.Close()
 
 	statusCode := r.StatusCode
 
@@ -63,7 +64,6 @@ func GetTimestampFieldFromIndex(index string, qwickwitUrl string, cli *http.Clie
 		return "", "", NewErrorCreationPayload(statusCode, errMsg)
 	}
 
-	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
@@ -83,6 +83,7 @@ func GetTimestampFieldFromIndexPattern(indexPattern string, qwickwitUrl string, 
 		qwlog.Error(errMsg)
 		return "", "", err
 	}
+	defer r.Body.Close()
 
 	statusCode := r.StatusCode
 
@@ -92,7 +93,6 @@ func GetTimestampFieldFromIndexPattern(indexPattern string, qwickwitUrl string, 
 		return "", "", NewErrorCreationPayload(statusCode, errMsg)
 	}
 
-	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
