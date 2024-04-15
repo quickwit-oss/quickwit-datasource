@@ -166,7 +166,7 @@ func (ds *QuickwitDatasource) CallResource(ctx context.Context, req *backend.Cal
 	qwUrl.RawQuery = resourcePath.RawQuery
 	qwUrl.Path = path.Join(qwUrl.Path, resourcePath.Path)
 
-	qwlog.Info("CallResource", "url", qwUrl.String())
+	qwlog.Debug("CallResource", "url", qwUrl.String())
 
 	request, err := http.NewRequestWithContext(ctx, req.Method, qwUrl.String(), bytes.NewBuffer(req.Body))
 	if err != nil {
