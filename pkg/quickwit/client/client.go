@@ -82,7 +82,7 @@ func (c *baseClientImpl) executeBatchRequest(uriPath, uriQuery string, requests 
 }
 
 func (c *baseClientImpl) encodeBatchRequests(requests []*multiRequest) ([]byte, error) {
-	c.logger.Info("Encoding batch requests to json", "batch requests", len(requests))
+	c.logger.Debug("Encoding batch requests to json", "batch requests", len(requests))
 	start := time.Now()
 
 	payload := bytes.Buffer{}
@@ -130,7 +130,7 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 		return nil, err
 	}
 
-	c.logger.Info("Executing request", "url", req.URL.String(), "method", method)
+	c.logger.Debug("Executing request", "url", req.URL.String(), "method", method)
 
 	req.Header.Set("Content-Type", "application/x-ndjson")
 
@@ -149,7 +149,7 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 }
 
 func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearchResponse, error) {
-	c.logger.Info("Executing multisearch", "search requests", r.Requests)
+	c.logger.Debug("Executing multisearch", "search requests", r.Requests)
 
 	multiRequests := c.createMultiSearchRequests(r.Requests)
 	queryParams := c.getMultiSearchQueryParameters()
