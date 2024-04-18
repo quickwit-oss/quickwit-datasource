@@ -80,14 +80,6 @@ type multiRequest struct {
 	interval time.Duration
 }
 
-func (c *baseClientImpl) executeBatchRequest(uriPath, uriQuery string, requests []*multiRequest) (*http.Response, error) {
-	bytes, err := c.encodeBatchRequests(requests)
-	if err != nil {
-		return nil, err
-	}
-	return c.executeRequest(http.MethodPost, uriPath, uriQuery, bytes)
-}
-
 func (c *baseClientImpl) encodeBatchRequests(requests []*multiRequest) ([]byte, error) {
 	c.logger.Debug("Encoding batch requests to json", "batch requests", len(requests))
 	start := time.Now()
@@ -119,7 +111,7 @@ func (c *baseClientImpl) encodeBatchRequests(requests []*multiRequest) ([]byte, 
 	return payload.Bytes(), nil
 }
 
-func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body []byte) (*http.Response, error) {
+func (c *baseClientImpl) makeRequest(method, uriPath, uriQuery string, body []byte) (*http.Request, error) {
 	u, err := url.Parse(c.ds.URL)
 	if err != nil {
 		return nil, err
@@ -136,35 +128,22 @@ func (c *baseClientImpl) executeRequest(method, uriPath, uriQuery string, body [
 	if err != nil {
 		return nil, err
 	}
-
-	c.logger.Debug("Executing request", "url", req.URL.String(), "method", method)
-
 	req.Header.Set("Content-Type", "application/x-ndjson")
-
-	start := time.Now()
-	defer func() {
-		elapsed := time.Since(start)
-		c.logger.Debug("Executed request", "took", elapsed)
-	}()
-	//nolint:bodyclose
-	resp, err := c.ds.HTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return req, nil
 }
 
 func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearchResponse, error) {
 	c.logger.Debug("Executing multisearch", "search requests", r.Requests)
 
-	multiRequests := c.createMultiSearchRequests(r.Requests)
-	queryParams := c.getMultiSearchQueryParameters()
-	clientRes, err := c.executeBatchRequest("_elastic/_msearch", queryParams, multiRequests)
+	req, err := c.createMultiSearchRequests(r.Requests)
 	if err != nil {
 		return nil, err
 	}
-	res := clientRes
+
+	res, err := c.ds.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
 			c.logger.Warn("Failed to close response body", "err", err)
@@ -178,7 +157,7 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 			Status:       res.StatusCode,
 			Message:      "Error on multisearch",
 			ResponseBody: res.Body,
-			QueryParam:   queryParams,
+			QueryParam:   req.URL.RawQuery,
 			RequestBody:  r.Requests,
 		}
 
@@ -203,7 +182,7 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 	return &msr, nil
 }
 
-func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchRequest) []*multiRequest {
+func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchRequest) (*http.Request, error) {
 	multiRequests := []*multiRequest{}
 
 	for _, searchReq := range searchRequests {
@@ -219,7 +198,14 @@ func (c *baseClientImpl) createMultiSearchRequests(searchRequests []*SearchReque
 		multiRequests = append(multiRequests, &mr)
 	}
 
-	return multiRequests
+	bytes, err := c.encodeBatchRequests(multiRequests)
+	if err != nil {
+		return nil, err
+	}
+
+	queryParams := c.getMultiSearchQueryParameters()
+
+	return c.makeRequest(http.MethodPost, "_elastic/_msearch", queryParams, bytes)
 }
 
 func (c *baseClientImpl) getMultiSearchQueryParameters() string {
