@@ -1667,9 +1667,9 @@ func newFakeClient() *fakeClient {
 	}
 }
 
-func (c *fakeClient) ExecuteMultisearch(r []*es.SearchRequest) (*es.MultiSearchResponse, error) {
+func (c *fakeClient) ExecuteMultisearch(r []*es.SearchRequest) ([]*json.RawMessage, error) {
 	c.multisearchRequests = append(c.multisearchRequests, r)
-	return c.multiSearchResponse, c.multiSearchError
+	return c.multiSearchResponse.Responses, c.multiSearchError
 }
 
 func newDataQuery(body string) (backend.QueryDataRequest, error) {
@@ -1721,5 +1721,5 @@ func executeElasticsearchDataQuery(c es.Client, body string, from, to time.Time)
 		return &backend.QueryDataResponse{}, err
 	}
 
-	return parseResponse(res.Responses, queries, configuredFields)
+	return parseResponse(res, queries, configuredFields)
 }

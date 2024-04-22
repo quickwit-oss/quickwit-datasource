@@ -94,7 +94,7 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 
 		assert.Equal(t, "15s", jBody.GetPath("aggs", "2", "date_histogram", "fixed_interval").MustString())
 
-		require.Len(t, res.Responses, 1)
+		require.Len(t, res, 1)
 	})
 }
 

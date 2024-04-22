@@ -40,17 +40,23 @@ const (
 
 var searchWordsRegex = regexp.MustCompile(regexp.QuoteMeta(es.HighlightPreTagsString) + `(.*?)` + regexp.QuoteMeta(es.HighlightPostTagsString))
 
-func parseResponse(responses []*es.SearchResponse, targets []*Query, configuredFields es.ConfiguredFields) (*backend.QueryDataResponse, error) {
+func parseResponse(rawResponses []*json.RawMessage, targets []*Query, configuredFields es.ConfiguredFields) (*backend.QueryDataResponse, error) {
 	result := backend.QueryDataResponse{
 		Responses: backend.Responses{},
 	}
-	if responses == nil {
+	if rawResponses == nil {
 		return &result, nil
 	}
 
-	for i, res := range responses {
-		target := targets[i]
+	for i, rawRes := range rawResponses {
+		var res *es.SearchResponse
+		err := json.Unmarshal([]byte(*rawRes), &res)
+		if nil != err {
+			qwlog.Debug("Failed to unmarshal response", "err", err.Error(), "byteRes", *rawRes)
+			continue
+		}
 
+		target := targets[i]
 		if res.Error != nil {
 			errResult := getErrorFromElasticResponse(res)
 			result.Responses[target.RefID] = backend.DataResponse{
