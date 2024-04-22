@@ -41,7 +41,7 @@ type ConfiguredFields struct {
 
 // Client represents a client which can interact with elasticsearch api
 type Client interface {
-	ExecuteMultisearch(r []*SearchRequest) (*MultiSearchResponse, error)
+	ExecuteMultisearch(r []*SearchRequest) ([]*json.RawMessage, error)
 }
 
 var logger = log.New()
@@ -84,7 +84,12 @@ func (c *baseClientImpl) makeRequest(method, uriPath, uriQuery string, body []by
 	return req, nil
 }
 
-func (c *baseClientImpl) ExecuteMultisearch(requests []*SearchRequest) (*MultiSearchResponse, error) {
+// Multisearch uses a shallow unmarshalled struct to defer the decoding to downstream handlers
+type MultiSearchResponse struct {
+	Responses []*json.RawMessage `json:"responses"`
+}
+
+func (c *baseClientImpl) ExecuteMultisearch(requests []*SearchRequest) ([]*json.RawMessage, error) {
 	req, err := c.createMultiSearchRequest(requests, c.index)
 	if err != nil {
 		return nil, err
@@ -129,7 +134,7 @@ func (c *baseClientImpl) ExecuteMultisearch(requests []*SearchRequest) (*MultiSe
 	elapsed := time.Since(start)
 	logger.Debug("Decoded multisearch json response", "took", elapsed)
 
-	return &msr, nil
+	return msr.Responses, nil
 }
 
 func (c *baseClientImpl) makeMultiSearchPayload(searchRequests []*SearchRequest, index string) ([]byte, error) {
