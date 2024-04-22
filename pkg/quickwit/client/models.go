@@ -59,11 +59,6 @@ type SearchResponse struct {
 	Hits         *SearchResponseHits    `json:"hits"`
 }
 
-// MultiSearchRequest represents a multi search request
-type MultiSearchRequest struct {
-	Requests []*SearchRequest
-}
-
 // MultiSearchResponse represents a multi search response
 type MultiSearchResponse struct {
 	Responses []*SearchResponse `json:"responses"`

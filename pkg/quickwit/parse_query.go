@@ -1,6 +1,8 @@
 package quickwit
 
 import (
+	"time"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 
 	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
@@ -30,6 +32,9 @@ func parseQuery(tsdbQuery []backend.DataQuery) ([]*Query, error) {
 		intervalMs := model.Get("intervalMs").MustInt64(0)
 		interval := q.Interval
 
+		from := q.TimeRange.From.UnixNano() / int64(time.Millisecond)
+		to := q.TimeRange.To.UnixNano() / int64(time.Millisecond)
+
 		queries = append(queries, &Query{
 			RawQuery:      rawQuery,
 			BucketAggs:    bucketAggs,
@@ -39,6 +44,8 @@ func parseQuery(tsdbQuery []backend.DataQuery) ([]*Query, error) {
 			IntervalMs:    intervalMs,
 			RefID:         q.RefID,
 			MaxDataPoints: q.MaxDataPoints,
+			RangeFrom:     from,
+			RangeTo:       to,
 		})
 	}
 
