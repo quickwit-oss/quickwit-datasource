@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
@@ -41,37 +40,27 @@ type ConfiguredFields struct {
 
 // Client represents a client which can interact with elasticsearch api
 type Client interface {
-	GetConfiguredFields() ConfiguredFields
-	ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearchResponse, error)
-	MultiSearch() *MultiSearchRequestBuilder
+	ExecuteMultisearch(r []*SearchRequest) (*MultiSearchResponse, error)
 }
 
 // NewClient creates a new Quickwit client
-var NewClient = func(ctx context.Context, ds *DatasourceInfo, timeRange backend.TimeRange) (Client, error) {
+var NewClient = func(ctx context.Context, ds *DatasourceInfo) (Client, error) {
 	logger := log.New()
-	logger.Debug("Creating new client", "configuredFields", fmt.Sprintf("%#v", ds.ConfiguredFields), "index", ds.Database)
+	logger.Debug("Creating new client", "index", ds.Database)
 
 	return &baseClientImpl{
-		logger:           logger,
-		ctx:              ctx,
-		ds:               ds,
-		configuredFields: ds.ConfiguredFields,
-		index:            ds.Database,
-		timeRange:        timeRange,
+		logger: logger,
+		ctx:    ctx,
+		ds:     ds,
+		index:  ds.Database,
 	}, nil
 }
 
 type baseClientImpl struct {
-	ctx              context.Context
-	ds               *DatasourceInfo
-	configuredFields ConfiguredFields
-	index            string
-	timeRange        backend.TimeRange
-	logger           log.Logger
-}
-
-func (c *baseClientImpl) GetConfiguredFields() ConfiguredFields {
-	return c.configuredFields
+	ctx    context.Context
+	ds     *DatasourceInfo
+	index  string
+	logger log.Logger
 }
 
 type multiRequest struct {
@@ -132,10 +121,10 @@ func (c *baseClientImpl) makeRequest(method, uriPath, uriQuery string, body []by
 	return req, nil
 }
 
-func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearchResponse, error) {
-	c.logger.Debug("Executing multisearch", "search requests", r.Requests)
+func (c *baseClientImpl) ExecuteMultisearch(requests []*SearchRequest) (*MultiSearchResponse, error) {
+	c.logger.Debug("Executing multisearch", "search requests", requests)
 
-	req, err := c.createMultiSearchRequests(r.Requests)
+	req, err := c.createMultiSearchRequests(requests)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +147,7 @@ func (c *baseClientImpl) ExecuteMultisearch(r *MultiSearchRequest) (*MultiSearch
 			Message:      "Error on multisearch",
 			ResponseBody: res.Body,
 			QueryParam:   req.URL.RawQuery,
-			RequestBody:  r.Requests,
+			RequestBody:  requests,
 		}
 
 		errorPayload, _ := json.Marshal(qe)
@@ -217,8 +206,4 @@ func (c *baseClientImpl) getMultiSearchQueryParameters() string {
 	}
 	qs = append(qs, fmt.Sprintf("max_concurrent_shard_requests=%d", maxConcurrentShardRequests))
 	return strings.Join(qs, "&")
-}
-
-func (c *baseClientImpl) MultiSearch() *MultiSearchRequestBuilder {
-	return NewMultiSearchRequestBuilder()
 }
