@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -55,6 +56,13 @@ func ParseTime(value any, timeOutputFormat string) (time.Time, error) {
 	case TimestampSecs, TimestampMillis, TimestampMicros, TimestampNanos:
 		var value_i64 int64
 		switch value.(type) {
+		case json.Number:
+			var err error
+			valueNumber := value.(json.Number)
+			value_i64, err = valueNumber.Int64()
+			if nil != err {
+				return time.Time{}, errors.New("couldn't convert timestamp from json.Number to Int64")
+			}
 		case int, int8, int16, int32, int64:
 			value_i64 = reflect.ValueOf(value).Int()
 		case float32, float64:

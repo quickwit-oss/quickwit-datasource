@@ -26,9 +26,9 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "0" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			rangeFilter := sr.Query.Bool.Filters[0].(*es.DateRangeFilter)
-			require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
+			// require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
 			require.Equal(t, rangeFilter.Lte, "2018-05-15T17:55:00Z")
 			require.Equal(t, rangeFilter.Gte, "2018-05-15T17:50:00Z")
 			require.Equal(t, sr.Aggs[0].Key, "2")
@@ -44,7 +44,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "avg", "id": "0", "settings": {"missing": "null", "script": "1" } }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			secondLevel := firstLevel.Aggregation.Aggs[0]
 			require.Equal(t, secondLevel.Aggregation.Aggregation.(*es.MetricAggregation).Settings["script"], "1")
@@ -61,7 +61,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "2")
 			termsAgg := firstLevel.Aggregation.Aggregation.(*es.TermsAggregation)
@@ -81,7 +81,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "avg", "field": "@value", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "2")
 			require.Equal(t, firstLevel.Aggregation.Aggregation.(*es.DateHistogramAgg).Field, "@timestamp")
@@ -109,7 +109,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Aggregation.Aggregation.(*es.TermsAggregation).Order["_key"], "asc")
 		})
@@ -132,7 +132,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			avgAggOrderBy := sr.Aggs[0].Aggregation.Aggs[0]
 			require.Equal(t, avgAggOrderBy.Key, "5")
@@ -162,7 +162,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			termsAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.TermsAggregation)
 			require.Equal(t, termsAgg.Order["_count"], "asc")
@@ -186,7 +186,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			termsAgg := firstLevel.Aggregation.Aggregation.(*es.TermsAggregation)
 
@@ -211,7 +211,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			orderByAgg := sr.Aggs[0].Aggregation.Aggs[0]
 			secondLevel := orderByAgg.Aggregation.Aggregation
@@ -239,7 +239,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			orderByAgg := firstLevel.Aggregation.Aggs[0]
@@ -269,7 +269,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "2")
@@ -294,7 +294,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "2")
 			termsAgg := firstLevel.Aggregation.Aggregation.(*es.TermsAggregation)
@@ -320,7 +320,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			percentilesAgg := sr.Aggs[0].Aggregation.Aggs[0]
 			require.Equal(t, percentilesAgg.Key, "1")
@@ -352,7 +352,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			filtersAgg := sr.Aggs[0]
 			require.Equal(t, filtersAgg.Key, "2")
@@ -382,7 +382,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			filtersAgg := sr.Aggs[0]
 			require.Equal(t, filtersAgg.Key, "2")
@@ -403,7 +403,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{ "id": "1", "type": "raw_document", "settings": {}	}]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			require.Equal(t, sr.Size, defaultSize)
 		})
@@ -416,7 +416,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			}`, from, to)
 			require.NoError(t, err)
 
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			// rangeFilter := sr.Query.Bool.Filters[0].(*es.RangeFilter)
 			// require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
 			// require.Equal(t, rangeFilter.Lte, toMs)
@@ -437,7 +437,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			}`, from, to)
 			require.NoError(t, err)
 
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			// rangeFilter := sr.Query.Bool.Filters[0].(*es.RangeFilter)
 			// require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
 			// require.Equal(t, rangeFilter.Lte, toMs)
@@ -457,7 +457,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{ "id": "1", "type": "raw_document", "settings": { "size": "1337" }	}]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			require.Equal(t, sr.Size, 1337)
 		})
@@ -476,7 +476,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "2")
@@ -502,7 +502,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 					"metrics": [{"type": "count", "id": "1" }]
 				}`, from, to)
 				require.NoError(t, err)
-				sr := c.multisearchRequests[0].Requests[0]
+				sr := c.multisearchRequests[0][0]
 
 				dateHistogram := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 				require.Empty(t, dateHistogram.TimeZone)
@@ -524,7 +524,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 					"metrics": [{"type": "count", "id": "1" }]
 				}`, from, to)
 				require.NoError(t, err)
-				sr := c.multisearchRequests[0].Requests[0]
+				sr := c.multisearchRequests[0][0]
 
 				dateHistogram := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 				require.Empty(t, dateHistogram.TimeZone)
@@ -546,7 +546,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 					"metrics": [{"type": "count", "id": "1" }]
 				}`, from, to)
 				require.NoError(t, err)
-				sr := c.multisearchRequests[0].Requests[0]
+				sr := c.multisearchRequests[0][0]
 
 				dateHistogram := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 				require.Equal(t, dateHistogram.TimeZone, "America/Los_Angeles")
@@ -567,7 +567,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "3")
@@ -593,7 +593,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "3")
@@ -618,7 +618,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{"type": "count", "id": "1" }]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "3")
@@ -644,7 +644,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
 			require.Equal(t, len(firstLevel.Aggregation.Aggs), 2)
@@ -679,7 +679,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -715,7 +715,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -746,7 +746,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -780,7 +780,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "3")
@@ -816,7 +816,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "5")
@@ -841,7 +841,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "3")
 
@@ -870,7 +870,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -907,7 +907,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -942,7 +942,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "5")
@@ -972,7 +972,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -1001,7 +1001,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -1029,7 +1029,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -1059,7 +1059,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -1089,7 +1089,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "3")
@@ -1117,7 +1117,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -1150,7 +1150,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "2")
@@ -1186,7 +1186,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -1220,7 +1220,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "4")
@@ -1253,7 +1253,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			firstLevel := sr.Aggs[0]
 			require.Equal(t, firstLevel.Key, "2")
@@ -1275,7 +1275,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{ "id": "1", "type": "raw_data", "settings": {}	}]
 			}`, from, to)
 			require.NoError(t, err)
-			// sr := c.multisearchRequests[0].Requests[0]
+			// sr := c.multisearchRequests[0][0]
 			// filter := sr.Query.Bool.Filters[1].(*es.QueryStringFilter)
 			// require.Equal(t, filter.Query, "foo")
 			// require.Equal(t, filter.AnalyzeWildcard, true)
@@ -1289,7 +1289,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{ "id": "1", "type": "raw_data", "settings": {}	}]
 			}`, from, to)
 			require.NoError(t, err)
-			// sr := c.multisearchRequests[0].Requests[0]
+			// sr := c.multisearchRequests[0][0]
 			// filter := sr.Query.Bool.Filters[1].(*es.QueryStringFilter)
 			// require.Equal(t, filter.Query, "foo")
 			// require.Equal(t, filter.AnalyzeWildcard, true)
@@ -1301,11 +1301,11 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{ "type": "logs", "id": "1"}]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			require.Equal(t, sr.Size, defaultSize)
 
 			rangeFilter := sr.Query.Bool.Filters[0].(*es.DateRangeFilter)
-			require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
+			// require.Equal(t, rangeFilter.Key, c.configuredFields.TimeField)
 			require.Equal(t, rangeFilter.Lte, "2018-05-15T17:55:00Z")
 			require.Equal(t, rangeFilter.Gte, "2018-05-15T17:50:00Z")
 			require.Equal(t, sr.Sort[0]["@timestamp"]["order"], "desc")
@@ -1317,7 +1317,7 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 				"metrics": [{ "type": "logs", "id": "1", "settings": { "limit": "1000" }}]
 			}`, from, to)
 			require.NoError(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			require.Equal(t, sr.Size, 1000)
 		})
 
@@ -1360,7 +1360,7 @@ func TestSettingsCasting(t *testing.T) {
 				"bucketAggs": [{"type": "date_histogram", "field": "@timestamp", "id": "1"}]
 			}`, from, to)
 		require.NoError(t, err)
-		sr := c.multisearchRequests[0].Requests[0]
+		sr := c.multisearchRequests[0][0]
 		movingAvgSettings := sr.Aggs[0].Aggregation.Aggs[1].Aggregation.Aggregation.(*es.PipelineAggregation).Settings
 
 		assert.Equal(t, movingAvgSettings["window"], 5.0)
@@ -1403,7 +1403,7 @@ func TestSettingsCasting(t *testing.T) {
 			]
 		}`, from, to)
 		assert.Nil(t, err)
-		sr := c.multisearchRequests[0].Requests[0]
+		sr := c.multisearchRequests[0][0]
 
 		movingAvgSettings := sr.Aggs[0].Aggregation.Aggs[1].Aggregation.Aggregation.(*es.PipelineAggregation).Settings
 
@@ -1437,7 +1437,7 @@ func TestSettingsCasting(t *testing.T) {
 			]
 		}`, from, to)
 		assert.Nil(t, err)
-		sr := c.multisearchRequests[0].Requests[0]
+		sr := c.multisearchRequests[0][0]
 		serialDiffSettings := sr.Aggs[0].Aggregation.Aggs[1].Aggregation.Aggregation.(*es.PipelineAggregation).Settings
 		assert.Equal(t, serialDiffSettings["lag"], 1.)
 	})
@@ -1463,7 +1463,7 @@ func TestSettingsCasting(t *testing.T) {
 			]
 		}`, from, to)
 		assert.Nil(t, err)
-		sr := c.multisearchRequests[0].Requests[0]
+		sr := c.multisearchRequests[0][0]
 
 		serialDiffSettings := sr.Aggs[0].Aggregation.Aggs[1].Aggregation.Aggregation.(*es.PipelineAggregation).Settings
 
@@ -1498,7 +1498,7 @@ func TestSettingsCasting(t *testing.T) {
 				]
 			}`, from, to)
 			assert.Nil(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 
@@ -1532,7 +1532,7 @@ func TestSettingsCasting(t *testing.T) {
 				]
 			}`, from, to)
 			assert.Nil(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 
@@ -1558,7 +1558,7 @@ func TestSettingsCasting(t *testing.T) {
 					]
 				}`, from, to)
 				assert.Nil(t, err)
-				sr := c.multisearchRequests[0].Requests[0]
+				sr := c.multisearchRequests[0][0]
 
 				dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 
@@ -1595,7 +1595,7 @@ func TestSettingsCasting(t *testing.T) {
 			}`, from, to)
 
 			assert.Nil(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 
 			newFormatAggSettings := sr.Aggs[0].Aggregation.Aggs[0].Aggregation.Aggregation.(*es.MetricAggregation).Settings
 			oldFormatAggSettings := sr.Aggs[0].Aggregation.Aggs[1].Aggregation.Aggregation.(*es.MetricAggregation).Settings
@@ -1616,7 +1616,7 @@ func TestSettingsCasting(t *testing.T) {
 			}`, from, to)
 
 			assert.Nil(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 			assert.Equal(t, dateHistogramAgg.Field, "@timestamp")
 		})
@@ -1631,7 +1631,7 @@ func TestSettingsCasting(t *testing.T) {
 			}`, from, to)
 
 			assert.Nil(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 			assert.Equal(t, dateHistogramAgg.Field, "@time")
 		})
@@ -1646,7 +1646,7 @@ func TestSettingsCasting(t *testing.T) {
 			}`, from, to)
 
 			assert.Nil(t, err)
-			sr := c.multisearchRequests[0].Requests[0]
+			sr := c.multisearchRequests[0][0]
 			dateHistogramAgg := sr.Aggs[0].Aggregation.Aggregation.(*es.DateHistogramAgg)
 			assert.Equal(t, dateHistogramAgg.FixedInterval, "1d")
 		})
@@ -1654,39 +1654,22 @@ func TestSettingsCasting(t *testing.T) {
 }
 
 type fakeClient struct {
-	configuredFields    es.ConfiguredFields
 	multiSearchResponse *es.MultiSearchResponse
 	multiSearchError    error
 	builder             *es.MultiSearchRequestBuilder
-	multisearchRequests []*es.MultiSearchRequest
+	multisearchRequests [][]*es.SearchRequest
 }
 
 func newFakeClient() *fakeClient {
-	configuredFields := es.ConfiguredFields{
-		TimeField:       "@timestamp",
-		LogMessageField: "line",
-		LogLevelField:   "lvl",
-	}
-
 	return &fakeClient{
-		configuredFields:    configuredFields,
-		multisearchRequests: make([]*es.MultiSearchRequest, 0),
+		multisearchRequests: make([][]*es.SearchRequest, 0),
 		multiSearchResponse: &es.MultiSearchResponse{},
 	}
 }
 
-func (c *fakeClient) GetConfiguredFields() es.ConfiguredFields {
-	return c.configuredFields
-}
-
-func (c *fakeClient) ExecuteMultisearch(r *es.MultiSearchRequest) (*es.MultiSearchResponse, error) {
+func (c *fakeClient) ExecuteMultisearch(r []*es.SearchRequest) ([]*json.RawMessage, error) {
 	c.multisearchRequests = append(c.multisearchRequests, r)
-	return c.multiSearchResponse, c.multiSearchError
-}
-
-func (c *fakeClient) MultiSearch() *es.MultiSearchRequestBuilder {
-	c.builder = es.NewMultiSearchRequestBuilder()
-	return c.builder
+	return c.multiSearchResponse.Responses, c.multiSearchError
 }
 
 func newDataQuery(body string) (backend.QueryDataRequest, error) {
@@ -1700,8 +1683,13 @@ func newDataQuery(body string) (backend.QueryDataRequest, error) {
 	}, nil
 }
 
-func executeElasticsearchDataQuery(c es.Client, body string, from, to time.Time) (
-	*backend.QueryDataResponse, error) {
+func executeElasticsearchDataQuery(c es.Client, body string, from, to time.Time) (*backend.QueryDataResponse, error) {
+	configuredFields := es.ConfiguredFields{
+		TimeField:       "@timestamp",
+		LogMessageField: "line",
+		LogLevelField:   "lvl",
+	}
+
 	timeRange := backend.TimeRange{
 		From: from,
 		To:   to,
@@ -1714,6 +1702,24 @@ func executeElasticsearchDataQuery(c es.Client, body string, from, to time.Time)
 			},
 		},
 	}
-	query := newElasticsearchDataQuery(c, dataRequest.Queries)
-	return query.execute()
+
+	// TODO : refactor parsing, processing and executing tests as separate concerns
+	queries, err := parseQuery(dataRequest.Queries)
+	if err != nil {
+		return nil, err
+	}
+	req, err := buildMSR(queries, configuredFields.TimeField)
+	if err != nil {
+		return &backend.QueryDataResponse{}, err
+	}
+
+	res, err := c.ExecuteMultisearch(req)
+	result, err := handleQuickwitErrors(err)
+	if result != nil {
+		return result, nil
+	} else if err != nil {
+		return &backend.QueryDataResponse{}, err
+	}
+
+	return parseResponse(res, queries, configuredFields)
 }

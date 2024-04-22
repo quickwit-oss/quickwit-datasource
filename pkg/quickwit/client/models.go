@@ -59,17 +59,6 @@ type SearchResponse struct {
 	Hits         *SearchResponseHits    `json:"hits"`
 }
 
-// MultiSearchRequest represents a multi search request
-type MultiSearchRequest struct {
-	Requests []*SearchRequest
-}
-
-// MultiSearchResponse represents a multi search response
-type MultiSearchResponse struct {
-	Status    int               `json:"status,omitempty"`
-	Responses []*SearchResponse `json:"responses"`
-}
-
 // Query represents a query
 type Query struct {
 	Bool *BoolQuery `json:"bool"`

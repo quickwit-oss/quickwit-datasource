@@ -143,7 +143,7 @@ func (m *MultiSearchRequestBuilder) Search(interval time.Duration) *SearchReques
 }
 
 // Build builds and return a multi search request
-func (m *MultiSearchRequestBuilder) Build() (*MultiSearchRequest, error) {
+func (m *MultiSearchRequestBuilder) Build() ([]*SearchRequest, error) {
 	requests := []*SearchRequest{}
 	for _, sb := range m.requestBuilders {
 		searchRequest, err := sb.Build()
@@ -153,9 +153,7 @@ func (m *MultiSearchRequestBuilder) Build() (*MultiSearchRequest, error) {
 		requests = append(requests, searchRequest)
 	}
 
-	return &MultiSearchRequest{
-		Requests: requests,
-	}, nil
+	return requests, nil
 }
 
 // QueryBuilder represents a query builder

@@ -404,7 +404,7 @@ func TestMultiSearchRequest(t *testing.T) {
 		t.Run("When building search request should contain one search request", func(t *testing.T) {
 			mr, err := b.Build()
 			require.Nil(t, err)
-			require.Equal(t, 1, len(mr.Requests))
+			require.Equal(t, 1, len(mr))
 		})
 	})
 
@@ -416,7 +416,7 @@ func TestMultiSearchRequest(t *testing.T) {
 		t.Run("When building search request should contain two search requests", func(t *testing.T) {
 			mr, err := b.Build()
 			require.Nil(t, err)
-			require.Equal(t, 2, len(mr.Requests))
+			require.Equal(t, 2, len(mr))
 		})
 	})
 }

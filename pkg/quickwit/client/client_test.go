@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -56,14 +55,7 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 			MaxConcurrentShardRequests: 6,
 		}
 
-		from := time.Date(2018, 5, 15, 17, 50, 0, 0, time.UTC)
-		to := time.Date(2018, 5, 15, 17, 55, 0, 0, time.UTC)
-		timeRange := backend.TimeRange{
-			From: from,
-			To:   to,
-		}
-
-		c, err := NewClient(context.Background(), &ds, timeRange)
+		c, err := NewClient(context.Background(), &ds)
 		require.NoError(t, err)
 		require.NotNil(t, c)
 
@@ -71,7 +63,7 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 			ts.Close()
 		})
 
-		ms, err := createMultisearchForTest(t, c)
+		ms, err := createMultisearchForTest(t)
 		require.NoError(t, err)
 		res, err := c.ExecuteMultisearch(ms)
 		require.NoError(t, err)
@@ -102,15 +94,14 @@ func TestClient_ExecuteMultisearch(t *testing.T) {
 
 		assert.Equal(t, "15s", jBody.GetPath("aggs", "2", "date_histogram", "fixed_interval").MustString())
 
-		assert.Equal(t, 200, res.Status)
-		require.Len(t, res.Responses, 1)
+		require.Len(t, res, 1)
 	})
 }
 
-func createMultisearchForTest(t *testing.T, c Client) (*MultiSearchRequest, error) {
+func createMultisearchForTest(t *testing.T) ([]*SearchRequest, error) {
 	t.Helper()
 
-	msb := c.MultiSearch()
+	msb := NewMultiSearchRequestBuilder()
 	s := msb.Search(15 * time.Second)
 	s.Agg().DateHistogram("2", "@timestamp", func(a *DateHistogramAgg, ab AggBuilder) {
 		a.FixedInterval = "$__interval"
