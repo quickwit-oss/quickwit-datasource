@@ -8,15 +8,14 @@ import {
   DataFrame,
   DataQueryError,
   DataQueryRequest,
-  dateTime,
   LogRowModel,
   rangeUtil,
-  TimeRange,
 } from '@grafana/data';
 
 import { ElasticsearchQuery, Logs, LogsSortDirection} from '../types';
 
 import { LogContextUI } from './components/LogContextUI';
+import { createContextTimeRange } from './utils';
 
 export interface LogRowContextOptions {
     direction?: LogRowContextQueryDirection;
@@ -25,18 +24,6 @@ export interface LogRowContextOptions {
 export enum LogRowContextQueryDirection {
     Backward = 'BACKWARD',
     Forward = 'FORWARD',
-}
-
-export function createContextTimeRange(rowTimeEpochMs: number, direction?: LogRowContextQueryDirection): TimeRange {
-  const offset = 7;
-  const timeFrom = dateTime(rowTimeEpochMs)
-  const timeTo = dateTime(rowTimeEpochMs)
-
-  const timeRange = {
-    from: (direction === LogRowContextQueryDirection.Forward) ? timeFrom.utc() : timeFrom.subtract(offset, 'hours').utc(),
-    to: (direction === LogRowContextQueryDirection.Backward) ? timeTo.utc() : timeTo.add(offset, 'hours').utc(),
-  }
-  return { ...timeRange, raw:timeRange }
 }
 
 export class LogContextProvider {

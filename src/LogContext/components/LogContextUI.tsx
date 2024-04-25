@@ -11,7 +11,7 @@ import { DatasourceContext } from "@/components/QueryEditor/ElasticsearchQueryCo
 import { BaseQuickwitDataSource } from "@/datasource/base";
 import { useDatasourceFields } from "@/datasource/utils";
 import { Field, FieldContingency, Filter } from "../types";
-import { createContextTimeRange } from "LogContext/LogContextProvider";
+import { createContextTimeRange } from 'LogContext/utils';
 
 // TODO : define sensible defaults here
 // const excludedFields = [
