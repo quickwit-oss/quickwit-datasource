@@ -71,4 +71,12 @@ func TestParseTime(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("Error on incoherent format and value", func(t *testing.T) {
+		value := 1711629296987654321
+		format := "%Y-%m-%d %H:%M:%S.%f"
+		_, err := ParseTime(value, format)
+
+		assert.ErrorContains(err, fmt.Sprintf("ParseTime received incoherent inputs: timeOutputFormat: %s value: %s (%s)", format, fmt.Sprint(value), "int"))
+	})
 }

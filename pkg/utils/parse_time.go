@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -26,33 +25,44 @@ const Rfc2822zLayout string = "%a, %d %b %Y %T %z"
 // Parses a value into Time given a timeOutputFormat. The conversion
 // only works with float64 as this is what we get when parsing a response.
 func ParseTime(value any, timeOutputFormat string) (time.Time, error) {
-	switch timeOutputFormat {
-	case Iso8601, Rfc3339:
+	switch value.(type) {
+	case string:
 		value_string := value.(string)
-		timeValue, err := time.Parse(time.RFC3339, value_string)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return timeValue, nil
+		switch timeOutputFormat {
+		case Iso8601, Rfc3339:
+			timeValue, err := time.Parse(time.RFC3339, value_string)
+			if err != nil {
+				return time.Time{}, err
+			}
+			return timeValue, nil
 
-	case Rfc2822:
-		// XXX: the time package's layout for RFC2822 is bogus, don't use that.
-		value_string := value.(string)
-		timeValue, err := timefmt.Parse(value_string, Rfc2822Layout)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return timeValue, nil
-	case Rfc2822z:
-		// XXX: the time package's layout for RFC2822 is bogus, don't use that.
-		value_string := value.(string)
-		timeValue, err := timefmt.Parse(value_string, Rfc2822zLayout)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return timeValue, nil
+		case Rfc2822:
+			// XXX: the time package's layout for RFC2822 is bogus, don't use that.
+			timeValue, err := timefmt.Parse(value_string, Rfc2822Layout)
+			if err != nil {
+				return time.Time{}, err
+			}
+			return timeValue, nil
 
-	case TimestampSecs, TimestampMillis, TimestampMicros, TimestampNanos:
+		case Rfc2822z:
+			// XXX: the time package's layout for RFC2822 is bogus, don't use that.
+			timeValue, err := timefmt.Parse(value_string, Rfc2822zLayout)
+			if err != nil {
+				return time.Time{}, err
+			}
+			return timeValue, nil
+
+		case TimestampSecs, TimestampMillis, TimestampMicros, TimestampNanos:
+			return time.Time{}, fmt.Errorf("ParseTime received incoherent inputs: timeOutputFormat: %s value: %s (%s)", timeOutputFormat, fmt.Sprint(value), reflect.TypeOf(value))
+
+		default:
+			timeValue, err := timefmt.Parse(value_string, timeOutputFormat)
+			if err != nil {
+				return time.Time{}, err
+			}
+			return timeValue, nil
+		}
+	default:
 		var value_i64 int64
 		switch value.(type) {
 		case int, int8, int16, int32, int64:
@@ -61,25 +71,20 @@ func ParseTime(value any, timeOutputFormat string) (time.Time, error) {
 			value_f64 := reflect.ValueOf(value).Float()
 			value_i64 = int64(value_f64)
 		default:
-			return time.Time{}, errors.New("parseTime only accepts float64 or int64 values with timestamp based formats")
+			return time.Time{}, fmt.Errorf("ParseTime does not support values of type (%s)", reflect.TypeOf(value))
 		}
 
-		if timeOutputFormat == TimestampSecs {
+		switch timeOutputFormat {
+		case TimestampSecs:
 			return time.Unix(value_i64, 0), nil
-		} else if timeOutputFormat == TimestampMillis {
+		case TimestampMillis:
 			return time.Unix(0, value_i64*1_000_000), nil
-		} else if timeOutputFormat == TimestampMicros {
+		case TimestampMicros:
 			return time.Unix(0, value_i64*1_000), nil
-		} else if timeOutputFormat == TimestampNanos {
+		case TimestampNanos:
 			return time.Unix(0, value_i64), nil
+		default:
+			return time.Time{}, fmt.Errorf("ParseTime received incoherent inputs: timeOutputFormat: %s value: %s (%s)", timeOutputFormat, fmt.Sprint(value), reflect.TypeOf(value))
 		}
-	default:
-		value_string := value.(string)
-		timeValue, err := timefmt.Parse(value_string, timeOutputFormat)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return timeValue, nil
 	}
-	return time.Time{}, fmt.Errorf("timeOutputFormat not supported yet %s", timeOutputFormat)
 }
