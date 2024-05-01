@@ -57,9 +57,6 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		return nil, err
 	}
 
-	timeField, toOk := jsonData["timeField"].(string)
-	timeOutputFormat, tofOk := jsonData["timeOutputFormat"].(string)
-
 	logLevelField, ok := jsonData["logLevelField"].(string)
 	if !ok {
 		logLevelField = ""
@@ -74,6 +71,7 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 	if !ok {
 		index = ""
 	}
+	// XXX : Legacy check, should not happen ?
 	if index == "" {
 		index = settings.Database
 	}
@@ -92,18 +90,11 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		maxConcurrentShardRequests = 256
 	}
 
-	if !toOk || !tofOk {
-		timeField, timeOutputFormat, err = GetTimestampFieldInfos(index, settings.URL, httpCli)
-		if nil != err {
-			return nil, err
-		}
-	}
-
 	configuredFields := es.ConfiguredFields{
-		TimeField:        timeField,
-		TimeOutputFormat: timeOutputFormat,
 		LogLevelField:    logLevelField,
 		LogMessageField:  logMessageField,
+		TimeField:        "",
+		TimeOutputFormat: "",
 	}
 
 	model := es.DatasourceInfo{
@@ -113,8 +104,38 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 		Database:                   index,
 		MaxConcurrentShardRequests: int64(maxConcurrentShardRequests),
 		ConfiguredFields:           configuredFields,
+		IsReady:                    false,
 	}
 	return &QuickwitDatasource{dsInfo: model}, nil
+}
+
+// Network dependent datasource initialization.
+// This is not done in the "constructor" function to allow saving the ds
+// even if the server is not responsive.
+func (ds *QuickwitDatasource) initDatasource(force bool) error {
+	if ds.dsInfo.IsReady && !force {
+		return nil
+	}
+
+	indexMetadataList, err := GetIndexesMetadata(ds.dsInfo.Database, ds.dsInfo.URL, ds.dsInfo.HTTPClient)
+	if err != nil {
+		return fmt.Errorf("failed to get index metadata : %w", err)
+	}
+
+	if len(indexMetadataList) == 0 {
+		return fmt.Errorf("no index found for %s", ds.dsInfo.Database)
+	}
+
+	timeField, timeOutputFormat, err := GetTimestampFieldInfos(indexMetadataList)
+	if nil != err {
+		return err
+	}
+
+	ds.dsInfo.ConfiguredFields.TimeField = timeField
+	ds.dsInfo.ConfiguredFields.TimeOutputFormat = timeOutputFormat
+
+	ds.dsInfo.IsReady = true
+	return nil
 }
 
 // Dispose here tells plugin SDK that plugin wants to clean up resources when a new instance
@@ -132,12 +153,29 @@ func (ds *QuickwitDatasource) Dispose() {
 func (ds *QuickwitDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	res := &backend.CheckHealthResult{}
 
+	if err := ds.initDatasource(true); err != nil {
+		res.Status = backend.HealthStatusError
+		res.Message = fmt.Errorf("Failed to initialize datasource: %w", err).Error()
+		return res, nil
+	}
+
+	if ds.dsInfo.ConfiguredFields.TimeField == "" || ds.dsInfo.ConfiguredFields.TimeOutputFormat == "" {
+		res.Status = backend.HealthStatusError
+		res.Message = fmt.Sprintf("timefield is missing from index config \"%s\"", ds.dsInfo.Database)
+		return res, nil
+	}
+
 	res.Status = backend.HealthStatusOk
 	res.Message = "plugin is running"
 	return res, nil
 }
 
 func (ds *QuickwitDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+	// Ensure ds is initialized, we need timestamp infos
+	if err := ds.initDatasource(false); err != nil {
+		return &backend.QueryDataResponse{}, fmt.Errorf("Failed to initialize datasource")
+	}
+
 	return queryData(ctx, req.Queries, &ds.dsInfo)
 }
 
