@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 )
 
 type QuickwitIndexMetadata struct {
 	IndexConfig struct {
+		IndexID    string `json:"index_id"`
 		DocMapping struct {
 			TimestampField string          `json:"timestamp_field"`
 			FieldMappings  []FieldMappings `json:"field_mappings"`
@@ -23,6 +23,7 @@ type QuickwitCreationErrorPayload struct {
 	StatusCode int    `json:"status"`
 }
 
+// TODO: Revamp error handling
 func NewErrorCreationPayload(statusCode int, message string) error {
 	var payload QuickwitCreationErrorPayload
 	payload.Message = message
@@ -35,124 +36,73 @@ func NewErrorCreationPayload(statusCode int, message string) error {
 	return errors.New(string(json))
 }
 
-// TODO: refactor either by using a timestamp alias suppprted by quickwit
-// or by only using the `GetTimestampFieldFromIndexPattern` once the endpoint
-// /indexes?index_id_pattern= is supported, which is after the next quickwit release > 0.7.1
-func GetTimestampFieldInfos(index string, qwickwitUrl string, cli *http.Client) (string, string, error) {
-	if strings.Contains(index, "*") || strings.Contains(index, ",") {
-		return GetTimestampFieldFromIndexPattern(index, qwickwitUrl, cli)
+func FilterErrorResponses(r *http.Response) (*http.Response, error) {
+	if r.StatusCode < 200 || r.StatusCode >= 400 {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return nil, NewErrorCreationPayload(r.StatusCode, fmt.Errorf("failed to read error body: err = %w", err).Error())
+		}
+		return nil, NewErrorCreationPayload(r.StatusCode, fmt.Sprintf("error = %s", (body)))
 	}
-	return GetTimestampFieldFromIndex(index, qwickwitUrl, cli)
+	return r, nil
 }
 
-func GetTimestampFieldFromIndex(index string, qwickwitUrl string, cli *http.Client) (string, string, error) {
-	mappingEndpointUrl := qwickwitUrl + "/indexes/" + index
-	qwlog.Debug("Calling quickwit endpoint: " + mappingEndpointUrl)
-	r, err := cli.Get(mappingEndpointUrl)
-	if err != nil {
-		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
-		qwlog.Error(errMsg)
-		return "", "", err
-	}
-	defer r.Body.Close()
-
-	statusCode := r.StatusCode
-
-	if statusCode < 200 || statusCode >= 400 {
-		errMsg := fmt.Sprintf("Error when calling url = %s", mappingEndpointUrl)
-		qwlog.Error(errMsg)
-		return "", "", NewErrorCreationPayload(statusCode, errMsg)
+func GetTimestampFieldInfos(indexMetadataList []QuickwitIndexMetadata) (string, string, error) {
+	if len(indexMetadataList) == 0 {
+		return "", "", fmt.Errorf("index metadata list is empty")
 	}
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
-		qwlog.Error(errMsg)
-		return "", "", NewErrorCreationPayload(statusCode, errMsg)
+	refTimestampFieldName, refTimestampOutputFormat := FindTimestampFieldInfos(indexMetadataList[0])
+	if refTimestampFieldName == "" || refTimestampOutputFormat == "" {
+		return "", "", fmt.Errorf("Invalid timestamp field infos for %s: %s, %s", indexMetadataList[0].IndexConfig.IndexID, refTimestampFieldName, refTimestampOutputFormat)
 	}
 
-	return DecodeTimestampFieldFromIndexConfig(body)
+	for _, indexMetadata := range indexMetadataList[1:] {
+		timestampFieldName, timestampOutputFormat := FindTimestampFieldInfos(indexMetadata)
+
+		if timestampFieldName != refTimestampFieldName || timestampOutputFormat != refTimestampOutputFormat {
+			return "", "", fmt.Errorf("Indexes matching pattern have incompatible timestamp fields, found: %s (%s) and %s (%s)", refTimestampFieldName, refTimestampOutputFormat, timestampFieldName, timestampOutputFormat)
+		}
+	}
+
+	return refTimestampFieldName, refTimestampOutputFormat, nil
 }
 
-func GetTimestampFieldFromIndexPattern(indexPattern string, qwickwitUrl string, cli *http.Client) (string, string, error) {
+func GetIndexesMetadata(indexPattern string, qwickwitUrl string, cli *http.Client) ([]QuickwitIndexMetadata, error) {
 	mappingEndpointUrl := qwickwitUrl + "/indexes?index_id_patterns=" + indexPattern
 	qwlog.Debug("Calling quickwit endpoint: " + mappingEndpointUrl)
 	r, err := cli.Get(mappingEndpointUrl)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
-		qwlog.Error(errMsg)
-		return "", "", err
+		return nil, fmt.Errorf("Error when calling url = %s: %w", mappingEndpointUrl, err)
 	}
 	defer r.Body.Close()
 
-	statusCode := r.StatusCode
-
-	if statusCode < 200 || statusCode >= 400 {
-		errMsg := fmt.Sprintf("Error when calling url = %s", mappingEndpointUrl)
-		qwlog.Error(errMsg)
-		return "", "", NewErrorCreationPayload(statusCode, errMsg)
+	r, err = FilterErrorResponses(r)
+	if err != nil {
+		return nil, fmt.Errorf("API returned invalid response: %w", err)
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error when calling url = %s: err = %s", mappingEndpointUrl, err.Error())
-		qwlog.Error(errMsg)
-		return "", "", NewErrorCreationPayload(statusCode, errMsg)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return DecodeTimestampFieldFromIndexConfigs(body)
-}
-
-func DecodeTimestampFieldFromIndexConfigs(body []byte) (string, string, error) {
 	var payload []QuickwitIndexMetadata
-	err := json.Unmarshal(body, &payload)
+	err = json.Unmarshal(body, &payload)
 	if err != nil {
-		errMsg := fmt.Sprintf("Unmarshalling body error: err = %s, body = %s", err.Error(), (body))
-		qwlog.Error(errMsg)
-		return "", "", NewErrorCreationPayload(500, errMsg)
+		return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
 
-	var refTimestampFieldName string = ""
-	var refTimestampOutputFormat string = ""
-	var timestampFieldName string = ""
-	var timestampOutputFormat string = ""
-
-	for _, indexMetadata := range payload {
-		timestampFieldName = indexMetadata.IndexConfig.DocMapping.TimestampField
-		timestampOutputFormat, _ = FindTimeStampFormat(timestampFieldName, nil, indexMetadata.IndexConfig.DocMapping.FieldMappings)
-
-		if refTimestampFieldName == "" {
-			refTimestampFieldName = timestampFieldName
-			refTimestampOutputFormat = timestampOutputFormat
-			continue
-		}
-
-		if timestampFieldName != refTimestampFieldName || timestampOutputFormat != refTimestampOutputFormat {
-			errMsg := fmt.Sprintf("Index matching the pattern should have the same timestamp fields, two found: %s (%s) and %s (%s)", refTimestampFieldName, refTimestampOutputFormat, timestampFieldName, timestampOutputFormat)
-			qwlog.Error(errMsg)
-			return "", "", NewErrorCreationPayload(400, errMsg)
-		}
-	}
-
-	qwlog.Debug(fmt.Sprintf("Found timestampFieldName = %s, timestamptOutputFormat = %s", timestampFieldName, timestampOutputFormat))
-	return timestampFieldName, timestampOutputFormat, nil
+	return payload, nil
 }
 
-func DecodeTimestampFieldFromIndexConfig(body []byte) (string, string, error) {
-	var payload QuickwitIndexMetadata
-	err := json.Unmarshal(body, &payload)
-	if err != nil {
-		errMsg := fmt.Sprintf("Unmarshalling body error: err = %s, body = %s", err.Error(), (body))
-		qwlog.Error(errMsg)
-		return "", "", NewErrorCreationPayload(500, errMsg)
-	}
-	timestampFieldName := payload.IndexConfig.DocMapping.TimestampField
-	timestampFieldFormat, _ := FindTimeStampFormat(timestampFieldName, nil, payload.IndexConfig.DocMapping.FieldMappings)
-	qwlog.Debug(fmt.Sprintf("Found timestampFieldName = %s", timestampFieldName))
-	return timestampFieldName, timestampFieldFormat, nil
+func FindTimestampFieldInfos(indexMetadata QuickwitIndexMetadata) (string, string) {
+	timestampFieldName := indexMetadata.IndexConfig.DocMapping.TimestampField
+	timestampOutputFormat, _ := FindTimestampFormat(timestampFieldName, nil, indexMetadata.IndexConfig.DocMapping.FieldMappings)
+	return timestampFieldName, timestampOutputFormat
 }
 
-func FindTimeStampFormat(timestampFieldName string, parentName *string, fieldMappings []FieldMappings) (string, bool) {
+func FindTimestampFormat(timestampFieldName string, parentName *string, fieldMappings []FieldMappings) (string, bool) {
 	if nil == fieldMappings {
 		return "", false
 	}
@@ -166,7 +116,7 @@ func FindTimeStampFormat(timestampFieldName string, parentName *string, fieldMap
 		if field.Type == "datetime" && fieldName == timestampFieldName && nil != field.OutputFormat {
 			return *field.OutputFormat, true
 		} else if field.Type == "object" && nil != field.FieldMappings {
-			return FindTimeStampFormat(timestampFieldName, &field.Name, field.FieldMappings)
+			return FindTimestampFormat(timestampFieldName, &field.Name, field.FieldMappings)
 		}
 	}
 

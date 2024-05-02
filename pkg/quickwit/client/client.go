@@ -23,6 +23,7 @@ type DatasourceInfo struct {
 	Database                   string
 	ConfiguredFields           ConfiguredFields
 	MaxConcurrentShardRequests int64
+	IsReady                    bool
 }
 
 type ConfiguredFields struct {
