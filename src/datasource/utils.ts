@@ -18,11 +18,20 @@ export type Suggestion = {
 export function useDatasourceFields(datasource: BaseQuickwitDataSource, range: TimeRange) {
   const [fields, setFields] = useState<MetricFindValue[]>([]);
 
+  const [niceRange, setNiceRange] = useState(()=>range)
+
+  useEffect(() => {
+    // range may change several times during a render with a delta of a few hundred milliseconds
+    // we don't need to fetch with such a granularity, this effect filters out range updates that are within the same minute
+    if (range.from.isSame(niceRange.from, 'minute') && range.to.isSame(niceRange.to, 'minute')) { return }
+    setNiceRange(range)
+  },[range, niceRange])
+
   useEffect(() => {
     if (datasource.getTagKeys) {
-      datasource.getTagKeys({ searchable: true, timeRange: range}).then(setFields);
+      datasource.getTagKeys({ searchable: true, timeRange: niceRange}).then(setFields);
     }
-  }, [datasource, range, setFields]);
+  }, [datasource, niceRange])
 
   const getSuggestions = useCallback(async (word: string): Promise<Suggestion> => {
     let suggestions: Suggestion = { from: 0, options: [] };
