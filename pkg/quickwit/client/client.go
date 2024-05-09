@@ -16,6 +16,11 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
+type ReadyStatus struct {
+	IsReady bool
+	Err     error
+}
+
 type DatasourceInfo struct {
 	ID                         int64
 	HTTPClient                 *http.Client
@@ -23,7 +28,8 @@ type DatasourceInfo struct {
 	Database                   string
 	ConfiguredFields           ConfiguredFields
 	MaxConcurrentShardRequests int64
-	IsReady                    bool
+	ReadyStatus                chan ReadyStatus
+	ShouldInit                 bool
 }
 
 type ConfiguredFields struct {
