@@ -49,8 +49,8 @@ export interface LogContextUIProps extends LogContextProps {
 
 export function LogContextUI(props: LogContextUIProps ){
   const builder = useQueryBuilder();
-  const {query, parsedQuery, setQuery, setParsedQuery} = builder;
-  const [canRunQuery, setCanRunQuery] = useState<boolean>(false);
+  const {query, /*parsedQuery,*/ setQuery, setParsedQuery} = builder;
+  const [canRunQuery, /*setCanRunQuery*/] = useState<boolean>(true);
   const {row, origQuery, updateQuery, runContextQuery } = props;
 
   const fieldsSuggestionTimeRange = useMemo(()=>createContextTimeRange(row.timeEpochMs), [row])
@@ -60,9 +60,11 @@ export function LogContextUI(props: LogContextUIProps ){
     setQuery(origQuery?.query || '')
   }, [setQuery, origQuery])
 
-  useEffect(()=>{
-    setCanRunQuery(!parsedQuery.parseError)
-  }, [parsedQuery, setCanRunQuery])
+  // FIXME : query parser used for lint is not reliable enough
+  // to use as a filter for wrong queries. Disabled for now.
+  // useEffect(()=>{
+  //   <setCanRunQuery(!parsedQuery.parseError)
+  // }, [parsedQuery, setCanRunQuery])
 
   const runQuery = useCallback(()=>{
     if (runContextQuery){
