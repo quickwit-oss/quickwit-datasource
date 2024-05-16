@@ -29,20 +29,20 @@ Quickwit 0.8 is compatible with 0.4.x versions only.
 
 You can either download the plugin manually and unzip it into the plugin directory or use the env variable `GF_INSTALL_PLUGINS` to install it.
 
-### 0.4.5 for Quickwit 0.8
+### 0.4.6 for Quickwit 0.8
 
 Run `grafana-oss` container with the env variable:
 
 ```bash
-docker run -p 3000:3000 -e GF_INSTALL_PLUGINS="https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.4.5/quickwit-quickwit-datasource-0.4.5.zip;quickwit-quickwit-datasource" grafana/grafana-oss run
+docker run -p 3000:3000 -e GF_INSTALL_PLUGINS="https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.4.6/quickwit-quickwit-datasource-0.4.6.zip;quickwit-quickwit-datasource" grafana/grafana-oss run
 ```
 
 Or download the plugin manually and start Grafana
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.4.5/quickwit-quickwit-datasource-0.4.5.zip
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.4.6/quickwit-quickwit-datasource-0.4.6.zip
 mkdir -p plugins
-unzip quickwit-quickwit-datasource-0.4.5.zip -d plugins/quickwit-quickwit-datasource-0.4.5
+unzip quickwit-quickwit-datasource-0.4.6.zip -d plugins/quickwit-quickwit-datasource-0.4.6
 docker run -p 3000:3000 -e GF_PATHS_PLUGINS=/data/plugins -v ${PWD}/plugins:/data/plugins grafana/grafana-oss run
 ```
 
