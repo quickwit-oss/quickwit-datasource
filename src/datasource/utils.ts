@@ -38,8 +38,8 @@ export function useDatasourceFields(datasource: BaseQuickwitDataSource, range: T
 
     const wordIsField = word.match(/([^:\s]+):"?([^"\s]*)"?/);
     if (wordIsField?.length) {
-      const [_match, fieldName, _fieldValue] = wordIsField;
-      const candidateValues = await datasource.getTagValues({ key: fieldName, timeRange: range });
+      const [_match, fieldName, fieldValue] = wordIsField;
+      const candidateValues = await datasource.getTagValues({ key: fieldName, timeRange: range, fieldValue});
       suggestions.from = fieldName.length + 1; // Replace only the value part
       suggestions.options = candidateValues.map(v => ({
         type: 'text',

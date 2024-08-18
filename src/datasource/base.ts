@@ -17,9 +17,9 @@ import {
   TimeRange,
 } from '@grafana/data';
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, TermsQuery, FieldCapabilitiesResponse } from '@/types';
-import { 
-  DataSourceWithBackend, 
-  getTemplateSrv, 
+import {
+  DataSourceWithBackend,
+  getTemplateSrv,
   TemplateSrv } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
 import { getDataQuery } from 'QueryBuilder/elastic';
@@ -36,7 +36,7 @@ import { getQueryResponseProcessor } from 'datasource/processResponse';
 import { SECOND } from 'utils/time';
 import { GConstructor } from 'utils/mixins';
 import { LuceneQuery } from '@/utils/lucene';
-import { uidMaker } from "@/utils/uid" 
+import { uidMaker } from "@/utils/uid"
 import { DefaultsConfigOverrides } from 'store/defaults/conf';
 
 export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>
@@ -199,7 +199,7 @@ export class BaseQuickwitDataSource
           .map(field_capability => {
             return {
               text: field_capability.field_name,
-              value: fieldTypeMap[field_capability.type],  
+              value: fieldTypeMap[field_capability.type],
             }
           });
         const uniquefieldCapabilities = fieldCapabilities.filter((field_capability, index, self) =>
@@ -223,9 +223,10 @@ export class BaseQuickwitDataSource
   /**
    * Get tag values for adhoc filters
    */
-  getTagValues(options: any) {
-    const terms = this.getTerms({ field: options.key }, options.timeRange)
-    return lastValueFrom(terms, {defaultValue:[]});
+  getTagValues(options: { key: string, fieldValue: string, timeRange: TimeRange }) {
+    const query = `${options.key}:${options.fieldValue}*`
+    const terms = this.getTerms({ field: options.key, query }, options.timeRange)
+    return lastValueFrom(terms, { defaultValue: [] });
   }
 
   /**

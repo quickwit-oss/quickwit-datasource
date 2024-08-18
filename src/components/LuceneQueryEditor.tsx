@@ -2,16 +2,15 @@ import React, { useRef, useCallback } from "react";
 import { css } from "@emotion/css";
 
 
-import CodeMirror, { ReactCodeMirrorRef, keymap } from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorRef, keymap} from '@uiw/react-codemirror';
 import {linter, Diagnostic, lintGutter} from "@codemirror/lint"
-import {autocompletion, CompletionContext} from "@codemirror/autocomplete"
+import {autocompletion, CompletionContext, CompletionResult} from "@codemirror/autocomplete"
 import { LuceneQuery } from "@/utils/lucene";
-
 
 export type LuceneQueryEditorProps = {
   placeholder?: string,
   value: string,
-  autocompleter: (word: string) => any,
+  autocompleter: (word: string) => CompletionResult,
   onChange: (query: string) => void
   onSubmit: (query: string) => void
 }
@@ -39,8 +38,14 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
     let suggestions;
     let word = context.matchBefore(/\S*/);
     if (!word){ return null }
-      suggestions = await autocompleter(word?.text);
+    suggestions = await autocompleter(word?.text);
     if (suggestions && suggestions.options.length > 0 ) {
+      // Fixes autocompletion inserting an extra quote when the cursor is before a quote
+      const cursorIsBeforeQuote = /^\s*"/.test(context.state.doc.toString().slice(context.pos));
+      if (cursorIsBeforeQuote) {
+        suggestions.options = suggestions.options.map(o => ({...o, apply: `${o.label.replace(/"$/g, '')}`}));
+      }
+
       return {
         from: word.from + suggestions.from,
         options: suggestions.options
@@ -55,11 +60,11 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
     activateOnTyping: false,
   })
 
-  return (<CodeMirror 
+  return (<CodeMirror
     ref={editorRef}
     className={css`height:100%`} // XXX : need to set height for both wrapper elements
     height="100%"
-    theme={'dark'} 
+    theme={'dark'}
     placeholder={props.placeholder}
     value={props.value}
     onChange={props.onChange}
