@@ -199,12 +199,12 @@ export class BaseQuickwitDataSource
           .map(field_capability => {
             return {
               text: field_capability.field_name,
-              value: fieldTypeMap[field_capability.type],  
+              type: fieldTypeMap[field_capability.type],  
             }
           });
         const uniquefieldCapabilities = fieldCapabilities.filter((field_capability, index, self) =>
           index === self.findIndex((t) => (
-            t.text === field_capability.text && t.value === field_capability.value
+            t.text === field_capability.text && t.type === field_capability.type
           ))
         ).sort((a, b) => a.text.localeCompare(b.text));
         return uniquefieldCapabilities;
