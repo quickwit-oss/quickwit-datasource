@@ -368,7 +368,14 @@ function formatQuery(value: string | string[], variable: any): string {
     if (value.length === 0) {
       return '__empty__';
     }
-    const fieldName = JSON.parse(variable.query).field;
+    let fieldName;
+    if (variable.query) {
+      try {
+        fieldName = JSON.parse(variable.query).field;
+      } catch (error) {
+        console.warn('Could not parse variable.query', variable.query);
+      }
+    }
     const quotedValues =  value.map((val) => '"' + luceneEscape(val) + '"');
     // Quickwit query language does not support fieldName:(value1 OR value2 OR....)
     // like lucene does.
