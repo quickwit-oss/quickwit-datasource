@@ -16,7 +16,7 @@ services:
     build:
       context: ./.config
       args:
-        grafana_version: 10.4.0
+        grafana_version: 11.6.3
     ports:
       - 3000:3000/tcp
     volumes:

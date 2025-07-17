@@ -35,13 +35,13 @@ jobs:
         run: npm run build
 
       - name: Start grafana docker
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Run e2e tests
         run: npm run e2e
 
       - name: Stop grafana docker
-        run: docker-compose down
+        run: docker compose down
 
       - name: Check for backend
         id: check-for-backend
