@@ -38,7 +38,7 @@ $ mage -v
 ### Start Grafana
   
 ```bash
-$ docker-compose up grafana
+$ docker compose up grafana
 ```
 
 ### Testing

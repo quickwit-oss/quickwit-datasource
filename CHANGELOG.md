@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+### What's Changed
+
+- Fixed adhoc filters feature for Grafana 11.x
+
 ## 0.3.0-beta.1
 
 This version works only with quickwit main version (or docker edge).

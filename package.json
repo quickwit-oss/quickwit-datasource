@@ -1,6 +1,6 @@
 {
   "name": "quickwit-datasource",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "description": "Quickwit datasource",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
@@ -12,7 +12,7 @@
     "lint:fix": "npm run lint --fix",
     "e2e": "npm exec cypress install && npm exec grafana-e2e run",
     "e2e:update": "npm exec cypress install && npm exec grafana-e2e run --update-screenshots",
-    "server": "docker-compose up --build",
+    "server": "docker compose up --build",
     "sign": "npx --yes @grafana/sign-plugin@latest",
     "storybook": "storybook dev -p 6006 -c .config/storybook",
     "build-storybook": "storybook build -c .config/storybook"
