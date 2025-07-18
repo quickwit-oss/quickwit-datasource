@@ -5,15 +5,21 @@ jobs:
   compatibilitycheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
         with:
-          node-version: '16'
+          persist-credentials: false
+      - name: Setup Node.js environment
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
       - name: Build plugin
         run: npm run build
       - name: Compatibility check
-        run: npx @grafana/levitate@latest is-compatible --path src/module.ts --target @grafana/data@10.0.3,@grafana/ui@10.0.3,@grafana/runtime@10.0.3
+        uses: grafana/plugin-actions/is-compatible@bf335ac99375f0ba8828497abdf1a22897b5d888
+        with:
+          comment-pr: 'yes'
+          fail-if-incompatible: 'no'
+          targets: '@grafana/data,@grafana/ui,@grafana/runtime,@grafana/e2e-selectors'
