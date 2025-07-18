@@ -20,7 +20,7 @@ describe('DataLinks tests', () => {
   it('should render correctly with no fields', async () => {
     setup();
 
-    expect(screen.getByRole('heading', { name: 'Data links' }));
+    expect(screen.getByText('Data links')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
     expect(await screen.findAllByRole('button')).toHaveLength(1);
   });
@@ -29,7 +29,7 @@ describe('DataLinks tests', () => {
     setup({ value: testValue });
 
     expect(await screen.findAllByRole('button', { name: 'Remove field' })).toHaveLength(2);
-    expect(await screen.findAllByRole('checkbox', { name: 'Internal link' })).toHaveLength(2);
+    expect(await screen.findAllByRole('switch', { name: 'Internal link' })).toHaveLength(2);
   });
 
   it('should call onChange to add a new field when the add button is clicked', async () => {

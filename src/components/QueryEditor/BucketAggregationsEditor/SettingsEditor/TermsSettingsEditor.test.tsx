@@ -9,7 +9,7 @@ import { describeMetric } from 'utils';
 import { renderWithESProvider } from 'test-helpers/render';
 
 describe('Terms Settings Editor', () => {
-  it('Pipeline aggregations should not be in "order by" options', () => {
+  it('Pipeline aggregations should not be in "order by" options', async () => {
     const termsAgg: Terms = {
       id: '1',
       type: 'terms',
@@ -36,6 +36,6 @@ describe('Terms Settings Editor', () => {
     // TopMetrics cannot be used as order by option
     expect(screen.queryByText(describeMetric(topMetrics))).not.toBeInTheDocument();
     // All other metric aggregations can be used in order by
-    expect(screen.getByText(describeMetric(avg))).toBeInTheDocument();
+    expect(await screen.findByText(describeMetric(avg))).toBeInTheDocument();
   });
 });

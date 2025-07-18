@@ -32,7 +32,7 @@ describe('useCreatableSelectPersistedBehaviour', () => {
 
     // we type in the input 'Option 2', which should prompt an option creation
     await userEvent.type(input, 'Option 2');
-    const creatableOption = screen.getByLabelText('Select option');
+    const creatableOption = screen.getByTestId('data-testid Select option');
     expect(creatableOption).toHaveTextContent('Option 2');
 
     // we click on the creatable option to trigger its creation
@@ -83,7 +83,7 @@ describe('useCreatableSelectPersistedBehaviour', () => {
 
     // we type in the input 'Option 2', which should prompt an option creation
     await userEvent.type(input, 'Option 2');
-    await userEvent.click(screen.getByLabelText('Select option'));
+    await userEvent.click(screen.getByTestId('data-testid Select option'));
 
     expect(onChange).toHaveBeenLastCalledWith({ value: 'Option 2' });
   });
