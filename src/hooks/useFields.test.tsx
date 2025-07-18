@@ -9,7 +9,7 @@ import { defaultBucketAgg, defaultMetricAgg } from '../queryDef';
 import { ElasticsearchQuery, MetricAggregationType, BucketAggregationType } from '../types';
 
 import { useFields } from './useFields';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 
 
 

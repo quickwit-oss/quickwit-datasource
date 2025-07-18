@@ -1,5 +1,4 @@
-import { render } from '@testing-library/react';
-import { renderHook } from '@testing-library/react-hooks';
+import { render, renderHook } from '@testing-library/react';
 import React, { PropsWithChildren } from 'react';
 
 import { CoreApp, getDefaultTimeRange } from '@grafana/data';
@@ -46,9 +45,13 @@ describe('ElasticsearchQueryContext', () => {
   // the following applies to all hooks in ElasticsearchQueryContext as they all share the same code.
   describe('useQuery Hook', () => {
     it('Should throw when used outside of ElasticsearchQueryContext', () => {
-      const { result } = renderHook(() => useQuery());
-
-      expect(result.error).toBeTruthy();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      
+      expect(() => {
+        renderHook(() => useQuery());
+      }).toThrow();
+      
+      consoleSpy.mockRestore();
     });
 
     it('Should return the current query object', () => {

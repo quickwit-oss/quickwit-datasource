@@ -7,7 +7,7 @@ import { ElasticDatasource } from '../datasource';
 import { ElasticsearchQuery } from '../types';
 
 import { useNextId } from './useNextId';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 
 describe('useNextId', () => {
   it('Should return the next available id', () => {
