@@ -2,8 +2,7 @@ import { css } from '@emotion/css';
 import React from 'react';
 
 import { GrafanaTheme2, VariableOrigin, DataLinkBuiltInVars } from '@grafana/data';
-import { ConfigSubSection } from '@grafana/experimental';
-import { Button, useStyles2 } from '@grafana/ui';
+import { Button, useStyles2, FieldSet } from '@grafana/ui';
 
 import { DataLinkConfig } from '../types';
 
@@ -32,10 +31,8 @@ export const DataLinks = (props: Props) => {
   const styles = useStyles2(getStyles);
 
   return (
-    <ConfigSubSection
-      title="Data links"
-      description="Add links to existing fields. Links will be shown in log row details next to the field value."
-    >
+    <FieldSet label="Data links">
+      <p>Add links to existing fields. Links will be shown in log row details next to the field value.</p>
       <div className={styles.container}>
         {value && value.length > 0 && (
           <div className="gf-form-group">
@@ -83,6 +80,6 @@ export const DataLinks = (props: Props) => {
           Add
         </Button>
       </div>
-    </ConfigSubSection>
+    </FieldSet>
   );
 };

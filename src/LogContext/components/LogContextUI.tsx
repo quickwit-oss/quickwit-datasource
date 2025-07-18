@@ -81,9 +81,9 @@ export function LogContextUI(props: LogContextUIProps ){
     </div>
   ), [setQuery, canRunQuery, origQuery, runQuery])
 
-  const processFilter = useCallback((f: GrafanaField<any, any[]>): Field => {
+  const processFilter = useCallback((f: GrafanaField<any>): Field => {
         let contingency: FieldContingency = {};
-        f.values.forEach((value: string, i) => {
+        f.values.forEach((value: string, i: number) => {
           if (!contingency[value]) {
             contingency[value] = {
               count: 0,

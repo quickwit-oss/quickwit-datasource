@@ -1,8 +1,7 @@
 import React from 'react';
 
 import { AnnotationQuery } from '@grafana/data';
-import { EditorField, EditorRow } from '@grafana/experimental';
-import { Input } from '@grafana/ui';
+import { Input, InlineField, InlineFieldRow } from '@grafana/ui';
 
 import { ElasticsearchQuery } from '@/types';
 
@@ -41,8 +40,8 @@ export function ElasticsearchAnnotationsQueryEditor(props: Props) {
 
       <div className="gf-form-group">
         <h6>Field mappings</h6>
-        <EditorRow>
-          <EditorField label="Time">
+        <InlineFieldRow>
+          <InlineField label="Time">
             <Input
               type="text"
               placeholder="@timestamp"
@@ -54,8 +53,8 @@ export function ElasticsearchAnnotationsQueryEditor(props: Props) {
                 });
               }}
             />
-          </EditorField>
-          <EditorField label="Time End">
+          </InlineField>
+          <InlineField label="Time End">
             <Input
               type="text"
               value={annotation.timeEndField}
@@ -66,8 +65,8 @@ export function ElasticsearchAnnotationsQueryEditor(props: Props) {
                 });
               }}
             />
-          </EditorField>
-          <EditorField label="Text">
+          </InlineField>
+          <InlineField label="Text">
             <Input
               type="text"
               value={annotation.textField}
@@ -78,8 +77,8 @@ export function ElasticsearchAnnotationsQueryEditor(props: Props) {
                 });
               }}
             />
-          </EditorField>
-          <EditorField label="Tags">
+          </InlineField>
+          <InlineField label="Tags">
             <Input
               type="text"
               placeholder="tags"
@@ -91,8 +90,8 @@ export function ElasticsearchAnnotationsQueryEditor(props: Props) {
                 });
               }}
             />
-          </EditorField>
-        </EditorRow>
+          </InlineField>
+        </InlineFieldRow>
       </div>
     </>
   );

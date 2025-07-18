@@ -1,5 +1,4 @@
-import { Observable, lastValueFrom, from, of } from 'rxjs';
-import { map, mergeMap } from 'rxjs/operators';
+import { Observable, lastValueFrom, from, of, map, mergeMap } from 'rxjs';
 
 import {
   AbstractQuery,

@@ -4,7 +4,7 @@ import { DefaultsConfigOverrides } from "store/defaults/conf";
 
 export interface QuickwitOptions extends DataSourceJsonData {
     timeField: string;
-    interval?: Interval;
+    interval?: string;
     logMessageField?: string;
     logLevelField?: string;
     dataLinks?: DataLinkConfig[];
