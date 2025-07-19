@@ -99,7 +99,10 @@ func (e *elasticsearchDataQuery) processQuery(q *Query, ms *es.MultiSearchReques
 		processDocumentQuery(q, b, from, to, defaultTimeField)
 	} else {
 		// Otherwise, it is a time series query and we process it
-		processTimeSeriesQuery(q, b, from, to, defaultTimeField)
+		err := processTimeSeriesQuery(q, b, from, to, defaultTimeField)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -164,12 +167,18 @@ func (bucketAgg BucketAgg) generateSettingsForDSL() map[string]interface{} {
 	return bucketAgg.Settings.MustMap()
 }
 
-func addDateHistogramAgg(aggBuilder es.AggBuilder, bucketAgg *BucketAgg, timeFrom, timeTo int64, timeField string) es.AggBuilder {
+func addDateHistogramAgg(aggBuilder es.AggBuilder, bucketAgg *BucketAgg, timeFrom, timeTo int64, timeField string) (es.AggBuilder, error) {
 	// If no field is specified, use the time field
 	field := bucketAgg.Field
 	if field == "" {
 		field = timeField
 	}
+
+	// Validate that we have a valid field name to prevent downstream errors
+	if field == "" {
+		return aggBuilder, fmt.Errorf("date_histogram aggregation '%s' has no field specified and datasource timeField is empty", bucketAgg.ID)
+	}
+
 	aggBuilder.DateHistogram(bucketAgg.ID, field, func(a *es.DateHistogramAgg, b es.AggBuilder) {
 		a.FixedInterval = bucketAgg.Settings.Get("interval").MustString("auto")
 		a.MinDocCount = bucketAgg.Settings.Get("min_doc_count").MustInt(0)
@@ -204,7 +213,7 @@ func addDateHistogramAgg(aggBuilder es.AggBuilder, bucketAgg *BucketAgg, timeFro
 		aggBuilder = b
 	})
 
-	return aggBuilder
+	return aggBuilder, nil
 }
 
 func addHistogramAgg(aggBuilder es.AggBuilder, bucketAgg *BucketAgg) es.AggBuilder {
@@ -331,6 +340,30 @@ func isQueryWithError(query *Query) error {
 		if len(query.Metrics) == 0 || !(isLogsQuery(query) || isDocumentQuery(query)) {
 			return fmt.Errorf("invalid query, missing metrics and aggregations")
 		}
+	} else {
+		// Validate bucket aggregations have valid fields where required
+		for _, bucketAgg := range query.BucketAggs {
+			// Check which aggregation types require fields
+			switch bucketAgg.Type {
+			case dateHistType:
+				// For date_histogram, field can be empty (will use timeField as fallback)
+				// Validation will happen at query processing time
+				continue
+			case histogramType, termsType, geohashGridType, nestedType:
+				// These aggregation types require a field
+				if bucketAgg.Field == "" {
+					return fmt.Errorf("invalid query, bucket aggregation '%s' (type: %s) is missing required field", bucketAgg.ID, bucketAgg.Type)
+				}
+			case filtersType:
+				// Filters aggregations don't need a field
+				continue
+			default:
+				// For unknown aggregation types, be conservative and require field
+				if bucketAgg.Field == "" {
+					return fmt.Errorf("invalid query, bucket aggregation '%s' (type: %s) is missing required field", bucketAgg.ID, bucketAgg.Type)
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -380,7 +413,7 @@ func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, 
 	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("size").MustString(), defaultSize))
 }
 
-func processTimeSeriesQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
+func processTimeSeriesQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) error {
 	aggBuilder := b.Agg()
 	// Process buckets
 	// iterate backwards to create aggregations bottom-down
@@ -390,7 +423,11 @@ func processTimeSeriesQuery(q *Query, b *es.SearchRequestBuilder, from, to int64
 		)
 		switch bucketAgg.Type {
 		case dateHistType:
-			aggBuilder = addDateHistogramAgg(aggBuilder, bucketAgg, from, to, defaultTimeField)
+			var err error
+			aggBuilder, err = addDateHistogramAgg(aggBuilder, bucketAgg, from, to, defaultTimeField)
+			if err != nil {
+				return err
+			}
 		case histogramType:
 			aggBuilder = addHistogramAgg(aggBuilder, bucketAgg)
 		case filtersType:
@@ -471,6 +508,8 @@ func processTimeSeriesQuery(q *Query, b *es.SearchRequestBuilder, from, to int64
 			})
 		}
 	}
+
+	return nil
 }
 
 func stringToIntWithDefaultValue(valueStr string, defaultValue int) int {

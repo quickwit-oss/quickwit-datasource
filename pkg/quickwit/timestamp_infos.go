@@ -112,13 +112,15 @@ func FindTimestampFormat(timestampFieldName string, parentName *string, fieldMap
 		if nil != parentName {
 			fieldName = fmt.Sprintf("%s.%s", *parentName, fieldName)
 		}
-
 		if field.Type == "datetime" && fieldName == timestampFieldName && nil != field.OutputFormat {
 			return *field.OutputFormat, true
 		} else if field.Type == "object" && nil != field.FieldMappings {
-			return FindTimestampFormat(timestampFieldName, &field.Name, field.FieldMappings)
+			if result, found := FindTimestampFormat(timestampFieldName, &field.Name, field.FieldMappings); found {
+				return result, true
+			}
 		}
 	}
 
+	qwlog.Debug(fmt.Sprintf("FindTimestampFormat: no match found for %s", timestampFieldName))
 	return "", false
 }
