@@ -1,13 +1,10 @@
 package quickwit
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
-	"time"
 
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
 )
@@ -16,96 +13,32 @@ const (
 	defaultSize = 100
 )
 
-type elasticsearchDataQuery struct {
-	client      es.Client
-	dataQueries []backend.DataQuery
-}
+func buildMSR(queries []*Query, defaultTimeField string) ([]*es.SearchRequest, error) {
+	ms := es.NewMultiSearchRequestBuilder()
 
-var newElasticsearchDataQuery = func(client es.Client, dataQuery []backend.DataQuery) *elasticsearchDataQuery {
-	return &elasticsearchDataQuery{
-		client:      client,
-		dataQueries: dataQuery,
-	}
-}
-
-func handleQuickwitErrors(e *elasticsearchDataQuery, err error) (*backend.QueryDataResponse, error) {
-	if nil == err {
-		return nil, nil
-	}
-
-	var payload = err.Error()
-	var qe es.QuickwitQueryError
-	unmarshall_err := json.Unmarshal([]byte(payload), &qe)
-	if unmarshall_err == nil {
-		return nil, err
-	}
-
-	result := backend.QueryDataResponse{
-		Responses: backend.Responses{},
-	}
-
-	result.Responses[e.dataQueries[0].RefID] = backend.ErrDataResponse(backend.Status(qe.Status), payload)
-	return &result, nil
-}
-
-func (e *elasticsearchDataQuery) execute() (*backend.QueryDataResponse, error) {
-	queries, err := parseQuery(e.dataQueries)
-	if err != nil {
-		return &backend.QueryDataResponse{}, err
-	}
-
-	ms := e.client.MultiSearch()
-
-	from := e.dataQueries[0].TimeRange.From.UnixNano() / int64(time.Millisecond)
-	to := e.dataQueries[0].TimeRange.To.UnixNano() / int64(time.Millisecond)
 	for _, q := range queries {
-		if err := e.processQuery(q, ms, from, to); err != nil {
-			return &backend.QueryDataResponse{}, err
-		}
-	}
-
-	req, err := ms.Build()
-	if err != nil {
-		return &backend.QueryDataResponse{}, err
-	}
-
-	res, err := e.client.ExecuteMultisearch(req)
-	result, err := handleQuickwitErrors(e, err)
-	if result != nil {
-		return result, nil
-	} else if err != nil {
-		return &backend.QueryDataResponse{}, err
-	}
-
-	return parseResponse(res.Responses, queries, e.client.GetConfiguredFields())
-}
-
-func (e *elasticsearchDataQuery) processQuery(q *Query, ms *es.MultiSearchRequestBuilder, from, to int64) error {
-	err := isQueryWithError(q)
-	if err != nil {
-		return err
-	}
-
-	defaultTimeField := e.client.GetConfiguredFields().TimeField
-	b := ms.Search(q.Interval)
-	b.Size(0)
-	filters := b.Query().Bool().Filter()
-	filters.AddDateRangeFilter(defaultTimeField, to, from)
-	filters.AddQueryStringFilter(q.RawQuery, true, "AND")
-
-	if isLogsQuery(q) {
-		processLogsQuery(q, b, from, to, defaultTimeField)
-	} else if isDocumentQuery(q) {
-		processDocumentQuery(q, b, from, to, defaultTimeField)
-	} else {
-		// Otherwise, it is a time series query and we process it
-		err := processTimeSeriesQuery(q, b, from, to, defaultTimeField)
+		err := isQueryWithError(q)
 		if err != nil {
-			return err
+			return nil, err
+		}
+
+		b := ms.Search(q.Interval)
+		b.Size(0)
+		filters := b.Query().Bool().Filter()
+		filters.AddDateRangeFilter(defaultTimeField, q.RangeTo, q.RangeFrom)
+		filters.AddQueryStringFilter(q.RawQuery, true, "AND")
+
+		if isLogsQuery(q) {
+			processLogsQuery(q, b, q.RangeFrom, q.RangeTo, defaultTimeField)
+		} else if isDocumentQuery(q) {
+			processDocumentQuery(q, b, q.RangeFrom, q.RangeTo, defaultTimeField)
+		} else {
+			// Otherwise, it is a time series query and we process it
+			processTimeSeriesQuery(q, b, q.RangeFrom, q.RangeTo, defaultTimeField)
 		}
 	}
 
-	return nil
+	return ms.Build()
 }
 
 func setFloatPath(settings *simplejson.Json, path ...string) {

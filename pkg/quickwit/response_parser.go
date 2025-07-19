@@ -1,6 +1,7 @@
 package quickwit
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,16 +41,28 @@ const (
 
 var searchWordsRegex = regexp.MustCompile(regexp.QuoteMeta(es.HighlightPreTagsString) + `(.*?)` + regexp.QuoteMeta(es.HighlightPostTagsString))
 
-func parseResponse(responses []*es.SearchResponse, targets []*Query, configuredFields es.ConfiguredFields) (*backend.QueryDataResponse, error) {
+func parseResponse(rawResponses []*json.RawMessage, targets []*Query, configuredFields es.ConfiguredFields) (*backend.QueryDataResponse, error) {
 	result := backend.QueryDataResponse{
 		Responses: backend.Responses{},
 	}
-	if responses == nil {
+	if rawResponses == nil {
 		return &result, nil
 	}
 
-	for i, res := range responses {
+	for i, rawRes := range rawResponses {
 		target := targets[i]
+
+		byteReader := bytes.NewReader(*rawRes)
+		dec := json.NewDecoder(byteReader)
+		if isLogsQuery(target) {
+			dec.UseNumber()
+		}
+		var res *es.SearchResponse
+		err := dec.Decode(&res)
+		if nil != err {
+			qwlog.Debug("Failed to decode response", "err", err.Error(), "byteRes", *rawRes)
+			continue
+		}
 
 		if res.Error != nil {
 			errResult := getErrorFromElasticResponse(res)
@@ -263,14 +276,28 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 		switch propNameValue.(type) {
 		// We are checking for default data types values (float64, int, bool, string)
 		// and default to json.RawMessage if we cannot find any of them
+		case json.Number:
+			rawPropSlice := getDocPropSlice[json.Number](docs, propName, size)
+			propSlice := make([]*float64, size)
+			for i, val := range rawPropSlice {
+				val_f64, err := val.Float64()
+				if err == nil {
+					propSlice[i] = &val_f64
+				}
+			}
+			allFields[propNameIdx] = createFieldOfType[float64](propSlice, propName, size, isFilterable)
 		case float64:
-			allFields[propNameIdx] = createFieldOfType[float64](docs, propName, size, isFilterable)
+			propSlice := getDocPropSlice[float64](docs, propName, size)
+			allFields[propNameIdx] = createFieldOfType[float64](propSlice, propName, size, isFilterable)
 		case int:
-			allFields[propNameIdx] = createFieldOfType[int](docs, propName, size, isFilterable)
+			propSlice := getDocPropSlice[int](docs, propName, size)
+			allFields[propNameIdx] = createFieldOfType[int](propSlice, propName, size, isFilterable)
 		case string:
-			allFields[propNameIdx] = createFieldOfType[string](docs, propName, size, isFilterable)
+			propSlice := getDocPropSlice[string](docs, propName, size)
+			allFields[propNameIdx] = createFieldOfType[string](propSlice, propName, size, isFilterable)
 		case bool:
-			allFields[propNameIdx] = createFieldOfType[bool](docs, propName, size, isFilterable)
+			propSlice := getDocPropSlice[bool](docs, propName, size)
+			allFields[propNameIdx] = createFieldOfType[bool](propSlice, propName, size, isFilterable)
 		default:
 			fieldVector := make([]*json.RawMessage, size)
 			for i, doc := range docs {
@@ -1070,15 +1097,21 @@ func findTheFirstNonNilDocValueForPropName(docs []map[string]interface{}, propNa
 	return docs[0][propName]
 }
 
-func createFieldOfType[T int | float64 | bool | string](docs []map[string]interface{}, propName string, size int, isFilterable bool) *data.Field {
-	fieldVector := make([]*T, size)
+func getDocPropSlice[T json.Number | int | float64 | bool | string](docs []map[string]any, propName string, size int) []*T {
+	values := make([]*T, size)
+
 	for i, doc := range docs {
 		value, ok := doc[propName].(T)
 		if !ok {
 			continue
 		}
-		fieldVector[i] = &value
+		values[i] = &value
 	}
+
+	return values
+}
+
+func createFieldOfType[T int | float64 | bool | string](fieldVector []*T, propName string, size int, isFilterable bool) *data.Field {
 	field := data.NewField(propName, nil, fieldVector)
 	field.Config = &data.FieldConfig{Filterable: &isFilterable}
 	return field

@@ -16,6 +16,8 @@ type Query struct {
 	IntervalMs    int64
 	RefID         string
 	MaxDataPoints int64
+	RangeFrom     int64
+	RangeTo       int64
 }
 
 // BucketAgg represents a bucket aggregation of the time series query model of the datasource

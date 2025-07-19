@@ -47,7 +47,7 @@ func TestErrorAvgMissingField(t *testing.T) {
 
 	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
 	require.Nil(t, err)
-	require.Contains(t, result.response.Responses["A"].Error.Error(), "\"status\":400")
+	require.Contains(t, result.response.Responses["__queryDataError"].Error.Error(), "\"status\":400")
 }
 
 func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
@@ -80,7 +80,7 @@ func TestErrorAvgMissingFieldNoDetailedErrors(t *testing.T) {
 
 	result, err := queryDataTestWithResponseCode(query, 400, response, configuredFields)
 	require.Nil(t, err)
-	require.Contains(t, result.response.Responses["A"].Error.Error(), "\"status\":400")
+	require.Contains(t, result.response.Responses["__queryDataError"].Error.Error(), "\"status\":400")
 }
 
 func TestErrorTooManyDateHistogramBuckets(t *testing.T) {
@@ -165,5 +165,5 @@ func TestNonElasticError(t *testing.T) {
 
 	result, err := queryDataTestWithResponseCode(query, 403, response, configuredFields)
 	require.Nil(t, err)
-	require.Contains(t, result.response.Responses["A"].Error.Error(), "\"status\":403")
+	require.Contains(t, result.response.Responses["__queryDataError"].Error.Error(), "\"status\":403")
 }
