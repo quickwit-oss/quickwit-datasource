@@ -38,13 +38,13 @@ You can either download the plugin manually and unzip it into the plugin directo
 Run `grafana` container with the env variable:
 
 ```bash
-docker run -p 3000:3000 -e GF_INSTALL_PLUGINS="https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5-beta.1/quickwit-quickwit-datasource-0.5-beta.1.zip;quickwit-quickwit-datasource" grafana/grafana run
+docker run -p 3000:3000 -e GF_INSTALL_PLUGINS="https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5-beta.2/quickwit-quickwit-datasource-0.5-beta.2.zip;quickwit-quickwit-datasource" grafana/grafana run
 ```
 
 Or download the plugin manually and start Grafana
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5-beta.1/quickwit-quickwit-datasource-0.5-beta.1.zip
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5-beta.2/quickwit-quickwit-datasource-0.5-beta.2.zip
 mkdir -p plugins
 unzip quickwit-quickwit-datasource-0.5-beta.1.zip -d plugins/quickwit-quickwit-datasource-0.5-beta.1
 docker run -p 3000:3000 -e GF_PATHS_PLUGINS=/data/plugins -v ${PWD}/plugins:/data/plugins grafana/grafana run
