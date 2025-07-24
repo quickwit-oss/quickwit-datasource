@@ -108,10 +108,57 @@ func parseResponse(rawResponses []*json.RawMessage, targets []*Query, configured
 	return &result, nil
 }
 
+func isLuceneOperator(value string) bool {
+	operators := []string{"or", "and"}
+	for _, op := range operators {
+		if strings.ToLower(value) == op {
+			return true
+		}
+	}
+
+	return false
+}
+
+func parseLuceneQuery(query string) []string {
+	var keywords []string
+
+	termRegex := regexp.MustCompile(`("[^"]+"|\S+)`)
+	keyValueRegex := regexp.MustCompile(`[^:]+:([^:]*)`)
+	termMatches := termRegex.FindAllString(query, -1)
+
+	for _, termMatch := range termMatches {
+		if termMatch[0] == '"' && termMatch[len(termMatches)-1] == '"' {
+			termMatch = termMatch[1 : len(termMatch)-1]
+		}
+
+		keyValueMatches := keyValueRegex.FindStringSubmatch(termMatch)
+		if len(keyValueMatches) <= 1 {
+			value := strings.ReplaceAll(termMatch, "*", "")
+			if isLuceneOperator(value) {
+				continue
+			}
+			keywords = append(keywords, value)
+			continue
+		}
+
+		for _, keyValueMatch := range keyValueMatches[1:] {
+			value := strings.ReplaceAll(keyValueMatch, "*", "")
+			if isLuceneOperator(value) {
+				continue
+			}
+			keywords = append(keywords, value)
+		}
+	}
+
+	return keywords
+}
+
 func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields es.ConfiguredFields, queryRes *backend.DataResponse) error {
 	propNames := make(map[string]bool)
 	docs := make([]map[string]interface{}, len(res.Hits.Hits))
 	searchWords := make(map[string]bool)
+
+	highlights := parseLuceneQuery(target.RawQuery)
 
 	for hitIdx, hit := range res.Hits.Hits {
 		var flattened map[string]interface{}
@@ -131,23 +178,6 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 			propNames[key] = true
 		}
 
-		// FIXME: Quickwit does not support highlight. Should we replace this by a custom highlighter?
-		// Process highlight to searchWords
-		if highlights, ok := doc["highlight"].(map[string]interface{}); ok {
-			for _, highlight := range highlights {
-				if highlightList, ok := highlight.([]interface{}); ok {
-					for _, highlightValue := range highlightList {
-						str := fmt.Sprintf("%v", highlightValue)
-						matches := searchWordsRegex.FindAllStringSubmatch(str, -1)
-
-						for _, v := range matches {
-							searchWords[v[1]] = true
-						}
-					}
-				}
-			}
-		}
-
 		docs[hitIdx] = doc
 	}
 
@@ -157,6 +187,11 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 	frames := data.Frames{}
 	frame := data.NewFrame("", fields...)
 	setPreferredVisType(frame, data.VisTypeLogs)
+
+	for _, keyword := range highlights {
+		searchWords[keyword] = true
+	}
+
 	setLogsCustomMeta(frame, searchWords, stringToIntWithDefaultValue(target.Metrics[0].Settings.Get("limit").MustString(), defaultSize))
 	frames = append(frames, frame)
 
