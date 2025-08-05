@@ -1054,6 +1054,7 @@ func flatten(target map[string]interface{}) map[string]interface{} {
 			if shouldStepInside {
 				currentDepth++
 				step(v, newKey)
+				currentDepth--
 			} else {
 				output[newKey] = value
 			}

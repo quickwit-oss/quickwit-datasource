@@ -3166,11 +3166,17 @@ func TestFlatten(t *testing.T) {
 					},
 				},
 			},
+			"other": map[string]interface{}{
+				"nested1": map[string]interface{}{
+					"nested2": "def",
+				},
+			},
 		}
 
 		flattened := flatten(obj)
-		require.Len(t, flattened, 1)
+		require.Len(t, flattened, 2)
 		require.Equal(t, map[string]interface{}{"nested11": map[string]interface{}{"nested12": "abc"}}, flattened["nested0.nested1.nested2.nested3.nested4.nested5.nested6.nested7.nested8.nested9.nested10"])
+		require.Equal(t, "def", flattened["other.nested1.nested2"])
 	})
 }
 
