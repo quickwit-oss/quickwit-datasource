@@ -51,7 +51,7 @@ export function useDatasourceFields(datasource: BaseQuickwitDataSource, range: T
       suggestions.options = candidateFields.map(f => ({
         type: 'variable',
         label: f.text,
-        detail: `${f.value}`
+        detail: f.value !== undefined ?`${f.value}` : ''
       }));
     }
     return suggestions;

@@ -2,9 +2,10 @@ import React, { useRef, useCallback } from "react";
 import { css } from "@emotion/css";
 
 
-import CodeMirror, { ReactCodeMirrorRef, keymap } from '@uiw/react-codemirror';
-import {linter, Diagnostic, lintGutter} from "@codemirror/lint"
-import {autocompletion, CompletionContext} from "@codemirror/autocomplete"
+import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { keymap } from '@codemirror/view';
+import { linter, Diagnostic, lintGutter } from "@codemirror/lint"
+import { autocompletion, CompletionContext, startCompletion } from "@codemirror/autocomplete"
 import { LuceneQuery } from "@/utils/lucene";
 
 
@@ -53,7 +54,25 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
   const autocomplete = autocompletion({
     override: [datasourceCompletions],
     activateOnTyping: false,
+    closeOnBlur: true,
+    maxRenderedOptions: 30,
   })
+
+  const myKeymap = keymap.of([
+    {
+      key: 'Shift-Enter',
+      run: (view) => {
+        props.onSubmit(view.state.doc.toString());
+        return true;
+      }
+    },
+    {
+      key: 'Ctrl-Enter',
+      run: (view) => {
+        return startCompletion(view);
+      }
+    },
+  ]);
 
   return (<CodeMirror 
     ref={editorRef}
@@ -65,12 +84,10 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
     onChange={props.onChange}
     indentWithTab={false}
     extensions={[
-      queryLinter, lintGutter(),
+      queryLinter,
+      lintGutter(),
       autocomplete,
-      keymap.of([{key:'Shift-Enter', run:(target)=>{
-        props.onSubmit(target.state.doc.toString())
-        return true;
-      }}])
+      myKeymap
     ]}
     />);
 }
