@@ -3178,6 +3178,58 @@ func TestFlatten(t *testing.T) {
 		require.Equal(t, map[string]interface{}{"nested11": map[string]interface{}{"nested12": "abc"}}, flattened["nested0.nested1.nested2.nested3.nested4.nested5.nested6.nested7.nested8.nested9.nested10"])
 		require.Equal(t, "def", flattened["other.nested1.nested2"])
 	})
+
+	t.Run("Flattens multiple nested branches consistently", func(t *testing.T) {
+		// This test would have caught the currentDepth bug that was fixed in PR #156.
+		// The bug caused currentDepth to accumulate across sibling branches, leading to
+		// inconsistent flattening behavior where later branches hit maxDepth prematurely.
+		// We create deep nesting (8 levels) so the bug causes second branch to exceed maxDepth.
+		obj := map[string]interface{}{
+			"a": map[string]interface{}{
+				"l1": map[string]interface{}{
+					"l2": map[string]interface{}{
+						"l3": map[string]interface{}{
+							"l4": map[string]interface{}{
+								"l5": map[string]interface{}{
+									"l6": map[string]interface{}{
+										"l7": map[string]interface{}{
+											"value": "deep_value_1",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"b": map[string]interface{}{
+				"l1": map[string]interface{}{
+					"l2": map[string]interface{}{
+						"l3": map[string]interface{}{
+							"l4": map[string]interface{}{
+								"l5": map[string]interface{}{
+									"l6": map[string]interface{}{
+										"l7": map[string]interface{}{
+											"value": "deep_value_2",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		flattened := flatten(obj)
+
+		// Both branches should be flattened consistently to the same depth
+		require.Equal(t, "deep_value_1", flattened["a.l1.l2.l3.l4.l5.l6.l7.value"])
+		require.Equal(t, "deep_value_2", flattened["b.l1.l2.l3.l4.l5.l6.l7.value"])
+
+		// Ensure we have exactly 2 flattened fields (not partially flattened objects)
+		require.Len(t, flattened, 2)
+	})
 }
 
 func TestTrimEdges(t *testing.T) {
