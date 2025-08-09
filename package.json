@@ -1,6 +1,6 @@
 {
   "name": "quickwit-datasource",
-  "version": "0.5-beta.2",
+  "version": "0.5.0",
   "description": "Quickwit datasource",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
