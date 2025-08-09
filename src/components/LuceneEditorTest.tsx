@@ -157,7 +157,7 @@ export function LuceneEditorTest() {
         <ul style={{ margin: 0, paddingLeft: '20px' }}>
           <li>Open browser console to see additional debug messages</li>
           <li>Make sure to click in the editor to focus it before testing shortcuts</li>
-          <li>If Shift+Enter doesn't work, check the console for errors</li>
+          <li>If Shift+Enter doesn&apos;t work, check the console for errors</li>
           <li>Ctrl+Enter should show a dropdown with field suggestions</li>
         </ul>
       </div>
