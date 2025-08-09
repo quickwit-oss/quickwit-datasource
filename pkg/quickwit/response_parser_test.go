@@ -272,6 +272,138 @@ func TestProcessLogsResponse(t *testing.T) {
 	})
 }
 
+func TestJsonNumberNilHandling(t *testing.T) {
+	t.Run("processDocsToDataFrameFields handles nil json.Number values", func(t *testing.T) {
+		// This test verifies the fix for PR #157 - prevents panic when some documents
+		// are missing numeric fields that are present in other documents
+
+		// Create test documents where some have numeric fields and others don't
+		docs := []map[string]any{
+			{
+				"timestamp": "2023-01-01T00:00:00Z",
+				"message":   "First log",
+				"count":     json.Number("123.45"), // This doc has count field
+				"level":     "info",
+			},
+			{
+				"timestamp": "2023-01-01T00:01:00Z",
+				"message":   "Second log",
+				// count field is missing in this doc - this would cause panic before fix
+				"level": "warn",
+			},
+			{
+				"timestamp": "2023-01-01T00:02:00Z",
+				"message":   "Third log",
+				"count":     json.Number("678.90"), // This doc has count field again
+				"level":     "error",
+			},
+		}
+
+		// Create sorted prop names including the problematic numeric field
+		sortedPropNames := []string{"timestamp", "message", "count", "level"}
+
+		configuredFields := es.ConfiguredFields{
+			TimeField:       "timestamp",
+			LogMessageField: "message",
+			LogLevelField:   "level",
+		}
+
+		// This should not panic and should handle the missing field gracefully
+		fields := processDocsToDataFrameFields(docs, sortedPropNames, configuredFields)
+
+		require.NotNil(t, fields)
+		require.Len(t, fields, 4) // timestamp, message, count, level
+
+		// Find the count field
+		var countField *data.Field
+		for _, field := range fields {
+			if field.Name == "count" {
+				countField = field
+				break
+			}
+		}
+
+		require.NotNil(t, countField, "count field should exist")
+		require.Equal(t, data.FieldTypeNullableFloat64, countField.Type())
+		require.Equal(t, 3, countField.Len())
+
+		// Verify the values: should have values for docs 0 and 2, nil for doc 1
+		val0, ok := countField.At(0).(*float64)
+		require.True(t, ok, "first value should be *float64")
+		require.NotNil(t, val0, "first value should not be nil")
+		require.Equal(t, 123.45, *val0)
+
+		val1 := countField.At(1)
+		require.Nil(t, val1, "second value should be nil (missing field)")
+
+		val2, ok := countField.At(2).(*float64)
+		require.True(t, ok, "third value should be *float64")
+		require.NotNil(t, val2, "third value should not be nil")
+		require.Equal(t, 678.90, *val2)
+	})
+
+	t.Run("json.Number field conversion errors are handled gracefully", func(t *testing.T) {
+		// Test that malformed json.Numbers don't crash the system
+		docs := []map[string]any{
+			{
+				"timestamp": "2023-01-01T00:00:00Z",
+				"message":   "First log",
+				"count":     json.Number("123.45"), // Valid number
+			},
+			{
+				"timestamp": "2023-01-01T00:01:00Z",
+				"message":   "Second log",
+				"count":     json.Number("invalid"), // Invalid number - should be skipped
+			},
+			{
+				"timestamp": "2023-01-01T00:02:00Z",
+				"message":   "Third log",
+				"count":     json.Number("789.12"), // Valid number
+			},
+		}
+
+		sortedPropNames := []string{"timestamp", "message", "count"}
+		configuredFields := es.ConfiguredFields{
+			TimeField:       "timestamp",
+			LogMessageField: "message",
+		}
+
+		// This should not panic and should handle conversion errors gracefully
+		fields := processDocsToDataFrameFields(docs, sortedPropNames, configuredFields)
+
+		require.NotNil(t, fields)
+		require.Len(t, fields, 3)
+
+		// Find the count field
+		var countField *data.Field
+		for _, field := range fields {
+			if field.Name == "count" {
+				countField = field
+				break
+			}
+		}
+
+		require.NotNil(t, countField)
+		require.Equal(t, data.FieldTypeNullableFloat64, countField.Type())
+
+		// First value should be valid
+		val0, ok := countField.At(0).(*float64)
+		require.True(t, ok)
+		require.NotNil(t, val0)
+		require.Equal(t, 123.45, *val0)
+
+		// Second value should be nil due to conversion error
+		val1 := countField.At(1)
+		require.Nil(t, val1, "invalid json.Number should result in nil")
+
+		// Third value should be valid
+		val2, ok := countField.At(2).(*float64)
+		require.True(t, ok)
+		require.NotNil(t, val2)
+		require.Equal(t, 789.12, *val2)
+	})
+}
+
 func TestProcessRawDataResponse(t *testing.T) {
 	t.Run("Simple raw data query", func(t *testing.T) {
 		targets := map[string]string{
@@ -3181,8 +3313,6 @@ func TestFlatten(t *testing.T) {
 
 	t.Run("Flattens multiple nested branches consistently", func(t *testing.T) {
 		// This test would have caught the currentDepth bug that was fixed in PR #156.
-		// The bug caused currentDepth to accumulate across sibling branches, leading to
-		// inconsistent flattening behavior where later branches hit maxDepth prematurely.
 		// We create deep nesting (8 levels) so the bug causes second branch to exceed maxDepth.
 		obj := map[string]interface{}{
 			"a": map[string]interface{}{

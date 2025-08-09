@@ -280,9 +280,11 @@ func processDocsToDataFrameFields(docs []map[string]interface{}, propNames []str
 			rawPropSlice := getDocPropSlice[json.Number](docs, propName, size)
 			propSlice := make([]*float64, size)
 			for i, val := range rawPropSlice {
+				// Skip nil values - can occur when field is missing from some documents
 				if val == nil {
 					continue
 				}
+				// Convert json.Number to float64, skip on conversion errors
 				val_f64, err := val.Float64()
 				if err == nil {
 					propSlice[i] = &val_f64
