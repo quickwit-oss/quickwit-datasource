@@ -359,7 +359,7 @@ export class BaseQuickwitDataSource
     return finalQuery;
   }
 }
-function formatQuery(value: string | string[], variable: any): string {
+export function formatQuery(value: string | string[], variable: any): string {
   if (typeof value === 'string') {
     return luceneEscape(value);
   }
@@ -368,12 +368,10 @@ function formatQuery(value: string | string[], variable: any): string {
       return '__empty__';
     }
     let fieldName;
-    if (variable.query) {
-      try {
-        fieldName = JSON.parse(variable.query).field;
-      } catch (error) {
-        console.warn('Could not parse variable.query', variable.query);
-      }
+    try {
+      fieldName = variable.query ? JSON.parse(variable.query).field : undefined;
+    } catch (e) {
+      fieldName = undefined;
     }
     const quotedValues =  value.map((val) => '"' + luceneEscape(val) + '"');
     // Quickwit query language does not support fieldName:(value1 OR value2 OR....)
@@ -395,7 +393,7 @@ function formatQuery(value: string | string[], variable: any): string {
   }
 }
 
-function luceneEscape(value: string) {
+export function luceneEscape(value: string) {
   if (isNaN(+value) === false) {
     return value;
   }
