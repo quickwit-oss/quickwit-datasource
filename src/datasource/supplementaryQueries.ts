@@ -102,6 +102,7 @@ export function withSupplementaryQueries<T extends BaseQuickwitDataSourceConstru
           query: query.query,
           metrics: [{ type: 'count', id: '1' }],
           bucketAggs,
+          filters: query.filters,
         };
 
       default:
