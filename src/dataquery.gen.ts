@@ -9,6 +9,7 @@
 // Run 'make gen-cue' from repository root to regenerate.
 
 import { DataQuery } from '@grafana/schema';
+import { AdHocVariableFilter } from '@grafana/data';
 
 export const DataQueryModelVersion = Object.freeze([0, 0]);
 
@@ -126,6 +127,12 @@ export interface BaseMetricAggregation {
   hide?: boolean;
   id: string;
   type: MetricAggregationType;
+}
+
+export interface QueryFilter {
+  hide?: boolean;
+  id: string;
+  filter: AdHocVariableFilter;
 }
 
 export interface PipelineVariable {
@@ -393,6 +400,10 @@ export interface Elasticsearch extends DataQuery {
    */
   metrics?: MetricAggregation[];
   /**
+   * List of filters
+   */
+  filters?: QueryFilter[];
+  /**
    * Lucene query
    */
   query?: string;
@@ -405,4 +416,5 @@ export interface Elasticsearch extends DataQuery {
 export const defaultElasticsearch: Partial<Elasticsearch> = {
   bucketAggs: [],
   metrics: [],
+  filters: [],
 };
