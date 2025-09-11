@@ -131,3 +131,5 @@ export const fieldTypeMap: Record<string, string> = {
   float: 'number',
   scaled_float: 'number'
 };
+
+export const isSet = (v: string) => v !== '' && v !== undefined && v !== null;

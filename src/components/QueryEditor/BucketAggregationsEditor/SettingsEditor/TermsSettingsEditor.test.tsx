@@ -22,6 +22,7 @@ describe('Terms Settings Editor', () => {
       query: '',
       bucketAggs: [termsAgg],
       metrics: [avg, derivative, topMetrics],
+      filters: [],
     };
 
     renderWithESProvider(<TermsSettingsEditor bucketAgg={termsAgg} />, { providerProps: { query } });
