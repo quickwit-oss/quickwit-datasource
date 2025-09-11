@@ -16,6 +16,7 @@ describe('useNextId', () => {
       query: '',
       metrics: [{ id: '1', type: 'avg' }],
       bucketAggs: [{ id: '2', type: 'date_histogram' }],
+      filters: [],
     };
     const wrapper = ({ children }: PropsWithChildren<{}>) => {
       return (

@@ -13,6 +13,7 @@ const query: ElasticsearchQuery = {
   query: '',
   metrics: [{ id: '1', type: 'count' }],
   bucketAggs: [{ type: 'date_histogram', id: '2' }],
+  filters: []
 };
 
 describe('ElasticsearchQueryContext', () => {
