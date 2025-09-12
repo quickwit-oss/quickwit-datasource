@@ -6,7 +6,9 @@ import {
   MovingAverageModelOption,
   MetricAggregationType,
   DateHistogram,
+  QueryFilter,
 } from './types';
+import { newFilterId } from '@/utils/uid';
 
 export const extendedStats: ExtendedStat[] = [
   { label: 'Avg', value: 'avg' },
@@ -33,6 +35,19 @@ export function defaultMetricAgg(id = '1'): MetricAggregation {
 
 export function defaultBucketAgg(id = '1'): DateHistogram {
   return { type: 'date_histogram', id, settings: { interval: 'auto' } };
+}
+
+export const filterOperations = [
+  { label: 'is', value: '=~' },
+  { label: 'is not', value: '!~' },
+  { label: 'equals', value: '=' },
+  { label: 'not equals', value: '!=' },
+  { label: 'exists', value: 'exists' },
+  { label: 'not exists', value: 'not exists' },
+];
+
+export function defaultFilter(id = newFilterId()): QueryFilter {
+  return { id, filter: { key: '', operator: filterOperations[0].value, value: '' } };
 }
 
 export const findMetricById = (metrics: MetricAggregation[], id: MetricAggregation['id']) =>

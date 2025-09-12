@@ -8,6 +8,7 @@ import { ElasticsearchQuery } from '@/types';
 
 import { createReducer as createBucketAggsReducer } from './BucketAggregationsEditor/state/reducer';
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';
+import { reducer as filtersReducer } from './FilterEditor/state/reducer';
 import { aliasPatternReducer, queryReducer, initQuery, initExploreQuery } from './state';
 import { getHook } from '@/utils/context';
 import { Provider, useDispatch } from "react-redux";
@@ -64,10 +65,11 @@ export const ElasticsearchProvider = withStore(({
     [onChange]
   );
 
-  const reducer = combineReducers<Pick<ElasticsearchQuery, 'query' | 'alias' | 'metrics' | 'bucketAggs'>>({
+  const reducer = combineReducers<Pick<ElasticsearchQuery, 'query' | 'alias' | 'metrics' | 'filters' | 'bucketAggs'>>({
     query: queryReducer,
     alias: aliasPatternReducer,
     metrics: metricsReducer,
+    filters: filtersReducer,
     bucketAggs: createBucketAggsReducer(datasource.timeField),
   });
 
@@ -78,7 +80,7 @@ export const ElasticsearchProvider = withStore(({
     reducer
   );
 
-  const isUninitialized = !query.metrics || !query.bucketAggs || query.query === undefined;
+  const isUninitialized = !query.metrics || !query.filters || !query.bucketAggs || query.query === undefined;
 
   const [shouldRunInit, setShouldRunInit] = useState(isUninitialized);
 

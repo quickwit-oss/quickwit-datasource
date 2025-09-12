@@ -20,6 +20,7 @@ describe('QueryEditor', () => {
       ],
       // Even if present, this shouldn't be shown in the UI
       bucketAggs: [{ id: '2', type: 'date_histogram' }],
+      filters: [],
     };
 
     render(<QueryEditor query={query} datasource={{} as ElasticDatasource} onChange={noop} onRunQuery={noop} />);
@@ -38,6 +39,7 @@ describe('QueryEditor', () => {
         },
       ],
       bucketAggs: [{ id: '2', type: 'date_histogram' }],
+      filters: [],
     };
 
     render(<QueryEditor query={query} datasource={{} as ElasticDatasource} onChange={noop} onRunQuery={noop} />);

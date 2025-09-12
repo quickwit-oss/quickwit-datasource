@@ -16,9 +16,9 @@ import {
   TimeRange,
 } from '@grafana/data';
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, TermsQuery, FieldCapabilitiesResponse } from '@/types';
-import { 
-  DataSourceWithBackend, 
-  getTemplateSrv, 
+import {
+  DataSourceWithBackend,
+  getTemplateSrv,
   TemplateSrv } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
 import { getDataQuery } from 'QueryBuilder/elastic';
@@ -34,9 +34,9 @@ import { getQueryResponseProcessor } from 'datasource/processResponse';
 
 import { SECOND } from 'utils/time';
 import { GConstructor } from 'utils/mixins';
-import { LuceneQuery } from '@/utils/lucene';
-import { uidMaker } from "@/utils/uid" 
+import { newFilterId, uidMaker } from '@/utils/uid';
 import { DefaultsConfigOverrides } from 'store/defaults/conf';
+import { isSet } from '@/utils';
 
 export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>
 
@@ -122,18 +122,39 @@ export class BaseQuickwitDataSource
       return query;
     }
 
-    let lquery = LuceneQuery.parse(query.query ?? '')
-    switch (action.type) {
-      case 'ADD_FILTER': {
-        lquery = lquery.addFilter(action.options.key, action.options.value)
-        break;
+    const operationsMap: Record<string, string> = {
+      'ADD_FILTER': '=',
+      'ADD_FILTER_OUT': '!=',
+    };
+    const operation = operationsMap[action.type];
+
+    if (operation) {
+      // If the user has not added any filter, we can simply modify the last one (which is empty)
+      const len = query.filters?.length ?? 0;
+      if (len > 0) {
+        const last = query.filters![len - 1];
+        if (!isSet(last.filter.key) && !isSet(last.filter.value)) {
+          last.filter.key = action.options.key;
+          last.filter.operator = operation;
+          last.filter.value = action.options.value;
+          return query;
+        }
       }
-      case 'ADD_FILTER_OUT': {
-        lquery = lquery.addFilter(action.options.key, action.options.value, '-')
-        break;
-      }
+
+      query.filters?.push({
+        id: newFilterId(),
+        hide: false,
+        filter: {
+          key: action.options.key,
+          operator: operation,
+          value: action.options.value,
+        },
+      });
+    } else {
+      console.warn('unsupported operation', action.type);
     }
-    return { ...query, query: lquery.toString() };
+
+    return { ...query };
   }
 
   getDataQueryRequest(queryDef: TermsQuery, range: TimeRange, requestId?: string) {
@@ -198,7 +219,7 @@ export class BaseQuickwitDataSource
           .map(field_capability => {
             return {
               text: field_capability.field_name,
-              type: fieldTypeMap[field_capability.type],  
+              type: fieldTypeMap[field_capability.type],
             }
           });
         const uniquefieldCapabilities = fieldCapabilities.filter((field_capability, index, self) =>
@@ -336,14 +357,31 @@ export class BaseQuickwitDataSource
       return bucketAgg;
     };
 
+    const renderedQuery = (() => {
+      let q = this.interpolateLuceneQuery(query.query || '', scopedVars);
+      const queryFilters = query.filters
+        ?.filter((f) => {
+          if (f.hide) {
+            return false;
+          }
+          const hasValidValue = ['exists', 'not exists'].includes(f.filter.operator) || isSet(f.filter.value)
+          return isSet(f.filter.key) && hasValidValue && isSet(f.filter.operator)
+        })
+        .map((f) => f.filter);
+      q = this.addAdHocFilters(q, queryFilters)
+      q = this.addAdHocFilters(q, filters)
+      return q
+    })()
+
     const expandedQuery = {
       ...query,
       datasource: this.getRef(),
-      query: this.addAdHocFilters(this.interpolateLuceneQuery(query.query || '', scopedVars), filters),
+      query: renderedQuery,
       bucketAggs: query.bucketAggs?.map(interpolateBucketAgg),
     };
 
     const finalQuery = JSON.parse(this.templateSrv.replace(JSON.stringify(expandedQuery), scopedVars));
+    console.log('Final query', finalQuery.query)
     return finalQuery;
   }
 

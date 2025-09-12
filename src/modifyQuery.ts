@@ -5,7 +5,8 @@ import { AdHocVariableFilter } from '@grafana/data';
  * Adds a label:"value" expression to the query.
  */
 export function addAddHocFilter(query: string, filter: AdHocVariableFilter): string {
-  if (!filter.key || !filter.value) {
+  const hasValidValue = ['exists', 'not exists'].includes(filter.operator) || !!filter.value
+  if (!filter.key || !hasValidValue) {
     return query;
   }
 
@@ -38,6 +39,12 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
       break;
     case '<':
       addHocFilter = `${key}:<${value}`;
+      break;
+    case 'exists':
+      addHocFilter = `${key}:*`;
+      break;
+    case 'not exists':
+      addHocFilter = `-${key}:*`;
       break;
   }
   return concatenate(query, addHocFilter);
