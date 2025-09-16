@@ -8,8 +8,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }} # Requires a Grafana API key from Grafana.com.
+#    env:
+#      GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }} # Requires a Grafana API key from Grafana.com.
     steps:
       - uses: actions/checkout@v3
       - name: Setup Node.js environment
@@ -51,15 +51,15 @@ jobs:
           version: latest
           args: buildAll
 
-      - name: Warn missing Grafana API key
-        run: |
-          echo Please generate a Grafana API key: https://grafana.com/docs/grafana/latest/developers/plugins/sign-a-plugin/#generate-an-api-key
-          echo Once done please follow the instructions found here: https://github.com/${{github.repository}}/blob/main/README.md#using-github-actions-release-workflow
-        if: ${{ env.GRAFANA_API_KEY == '' }}
-
-      - name: Sign plugin
-        run: npm run sign
-        if: ${{ env.GRAFANA_API_KEY != '' }}
+#      - name: Warn missing Grafana API key
+#        run: |
+#          echo Please generate a Grafana API key: https://grafana.com/docs/grafana/latest/developers/plugins/sign-a-plugin/#generate-an-api-key
+#          echo Once done please follow the instructions found here: https://github.com/${{github.repository}}/blob/main/README.md#using-github-actions-release-workflow
+#        if: ${{ env.GRAFANA_API_KEY == '' }}
+#
+#      - name: Sign plugin
+#        run: npm run sign
+#        if: ${{ env.GRAFANA_API_KEY != '' }}
 
       - name: Get plugin metadata
         id: metadata
