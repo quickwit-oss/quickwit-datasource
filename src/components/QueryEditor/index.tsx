@@ -25,6 +25,7 @@ import { QueryTypeSelector } from './QueryTypeSelector';
 import { getHook } from '@/utils/context';
 import { LuceneQueryEditor } from '@/components/LuceneQueryEditor';
 import { useDatasourceFields } from '@/datasource/utils';
+import { FilterEditor } from '@/components/QueryEditor/FilterEditor';
 
 export type ElasticQueryEditorProps = QueryEditorProps<ElasticDatasource, ElasticsearchQuery, QuickwitOptions>;
 
@@ -133,6 +134,7 @@ const QueryEditorForm = ({ value, onRunQuery }: Props) => {
           value={value?.query}
           onSubmit={onSubmitCB}/>
       </div>
+      <FilterEditor onSubmit={onRunQuery} />
 
       <MetricAggregationsEditor nextId={nextId} />
       {showBucketAggregationsEditor && <BucketAggregationsEditor nextId={nextId} />}

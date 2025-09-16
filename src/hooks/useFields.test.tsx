@@ -23,6 +23,7 @@ describe('useFields hook', () => {
       query: '',
       metrics: [defaultMetricAgg()],
       bucketAggs: [defaultBucketAgg()],
+      filters: []
     };
 
     const getFields: ElasticDatasource['getFields'] = jest.fn(() => from([[]]));
