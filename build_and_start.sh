@@ -2,5 +2,5 @@
 
 npm install
 npm run build
-mage -v
-docker compose up --build --force-recreate
+~/go/bin/mage -v
+#docker compose up --build --force-recreate
