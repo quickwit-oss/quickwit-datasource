@@ -33,7 +33,7 @@ type FieldMappings struct {
 }
 
 // Creates a Quickwit datasource.
-func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func NewQuickwitDatasource(ctx context.Context, settings backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	qwlog.Debug("Initializing new data source instance")
 
 	jsonData := map[string]interface{}{}
@@ -41,7 +41,7 @@ func NewQuickwitDatasource(settings backend.DataSourceInstanceSettings) (instanc
 	if err != nil {
 		return nil, fmt.Errorf("error reading settings: %w", err)
 	}
-	httpCliOpts, err := settings.HTTPClientOptions()
+	httpCliOpts, err := settings.HTTPClientOptions(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error getting http options: %w", err)
 	}

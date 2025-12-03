@@ -118,7 +118,7 @@ func (c *baseClientImpl) ExecuteMultisearch(requests []*SearchRequest) ([]*json.
 
 		errorPayload, _ := json.Marshal(qe)
 		logger.Error(string(errorPayload))
-		return nil, fmt.Errorf(string(errorPayload))
+		return nil, fmt.Errorf("%s", string(errorPayload))
 	}
 
 	start := time.Now()

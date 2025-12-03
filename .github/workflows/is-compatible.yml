@@ -5,11 +5,11 @@ jobs:
   compatibilitycheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Setup Node.js environment
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'npm'
@@ -18,8 +18,9 @@ jobs:
       - name: Build plugin
         run: npm run build
       - name: Compatibility check
-        uses: grafana/plugin-actions/is-compatible@bf335ac99375f0ba8828497abdf1a22897b5d888
+        uses: grafana/plugin-actions/is-compatible@8e19900577d14a8ac66c5e8299ce51522590c219
         with:
-          comment-pr: 'yes'
+          module: 'src/module.ts'
+          comment-pr: 'no'
           fail-if-incompatible: 'no'
           targets: '@grafana/data,@grafana/ui,@grafana/runtime,@grafana/e2e-selectors'
