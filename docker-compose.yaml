@@ -16,7 +16,8 @@ services:
     build:
       context: ./.config
       args:
-        grafana_version: 12.1.0
+        grafana_version: ${GRAFANA_VERSION:-12.1.0}
+        grafana_image: ${GRAFANA_IMAGE:-grafana-oss}
     ports:
       - 3000:3000/tcp
     volumes:

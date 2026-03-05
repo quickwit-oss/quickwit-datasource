@@ -50,7 +50,7 @@ export const ElasticsearchProvider = withStore(({
   app,
   datasource,
   range,
-}: PropsWithChildren<Props>): JSX.Element => {
+}: PropsWithChildren<Props>): React.JSX.Element => {
 
   const storeDispatch = useDispatch();
   useEffect(()=>{
