@@ -2,7 +2,7 @@ import React, { useRef, useCallback } from "react";
 import { css } from "@emotion/css";
 
 
-import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import CodeMirror, { Prec, ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { keymap } from '@codemirror/view';
 import { linter, Diagnostic, lintGutter } from "@codemirror/lint"
 import { autocompletion, CompletionContext, startCompletion } from "@codemirror/autocomplete"
@@ -58,7 +58,7 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
     maxRenderedOptions: 30,
   })
 
-  const myKeymap = keymap.of([
+  const myKeymap = Prec.highest(keymap.of([
     {
       key: 'Shift-Enter',
       run: (view) => {
@@ -72,7 +72,7 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
         return startCompletion(view);
       }
     },
-  ]);
+  ]));
 
   return (<CodeMirror 
     ref={editorRef}
