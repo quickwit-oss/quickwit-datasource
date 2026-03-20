@@ -306,15 +306,11 @@ func isLogsQuery(query *Query) bool {
 }
 
 func isDocumentQuery(query *Query) bool {
-	return isRawDataQuery(query) || isRawDocumentQuery(query)
+	return isRawDataQuery(query)
 }
 
 func isRawDataQuery(query *Query) bool {
 	return query.Metrics[0].Type == rawDataType
-}
-
-func isRawDocumentQuery(query *Query) bool {
-	return query.Metrics[0].Type == rawDocumentType
 }
 
 func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {

@@ -56,7 +56,6 @@ var metricAggType = map[string]string{
 	"derivative":     "Derivative",
 	"serial_diff":    "Serial Difference",
 	"bucket_script":  "Bucket Script",
-	"raw_document":   "Raw Document",
 	"raw_data":       "Raw Data",
 	"rate":           "Rate",
 	"logs":           "Logs",

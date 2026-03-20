@@ -75,7 +75,7 @@ export const SettingsEditor = ({ metric, previousMetrics }: Props) => {
         <BucketScriptSettingsEditor value={metric} previousMetrics={previousMetrics} />
       )}
 
-      {(metric.type === 'raw_data' || metric.type === 'raw_document') && (
+      {metric.type === 'raw_data' && (
         <InlineField label="Size" {...inlineFieldProps}>
           <Input
             id={`ES-query-${query.refId}_metric-${metric.id}-size`}

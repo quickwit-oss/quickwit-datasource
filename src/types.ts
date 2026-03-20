@@ -33,6 +33,7 @@ export const LogsEnd = {
 type ExtendedLogsSettings = SchemaLogs['settings'] & {
   searchAfter?: unknown[];
   sortDirection?: LogsSortDirection;
+  selectedFields?: string[];
 };
 
 export interface Logs extends SchemaLogs {
@@ -75,6 +76,8 @@ interface MetricConfiguration<T extends MetricAggregationType> {
   impliedQueryType: QueryType;
   hasSettings: boolean;
   hasMeta: boolean;
+  /** If true, this metric type is hidden from the UI selector. */
+  hidden?: boolean;
   defaults: Omit<Extract<Exclude<MetricAggregation,SchemaLogs>|Logs, { type: T }>, 'id' | 'type'>;
 }
 

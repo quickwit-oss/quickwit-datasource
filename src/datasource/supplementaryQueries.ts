@@ -22,6 +22,7 @@ import { BucketAggregation, ElasticsearchQuery } from '@/types';
 import { BaseQuickwitDataSourceConstructor } from './base';
 
 export const REF_ID_STARTER_LOG_VOLUME = 'log-volume-';
+export const REF_ID_STARTER_LOG_SAMPLE = 'log-sample-';
 
 export function withSupplementaryQueries<T extends BaseQuickwitDataSourceConstructor> ( Base: T ){
   return class DSWithSupplementaryQueries extends Base implements DataSourceWithSupplementaryQueriesSupport<ElasticsearchQuery> {
@@ -39,6 +40,8 @@ export function withSupplementaryQueries<T extends BaseQuickwitDataSourceConstru
     switch (type) {
       case SupplementaryQueryType.LogsVolume:
         return this.getLogsVolumeDataProvider(request);
+      case SupplementaryQueryType.LogsSample:
+        return this.getLogsSampleDataProvider(request);
       default:
         return undefined;
     }
@@ -48,7 +51,7 @@ export function withSupplementaryQueries<T extends BaseQuickwitDataSourceConstru
    * Returns supplementary query types that data source supports.
    */
   getSupportedSupplementaryQueryTypes(): SupplementaryQueryType[] {
-    return [SupplementaryQueryType.LogsVolume];
+    return [SupplementaryQueryType.LogsVolume, SupplementaryQueryType.LogsSample];
   }
 
   /**
@@ -104,6 +107,18 @@ export function withSupplementaryQueries<T extends BaseQuickwitDataSourceConstru
           bucketAggs,
         };
 
+      case SupplementaryQueryType.LogsSample:
+        // For metric queries, provide sample log lines matching the same query
+        isQuerySuitable = !!(query.metrics && query.metrics.length >= 1 && query.metrics[0].type !== 'logs');
+        if (!isQuerySuitable) {
+          return undefined;
+        }
+        return {
+          refId: `${REF_ID_STARTER_LOG_SAMPLE}${query.refId}`,
+          query: query.query,
+          metrics: [{ type: 'logs', id: '1', settings: { limit: '20' } }],
+        };
+
       default:
         return undefined;
     }
@@ -128,6 +143,21 @@ export function withSupplementaryQueries<T extends BaseQuickwitDataSourceConstru
         extractLevel: (dataFrame: any) => getLogLevelFromKey(dataFrame || ''),
       }
     );
+  }
+
+  getLogsSampleDataProvider(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> | undefined {
+    const logsSampleRequest = cloneDeep(request);
+    const targets = logsSampleRequest.targets
+      .map((target) => this.getSupplementaryQuery({ type: SupplementaryQueryType.LogsSample }, target))
+      .filter((query): query is ElasticsearchQuery => !!query);
+
+    if (!targets.length) {
+      return undefined;
+    }
+
+    logsSampleRequest.targets = targets;
+    const queryObservable = this.query(logsSampleRequest);
+    return isObservable(queryObservable) ? queryObservable : from(queryObservable);
   }
   };
 }

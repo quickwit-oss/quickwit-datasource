@@ -200,15 +200,16 @@ export const metricAggregationConfig: MetricsConfiguration = {
     },
   },
   raw_document: {
-    label: 'Raw Document (deprecated)',
+    label: 'Raw Data',
     requiresField: false,
-    impliedQueryType: 'raw_document',
+    impliedQueryType: 'raw_data',
     isPipelineAgg: false,
     supportsMissing: false,
     supportsMultipleBucketPaths: false,
     hasSettings: true,
     supportsInlineScript: false,
     hasMeta: false,
+    hidden: true,
     defaults: {
       settings: {
         size: '100',

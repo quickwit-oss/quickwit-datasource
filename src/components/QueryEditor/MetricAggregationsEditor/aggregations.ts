@@ -70,7 +70,6 @@ export const METRIC_AGGREGATION_TYPES: MetricAggregationType[] = [
   'extended_stats',
   'percentiles',
   'cardinality',
-  'raw_document',
   'raw_data',
   'logs',
   'moving_avg',

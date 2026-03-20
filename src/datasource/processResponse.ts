@@ -1,7 +1,7 @@
 import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType } from "@grafana/data";
 import { getDataSourceSrv } from "@grafana/runtime";
 import { BaseQuickwitDataSource } from './base';
-import { DataLinkConfig, ElasticsearchQuery } from "../types";
+import { DataLinkConfig, ElasticsearchQuery, Logs } from "../types";
 
 export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, request: DataQueryRequest<ElasticsearchQuery>) {
   return {
@@ -9,7 +9,9 @@ export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, re
       response.data.forEach((dataFrame) => {
         const metrics = request.targets[0].metrics;
         if (metrics && metrics[0].type === 'logs') {
-          processLogsDataFrame(datasource, dataFrame);
+          const logsMetric = metrics[0] as Logs;
+          const selectedFields = logsMetric.settings?.selectedFields;
+          processLogsDataFrame(datasource, dataFrame, selectedFields);
         }
       });
       return response;
@@ -17,7 +19,7 @@ export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, re
   };
 }
 function getCustomFieldName(fieldname: string) { return `$qw_${fieldname}`; }
-export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFrame: DataFrame) {
+export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFrame: DataFrame, selectedFields?: string[]) {
   // Ignore log volume dataframe, no need to add links or a displayed message field.
   if (!dataFrame.refId || dataFrame.refId.startsWith('log-volume')) {
     return;
@@ -57,6 +59,17 @@ export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFra
     };
     const [timestamp, ...rest] = dataFrame.fields;
     dataFrame.fields = [timestamp, newField, ...rest];
+  }
+
+  // Filter fields if selectedFields is specified
+  if (selectedFields && selectedFields.length > 0) {
+    dataFrame.fields = dataFrame.fields.filter((field) => {
+      // Always keep the time field, sort field, and custom message field
+      if (field.type === FieldType.time || field.name === 'sort' || field.name.startsWith('$qw_')) {
+        return true;
+      }
+      return selectedFields.includes(field.name);
+    });
   }
 
   if (!datasource.dataLinks.length) {
