@@ -148,9 +148,17 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 			}
 		}
 
+		// Always set a unique id per row. Grafana's virtualized log panel uses
+		// LogRowModel.uid (derived from the "id" field) as a cache key for
+		// row height measurements. Without unique ids, rows sharing the same
+		// cache key cause an infinite resetAfterIndex loop. The source index
+		// may have an "id" field with non-unique values, so always overwrite.
+		doc["id"] = fmt.Sprintf("%d", hitIdx)
+
 		docs[hitIdx] = doc
 	}
 
+	propNames["id"] = true
 	sortedPropNames := sortPropNames(propNames, configuredFields, true)
 	fields := processDocsToDataFrameFields(docs, sortedPropNames, configuredFields)
 
@@ -1074,17 +1082,24 @@ func flatten(target map[string]interface{}) map[string]interface{} {
 // if shouldSortLogMessageField is true, and rest of propNames are ordered alphabetically
 func sortPropNames(propNames map[string]bool, configuredFields es.ConfiguredFields, shouldSortLogMessageField bool) []string {
 	hasTimeField := false
+	hasLogMessageField := false
 
 	var sortedPropNames []string
 	for k := range propNames {
 		if configuredFields.TimeField != "" && k == configuredFields.TimeField {
 			hasTimeField = true
+		} else if shouldSortLogMessageField && configuredFields.LogMessageField != "" && k == configuredFields.LogMessageField {
+			hasLogMessageField = true
 		} else {
 			sortedPropNames = append(sortedPropNames, k)
 		}
 	}
 
 	sort.Strings(sortedPropNames)
+
+	if hasLogMessageField {
+		sortedPropNames = append([]string{configuredFields.LogMessageField}, sortedPropNames...)
+	}
 
 	if hasTimeField {
 		sortedPropNames = append([]string{configuredFields.TimeField}, sortedPropNames...)
@@ -1099,6 +1114,9 @@ func findTheFirstNonNilDocValueForPropName(docs []map[string]interface{}, propNa
 		if doc[propName] != nil {
 			return doc[propName]
 		}
+	}
+	if len(docs) == 0 {
+		return nil
 	}
 	return docs[0][propName]
 }
