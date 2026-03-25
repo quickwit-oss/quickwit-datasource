@@ -14,6 +14,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      e2e-matrix: ${{ steps.resolve-versions.outputs.matrix }}
     steps:
       - uses: actions/checkout@v6
       - name: Setup Node.js environment
@@ -21,6 +23,12 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+
+      - name: Cache node_modules for future jobs
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         run: npm ci
@@ -33,15 +41,6 @@ jobs:
         run: npm run test:ci
       - name: Build frontend
         run: npm run build
-
-      - name: Start grafana docker
-        run: docker compose up -d
-
-      - name: Run e2e tests
-        run: npm run e2e
-
-      - name: Stop grafana docker
-        run: docker compose down
 
       - name: Check for backend
         id: check-for-backend
@@ -70,3 +69,69 @@ jobs:
         with:
           version: latest
           args: buildAll
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Resolve Grafana E2E versions
+        id: resolve-versions
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v1.2.1
+        with:
+          skip-grafana-react-19-preview-image: false
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        GRAFANA_IMAGE: ${{ fromJson(needs.build.outputs.e2e-matrix) }}
+        QUICKWIT_VERSION: [edge]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Restore executable permissions
+        run: chmod +x dist/gpx_quickwit_*
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Grafana (${{ matrix.GRAFANA_IMAGE.name }}:${{ matrix.GRAFANA_IMAGE.version }}) + Quickwit (${{ matrix.QUICKWIT_VERSION }})
+        run: docker compose up -d --build
+        env:
+          GRAFANA_VERSION: ${{ matrix.GRAFANA_IMAGE.version }}
+          GRAFANA_IMAGE: ${{ matrix.GRAFANA_IMAGE.name }}
+          QUICKWIT_VERSION: ${{ matrix.QUICKWIT_VERSION }}
+
+      - name: Wait for Grafana and Quickwit to start
+        run: |
+          timeout 60 bash -c 'until curl -sf http://localhost:3000/api/health; do sleep 2; done' || { docker compose logs grafana; exit 1; }
+          timeout 60 bash -c 'until curl -sf http://localhost:7280/health/readyz; do sleep 2; done' || { docker compose logs quickwit; exit 1; }
+
+      - name: Run e2e tests
+        run: npm run e2e
+
+      - name: Stop Grafana
+        if: always()
+        run: docker compose down
