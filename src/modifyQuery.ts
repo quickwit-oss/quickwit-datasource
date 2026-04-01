@@ -40,5 +40,5 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
       addHocFilter = `${key}:<${value}`;
       break;
   }
-  return concatenate(query, addHocFilter);
+  return concatenate(query, addHocFilter,'AND');
 }
