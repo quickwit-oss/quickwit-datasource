@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0
+
+### What's Changed
+
+- React 19 compatibility for Grafana 13
+- Add quick filters with value autocomplete and clearer filter operations
+- Add trace search and full trace rendering for OpenTelemetry trace indexes, with Grafana trace frames, service node graph, span events, exception stack traces, status/warning handling, service tags, peer service metadata, and stable per-service node colors
+- Add trace-to-logs and log-to-trace correlation links between separate Quickwit logs and traces datasources
+- Add datasource configuration fields for related logs/traces datasources
+- Add configurable filter autocomplete chain mode (no chain, sampled chain, full chain)
+- Add configurable filter autocomplete value limit (defaults to 1000, `0` for unlimited)
+- Show useful default log messages for OTEL logs when no message field is configured
+- Migrate e2e tests from Cypress to Playwright and add Quickwit datasource e2e test
+- Add Grafana version matrix to e2e tests
+- Fix Shift-Enter keymapping on latest Grafana versions
+- Fix missing `AND` when adding ad hoc filters
+- Document Grafana 12.1+ plugin installation with `GF_PLUGINS_PREINSTALL_SYNC`
+- Handle Grafana 13 overlays in e2e tests
+- Bump Go and Node dependencies to fix high vulnerabilities
+- Bump `grafana/plugin-actions/is-compatible` GitHub action
+
 ## 0.5.0
 
 ### What's Changed
