@@ -13,7 +13,6 @@ import {
 } from './actions';
 
 export const reducer = (state: ElasticsearchQuery['filters'], action: Action): ElasticsearchQuery['filters'] => {
-  // console.log('Running filters reducer with action:', action, state);
 
   if (addFilter.match(action)) {
     return [...state!, defaultFilter(action.payload)];

@@ -3,6 +3,7 @@ import { Observable, lastValueFrom, from, of, map, mergeMap } from 'rxjs';
 import {
   AbstractQuery,
   AdHocVariableFilter,
+  AppEvents,
   CoreApp,
   DataFrame,
   DataQueryRequest,
@@ -14,10 +15,12 @@ import {
   QueryFixAction,
   ScopedVars,
   TimeRange,
+  ToggleFilterAction,
 } from '@grafana/data';
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, TermsQuery, FieldCapabilitiesResponse } from '@/types';
 import {
   DataSourceWithBackend,
+  getAppEvents,
   getTemplateSrv,
   TemplateSrv } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
@@ -63,6 +66,18 @@ export class BaseQuickwitDataSource
     defaults?: DefaultsConfigOverrides
   };
   languageProvider: ElasticsearchLanguageProvider;
+  // Populated lazily by getFields(). Used by modifyQuery to pick an operator
+  // that's safe for the field's type (phrase queries require positions indexed,
+  // which Quickwit text fields don't have by default).
+  private fieldTypes: Record<string, string> = {};
+  // Tracks (key|value|operator) triples we've already warned about on this
+  // datasource instance so the same filter doesn't spam a toast on every
+  // dashboard re-render.
+  private warnedAdHocFilters: Set<string> = new Set();
+
+  getFieldType(name: string): string | undefined {
+    return this.fieldTypes[name];
+  }
 
 
   constructor(
@@ -79,6 +94,12 @@ export class BaseQuickwitDataSource
     this.queryEditorConfig = settingsData.queryEditorConfig || {};
     this.languageProvider = new ElasticsearchLanguageProvider(this);
     this.annotations = {};
+
+    // Warm the schema cache so modifyQuery can pick the right operator even when
+    // the query editor hasn't mounted (e.g. dashboard view mode). Fire-and-forget.
+    if (this.index) {
+      lastValueFrom(this.getFields()).catch(() => {});
+    }
   }
 
   query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
@@ -121,38 +142,84 @@ export class BaseQuickwitDataSource
     if (!action.options) {
       return query;
     }
-
-    const operationsMap: Record<string, string> = {
-      'ADD_FILTER': '=',
-      'ADD_FILTER_OUT': '!=',
-    };
-    const operation = operationsMap[action.type];
-
-    if (operation) {
-      // If the user has not added any filter, we can simply modify the last one (which is empty)
-      const len = query.filters?.length ?? 0;
-      if (len > 0) {
-        const last = query.filters![len - 1];
-        if (!isSet(last.filter.key) && !isSet(last.filter.value)) {
-          last.filter.key = action.options.key;
-          last.filter.operator = operation;
-          last.filter.value = action.options.value;
-          return query;
-        }
-      }
-
-      query.filters?.push({
-        id: newFilterId(),
-        hide: false,
-        filter: {
-          key: action.options.key,
-          operator: operation,
-          value: action.options.value,
-        },
-      });
-    } else {
+    if (action.type !== 'ADD_FILTER' && action.type !== 'ADD_FILTER_OUT') {
       console.warn('unsupported operation', action.type);
+      return query;
     }
+
+    const key = action.options.key;
+    const rawValue = String(action.options.value ?? '');
+    const negate = action.type === 'ADD_FILTER_OUT';
+    return this.addFilterToQuery(query, key, rawValue, negate);
+  }
+
+  /**
+   * Newer Grafana interface (DataSourceWithToggleableQueryFiltersSupport) used
+   * by the Logs panel in dashboards. Preferred over modifyQuery when present.
+   */
+  toggleQueryFilter(query: ElasticsearchQuery, filter: ToggleFilterAction): ElasticsearchQuery {
+    const key = filter.options.key;
+    const rawValue = String(filter.options.value ?? '');
+    const negate = filter.type === 'FILTER_OUT';
+
+    // If the same (key, value) filter is already present, toggle it off.
+    const existingIdx = (query.filters ?? []).findIndex(
+      (f) => f.filter.key === key && f.filter.value === rawValue
+    );
+    if (existingIdx !== -1) {
+      const next = [...(query.filters ?? [])];
+      next.splice(existingIdx, 1);
+      return { ...query, filters: next.length ? next : [{ id: newFilterId(), filter: { key: '', operator: '=', value: '' } }] };
+    }
+    return this.addFilterToQuery(query, key, rawValue, negate);
+  }
+
+  queryHasFilter(query: ElasticsearchQuery, filter: { key: string; value: string }): boolean {
+    return (query.filters ?? []).some(
+      (f) => f.filter.key === filter.key && f.filter.value === filter.value && !f.hide
+    );
+  }
+
+  private addFilterToQuery(query: ElasticsearchQuery, key: string, rawValue: string, negate: boolean): ElasticsearchQuery {
+    const fieldType = this.fieldTypes[key];
+    const isText = fieldType === 'text';
+
+    // Text field + value with whitespace: no single filter can represent this.
+    // Quickwit text fields lack positions so phrase fails, and `term` can't
+    // express whitespace. Warn the user and abort rather than add a broken or
+    // approximate filter.
+    if (isText && hasWhiteSpace(rawValue)) {
+      getAppEvents().publish({
+        type: AppEvents.alertWarning.name,
+        payload: [
+          `Cannot filter on "${key}"`,
+          `Quickwit text fields don't index positions by default, so "${rawValue}" can't be filtered as a phrase. Add this filter manually or edit the Lucene query.`,
+        ],
+      });
+      return query;
+    }
+
+    const value = rawValue;
+    const operator = isText && value !== ''
+      ? (negate ? 'not term' : 'term')
+      : (negate ? '!=' : '=');
+
+    // If the user hasn't populated any filter yet, reuse the trailing empty one.
+    const len = query.filters?.length ?? 0;
+    if (len > 0) {
+      const last = query.filters![len - 1];
+      if (!isSet(last.filter.key) && !isSet(last.filter.value)) {
+        last.filter.key = key;
+        last.filter.operator = operator;
+        last.filter.value = value;
+        return query;
+      }
+    }
+    query.filters?.push({
+      id: newFilterId(),
+      hide: false,
+      filter: { key, operator, value },
+    });
 
     return { ...query };
   }
@@ -195,6 +262,18 @@ export class BaseQuickwitDataSource
       end_timestamp: Math.ceil(range.to.valueOf()/SECOND),
     })).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
+        // Cache field → type on the datasource for modifyQuery to consult.
+        // Quickwit routes phrase queries to the text variant first on multi-indexed
+        // fields (text+keyword), and text fields don't index positions by default.
+        // So prefer 'text' when present — it drives safer operator choices downstream.
+        for (const [name, caps] of Object.entries(field_capabilities_response.fields)) {
+          const typeKeys = Object.keys(caps);
+          const chosen = typeKeys.includes('text') ? 'text' : typeKeys[0];
+          if (chosen) {
+            this.fieldTypes[name] = chosen;
+          }
+        }
+
         const shouldAddField = (field: any) => {
           if (spec.aggregatable !== undefined && field.aggregatable !== spec.aggregatable) {
             return false
@@ -386,7 +465,6 @@ export class BaseQuickwitDataSource
     };
 
     const finalQuery = JSON.parse(this.templateSrv.replace(JSON.stringify(expandedQuery), scopedVars));
-    console.log('Final query', finalQuery.query)
     return finalQuery;
   }
 
@@ -396,7 +474,42 @@ export class BaseQuickwitDataSource
     }
     let finalQuery = query;
     adhocFilters.forEach((filter) => {
-      finalQuery = addAddHocFilter(finalQuery, filter);
+      const fieldType = this.fieldTypes[filter.key];
+      const isText = fieldType === 'text';
+      const value = filter.value ?? '';
+
+      // Text field + whitespace value + phrase operator would emit a phrase query,
+      // which fails on Quickwit text fields without positions indexed. Skip the
+      // filter — better a no-op than a broken panel. Fire a toast once per
+      // (key|value|operator) so the user knows why it's not applying, without
+      // spamming on every dashboard render.
+      if (isText && hasWhiteSpace(value) && (filter.operator === '=' || filter.operator === '!=')) {
+        const dedupKey = `${filter.key}|${value}|${filter.operator}`;
+        if (!this.warnedAdHocFilters.has(dedupKey)) {
+          this.warnedAdHocFilters.add(dedupKey);
+          getAppEvents().publish({
+            type: AppEvents.alertWarning.name,
+            payload: [
+              `Filter on "${filter.key}" was skipped`,
+              `Quickwit text fields don't index positions by default, so "${value}" can't be filtered as a phrase. Edit the Lucene query directly for this case.`,
+            ],
+          });
+        }
+        return;
+      }
+
+      // For text fields with single-token values, upgrade '=' to 'term' (and
+      // '!=' to 'not term') so the emitted query doesn't require positions.
+      let effective = filter;
+      if (isText && !hasWhiteSpace(value)) {
+        if (filter.operator === '=') {
+          effective = { ...filter, operator: 'term' };
+        } else if (filter.operator === '!=') {
+          effective = { ...filter, operator: 'not term' };
+        }
+      }
+
+      finalQuery = addAddHocFilter(finalQuery, effective);
     });
 
     return finalQuery;
