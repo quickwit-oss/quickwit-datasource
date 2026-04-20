@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0
+
+### What's Changed
+
+- React 19 compatibility for Grafana 13
+- Migrate e2e tests from Cypress to Playwright and add Quickwit datasource e2e test
+- Add Grafana version matrix to e2e tests
+- Fix Shift-Enter keymapping on latest Grafana versions
+- Bump Go and Node dependencies to fix high vulnerabilities
+- Bump `grafana/plugin-actions/is-compatible` GitHub action
+
 ## 0.5.0
 
 ### What's Changed

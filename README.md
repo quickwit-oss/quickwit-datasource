@@ -4,11 +4,12 @@
 
 The Quickwit data source plugin allows you to query and visualize Quickwit data from within Grafana.
 
-## 🎉 What's New in v0.5.0
+## 🎉 What's New in v0.6.0
 
-- **Grafana 11.x Support**
-- **Fixed Adhoc Filters**: Improved adhoc filters feature for dynamic query building
-- **Enhanced Stability**: Various bug fixes and improvements
+- **Grafana 12.1+ and 13 Support** (React 19 compatibility)
+- **Playwright e2e tests** replacing Cypress, with a Grafana version matrix
+- **Fixed Shift-Enter keymapping** on latest Grafana versions
+- **Security updates**: Go and Node dependency bumps
 
 It is available for installation directly from the
 [Grafana catalog](https://grafana.com/grafana/plugins/quickwit-quickwit-datasource/) until version 0.4.5
@@ -17,40 +18,39 @@ or you can download the latest version and follow the
 
 ## Version compatibility
 
-We recommend Grafana v10.X or v11.X.
+We recommend Grafana v12.1+ or v13.
 
 Quickwit 0.7 is compatible with 0.3.x versions only.
 
-Quickwit 0.8 is compatible with 0.4.x and 0.5.x versions.
+Quickwit 0.8 is compatible with 0.4.x, 0.5.x and 0.6.x versions.
 
-- **v0.5.x** (Latest): Grafana 11.x with improved adhoc filters
-- **v0.4.x**: Grafana 10.x  
+- **v0.6.x** (Latest): Grafana 12.1+ and 13 (React 19)
+- **v0.5.x**: Grafana 11.x
+- **v0.4.x**: Grafana 10.x
 - **v0.3.x**: Grafana 9.x / Quickwit 0.7
 
 ## Installation
 
-You can either download the plugin manually and unzip it into the plugin directory or use the env variable `GF_INSTALL_PLUGINS` to install it.
+You can either download the plugin manually and unzip it into the plugin directory, or use a Grafana env variable to install it. Note that `GF_INSTALL_PLUGINS` is **deprecated since Grafana 12.1** — use `GF_PLUGINS_PREINSTALL_SYNC` instead on recent versions.
 
-### 0.5.0 (Latest) for Quickwit 0.8 + Grafana 12.1
+### 0.6.0 (Latest) for Quickwit 0.8 + Grafana 12.1+ / 13
 
-`GF_INSTALL_PLUGINS` has been deprecated since 12.1. `GF_PLUGINS_PREINSTALL_SYNC` must be used instead
-
-Run `grafana` container with the env variable:
+Run `grafana` container with the env variable (format: `<plugin-id>@<version>@<url>`):
 
 ```bash
-docker run -p 3000:3000 -e GF_PLUGINS_PREINSTALL_SYNC="quickwit-quickwit-datasource@0.5.0@https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5.0/quickwit-quickwit-datasource-0.5.0.zip" grafana/grafana run
+docker run -p 3000:3000 -e GF_PLUGINS_PREINSTALL_SYNC="quickwit-quickwit-datasource@0.6.0@https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.6.0/quickwit-quickwit-datasource-0.6.0.zip" grafana/grafana run
 ```
 
 Or download the plugin manually and start Grafana
 
 ```bash
-wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5.0/quickwit-quickwit-datasource-0.5.0.zip
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.6.0/quickwit-quickwit-datasource-0.6.0.zip
 mkdir -p plugins
-unzip quickwit-quickwit-datasource-0.5.0.zip -d plugins/quickwit-quickwit-datasource-0.5.0
+unzip quickwit-quickwit-datasource-0.6.0.zip -d plugins/quickwit-quickwit-datasource-0.6.0
 docker run -p 3000:3000 -e GF_PATHS_PLUGINS=/data/plugins -v ${PWD}/plugins:/data/plugins grafana/grafana run
 ```
 
-### 0.5.0 (Latest) for Quickwit 0.8 + Grafana 11
+### 0.5.0 for Quickwit 0.8 + Grafana 11
 
 Run `grafana` container with the env variable:
 
