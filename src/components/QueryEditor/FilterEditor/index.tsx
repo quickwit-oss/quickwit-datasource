@@ -1,12 +1,13 @@
-import React, { useRef } from 'react';
+import React from 'react';
 
 import { useDispatch } from '@/hooks/useStatelessReducer';
 import { IconButton } from '../../IconButton';
-import { useQuery } from '../ElasticsearchQueryContext';
+import { useDatasource, useQuery, useRange } from '../ElasticsearchQueryContext';
 import { QueryEditorRow } from '../QueryEditorRow';
 
 import { QueryFilter } from '@/types';
-import { InlineSegmentGroup, Input, Segment, SegmentAsync, Tooltip } from '@grafana/ui';
+import { Icon, InlineSegmentGroup, Segment, SegmentAsync, Tooltip } from '@grafana/ui';
+import { MetricFindValue, SelectableValue } from '@grafana/data';
 import {
   addFilter,
   removeFilter,
@@ -18,7 +19,7 @@ import {
 import { segmentStyles } from '@/components/QueryEditor/styles';
 import { useFields } from '@/hooks/useFields';
 import { newFilterId } from '@/utils/uid';
-import { filterOperations } from '@/queryDef';
+import { categorizeFieldType, filterOperations, filterOperationsFor } from '@/queryDef';
 import { hasWhiteSpace, isSet } from '@/utils';
 
 interface FilterEditorProps {
@@ -95,8 +96,24 @@ interface FilterEditorRowProps {
 
 export const FilterEditorRow = ({ value, onSubmit }: FilterEditorRowProps) => {
   const dispatch = useDispatch();
+  const datasource = useDatasource();
+  const range = useRange();
   const getFields = useFields('filters', 'startsWith');
-  const valueInputRef = useRef<HTMLInputElement>(null);
+
+  const fieldCategory = categorizeFieldType(datasource.getFieldType?.(value.filter.key));
+  const visibleOperations = filterOperationsFor(fieldCategory);
+
+  const loadValues = async (query?: string): Promise<Array<SelectableValue<string>>> => {
+    if (!isSet(value.filter.key) || !datasource.getTagValues) {
+      return [];
+    }
+    const values: MetricFindValue[] = await datasource.getTagValues({ key: value.filter.key, timeRange: range });
+    const q = query?.toLowerCase();
+    return values
+      .map((v) => String(v.text))
+      .filter((text) => !q || text.toLowerCase().includes(q))
+      .map((text) => ({ label: text, value: text }));
+  };
 
   return (
     <>
@@ -107,20 +124,26 @@ export const FilterEditorRow = ({ value, onSubmit }: FilterEditorRowProps) => {
           loadOptions={getFields}
           reloadOptionsOnChange={true}
           onChange={(e) => {
-            dispatch(changeFilterField({ id: value.id, field: e.value ?? '' }));
+            const newKey = e.value ?? '';
+            dispatch(changeFilterField({ id: value.id, field: newKey }));
+            // If the currently selected operator isn't valid for the new field,
+            // reset it to the first valid one so the UI stays consistent.
+            const newCategory = categorizeFieldType(datasource.getFieldType?.(newKey));
+            const allowed = filterOperationsFor(newCategory);
+            if (!allowed.some((op) => op.value === value.filter.operator)) {
+              dispatch(changeFilterOperation({ id: value.id, op: allowed[0].value }));
+            }
             if (['exists', 'not exists'].includes(value.filter.operator) || isSet(value.filter.value)) {
               onSubmit();
             }
-            // Auto focus the value input when a field is selected
-            setTimeout(() => valueInputRef.current?.focus(), 100);
           }}
           placeholder="Select Field"
           value={value.filter.key}
         />
-        <div style={{ whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
           <Segment
             value={filterOperations.find((op) => op.value === value.filter.operator)}
-            options={filterOperations}
+            options={visibleOperations}
             onChange={(e) => {
               let op = e.value ?? filterOperations[0].value;
               dispatch(changeFilterOperation({ id: value.id, op: op }));
@@ -129,17 +152,31 @@ export const FilterEditorRow = ({ value, onSubmit }: FilterEditorRowProps) => {
               }
             }}
           />
+          <Tooltip
+            content={
+              <div>
+                <div><strong>is</strong> / <strong>is not</strong> — phrase match. On a <em>keyword</em> field this is exact equality; on a <em>text</em> field it matches a contiguous sequence of tokens anywhere in the value.</div>
+                <div style={{ marginTop: 4 }}><strong>contains</strong> / <strong>does not contain</strong> — single-token match (no whitespace allowed). On a <em>keyword</em> field this is exact equality; on a <em>text</em> field it matches any document whose analyzed tokens include this term. Not a substring match — &ldquo;germ&rdquo; will not match &ldquo;germany&rdquo;.</div>
+                <div style={{ marginTop: 4 }}><strong>&gt;</strong> / <strong>&lt;</strong> — numeric or date range. Shown only for numeric and date fields.</div>
+                <div style={{ marginTop: 4 }}><strong>exists</strong> / <strong>does not exist</strong> — presence check, no value needed.</div>
+              </div>
+            }
+            placement="top"
+          >
+            <Icon name="info-circle" size="xs" style={{ cursor: 'help', opacity: 0.6 }} />
+          </Tooltip>
         </div>
         {!['exists', 'not exists'].includes(value.filter.operator) && (
-          <Input
-            ref={valueInputRef}
+          <SegmentAsync
+            allowCustomValue={true}
+            className={segmentStyles}
+            loadOptions={loadValues}
+            reloadOptionsOnChange={true}
             placeholder="Value"
             value={value.filter.value}
-            onChange={(e) => dispatch(changeFilterValue({ id: value.id, value: e.currentTarget.value }))}
-            onKeyUp={(e) => {
-              if (e.key === 'Enter') {
-                onSubmit();
-              }
+            onChange={(e) => {
+              dispatch(changeFilterValue({ id: value.id, value: e.value ?? '' }));
+              onSubmit();
             }}
           />
         )}
