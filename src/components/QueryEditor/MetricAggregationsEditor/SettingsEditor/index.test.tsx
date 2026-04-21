@@ -27,6 +27,7 @@ describe('Settings Editor', () => {
           },
         ],
         bucketAggs: [],
+        filters: [],
       };
 
       const onChange = jest.fn();
@@ -102,6 +103,7 @@ describe('Settings Editor', () => {
           },
         ],
         bucketAggs: [],
+        filters: [],
       };
 
       const onChange = jest.fn();
