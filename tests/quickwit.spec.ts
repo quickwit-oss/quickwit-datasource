@@ -1,4 +1,5 @@
 import { test, expect } from '@grafana/plugin-e2e';
+import type { Page } from '@playwright/test';
 
 // Grafana (inside Docker) reaches Quickwit via the docker service name.
 // The test process (on the host) reaches the same Quickwit via localhost port mapping.
@@ -20,17 +21,22 @@ test.afterEach(async () => {
 
 test('create datasource and explore logs', async ({ page }) => {
   let datasourceUid: string;
+  const quickwitDatasourceButton = page.locator('button').filter({ hasText: /^Quickwit$/ }).first();
 
   await test.step('look for the plugin in the list of datasources', async () => {
     await page.goto('/connections/datasources/new');
+    await dismissWhatsNewModal(page);
     await page.getByPlaceholder('Filter by name or type').fill('quickwit');
-    await expect(page.getByText('Quickwit', { exact: true })).toBeVisible();
+    await expect(quickwitDatasourceButton).toBeVisible();
   });
 
   await test.step('create datasource via UI', async () => {
     await page.goto('/connections/datasources/new');
+    await dismissWhatsNewModal(page);
     await page.getByPlaceholder('Filter by name or type').fill('quickwit');
-    await page.getByText('Quickwit', { exact: true }).click();
+    // Grafana 13 sometimes leaves a portal overlay mounted above the picker.
+    // Force the click once the correct button is resolved.
+    await quickwitDatasourceButton.click({ force: true });
 
     // Wait for the config form to load
     await expect(page.getByText('Index settings')).toBeVisible();
@@ -104,5 +110,17 @@ async function ingestDummyLogs(runId: string) {
   const { num_hits } = await search.json();
   if (num_hits === 0) {
     throw new Error('Ingest failed: no searchable logs');
+  }
+}
+
+async function dismissWhatsNewModal(page: Page) {
+  const dialog = page.getByRole('dialog', { name: "What's new in Grafana" });
+  const closeButton = dialog.getByRole('button', { name: 'Close' });
+
+  await closeButton.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+
+  if (await dialog.isVisible().catch(() => false)) {
+    await closeButton.click({ force: true });
+    await expect(dialog).toBeHidden({ timeout: 10000 });
   }
 }
