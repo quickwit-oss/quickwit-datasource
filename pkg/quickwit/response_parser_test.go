@@ -253,22 +253,31 @@ func TestProcessLogsResponse(t *testing.T) {
 		require.Len(t, dataframes, 1)
 		frame := dataframes[0]
 
-		require.Equal(t, 11, len(frame.Fields))
+		require.Equal(t, 12, len(frame.Fields))
 		// Fields have the correct length
 		require.Equal(t, 2, frame.Fields[0].Len())
+
+		fieldMap := make(map[string]*data.Field)
+		for _, f := range frame.Fields {
+			fieldMap[f.Name] = f
+		}
+
 		// First field is timeField
+		require.Equal(t, "@timestamp", frame.Fields[0].Name)
 		require.Equal(t, data.FieldTypeNullableTime, frame.Fields[0].Type())
+		// Second field is logMessageField
+		require.Equal(t, "line", frame.Fields[1].Name)
 		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
-		require.Equal(t, "line", frame.Fields[4].Name)
-		// Correctly uses string types
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[1].Type())
+		// Synthetic id field added for log row uid stability
+		require.Contains(t, fieldMap, "id")
+		require.Equal(t, data.FieldTypeNullableString, fieldMap["id"].Type())
 		// Correctly detects float64 types
-		require.Equal(t, data.FieldTypeNullableFloat64, frame.Fields[2].Type())
+		require.Equal(t, data.FieldTypeNullableFloat64, fieldMap["float"].Type())
 		// Correctly flattens fields
-		require.Equal(t, "nested.field.double_nested", frame.Fields[7].Name)
-		require.Equal(t, data.FieldTypeNullableString, frame.Fields[7].Type())
+		require.Contains(t, fieldMap, "nested.field.double_nested")
+		require.Equal(t, data.FieldTypeNullableString, fieldMap["nested.field.double_nested"].Type())
 		// Correctly detects type even if first value is null
-		require.Equal(t, data.FieldTypeNullableJSON, frame.Fields[9].Type())
+		require.Equal(t, data.FieldTypeNullableJSON, fieldMap["shapes"].Type())
 	})
 }
 

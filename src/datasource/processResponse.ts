@@ -1,4 +1,4 @@
-import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType } from "@grafana/data";
+import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse } from "@grafana/data";
 import { getDataSourceSrv } from "@grafana/runtime";
 import { BaseQuickwitDataSource } from './base';
 import { DataLinkConfig, ElasticsearchQuery } from "../types";
@@ -16,47 +16,15 @@ export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, re
     }
   };
 }
-function getCustomFieldName(fieldname: string) { return `$qw_${fieldname}`; }
+
 export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFrame: DataFrame) {
-  // Ignore log volume dataframe, no need to add links or a displayed message field.
+  // Ignore log volume dataframe, no need to add links.
   if (!dataFrame.refId || dataFrame.refId.startsWith('log-volume')) {
     return;
   }
   // Skip empty dataframes
   if (dataFrame.length===0 || dataFrame.fields.length === 0) {
     return;
-  }
-  if (datasource.logMessageField) {
-    const messageFields = datasource.logMessageField.split(',');
-    let field_idx_list = [];
-    for (const messageField of messageFields) {
-      const field_idx = dataFrame.fields.findIndex((field) => field.name === messageField);
-      if (field_idx !== -1) {
-        field_idx_list.push(field_idx);
-      }
-    }
-    const displayedMessages = Array(dataFrame.length);
-    for (let idx = 0; idx < dataFrame.length; idx++) {
-      let displayedMessage = "";
-      // If we have only one field, we assume the field name is obvious for the user and we don't need to show it.
-      if (field_idx_list.length === 1) {
-        displayedMessage = `${dataFrame.fields[field_idx_list[0]].values[idx]}`;
-      } else {
-        for (const field_idx of field_idx_list) {
-          displayedMessage += ` ${dataFrame.fields[field_idx].name}=${dataFrame.fields[field_idx].values[idx]}`;
-        }
-      }
-      displayedMessages[idx] = displayedMessage.trim();
-    }
-
-    const newField: Field = {
-      name: getCustomFieldName('message'),
-      type: FieldType.string,
-      config: {},
-      values: displayedMessages,
-    };
-    const [timestamp, ...rest] = dataFrame.fields;
-    dataFrame.fields = [timestamp, newField, ...rest];
   }
 
   if (!datasource.dataLinks.length) {
@@ -71,9 +39,10 @@ export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFra
     }
 
     field.config = field.config || {};
-    field.config.links = [...(field.config.links || [], linksToApply.map(generateDataLink))];
+    field.config.links = [...(field.config.links || []), ...linksToApply.map(generateDataLink)];
   }
 }
+
 function generateDataLink(linkConfig: DataLinkConfig): DataLink {
   const dataSourceSrv = getDataSourceSrv();
 
