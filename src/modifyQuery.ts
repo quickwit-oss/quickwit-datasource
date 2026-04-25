@@ -40,9 +40,11 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
       }
       const modifier = filter.operator === '=' ? '' : '-';
       const key = escapeFilter(filter.key);
-      const termFilters = arrayElements.map((el) => `${modifier}${key}:${escapeFilterValue(el)}`);
-      const combined = termFilters.join(' OR ');
-      return concatenate(query, combined, 'AND');
+      if (arrayElements.length === 1) {
+        return concatenate(query, `${modifier}${key}:${escapeFilterValue(arrayElements[0])}`, 'AND');
+      }
+      const terms = arrayElements.map((el) => `"${escapeFilterValue(el)}"`).join(' ');
+      return concatenate(query, `${modifier}${key}:IN [${terms}]`, 'AND');
     }
     return LuceneQuery.parse(query).addFilter(filter.key, filter.value, filter.operator === '=' ? '' : '-').toString();
   }
