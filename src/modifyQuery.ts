@@ -1,6 +1,21 @@
 import { escapeFilter, escapeFilterValue, concatenate, LuceneQuery } from 'utils/lucene';
 import { AdHocVariableFilter } from '@grafana/data';
 
+function tryParseJsonArray(value: string): string[] | null {
+  if (!value.startsWith('[')) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed) && parsed.every((el) => typeof el === 'string')) {
+      return parsed;
+    }
+  } catch {
+    // not valid JSON
+  }
+  return null;
+}
+
 /**
  * Adds a label:"value" expression to the query.
  */
@@ -18,6 +33,17 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
 
   const equalityFilters = ['=', '!='];
   if (equalityFilters.includes(filter.operator)) {
+    const arrayElements = tryParseJsonArray(filter.value);
+    if (arrayElements !== null) {
+      if (arrayElements.length === 0) {
+        return query;
+      }
+      const modifier = filter.operator === '=' ? '' : '-';
+      const key = escapeFilter(filter.key);
+      const termFilters = arrayElements.map((el) => `${modifier}${key}:${escapeFilterValue(el)}`);
+      const combined = termFilters.join(' OR ');
+      return concatenate(query, combined, 'AND');
+    }
     return LuceneQuery.parse(query).addFilter(filter.key, filter.value, filter.operator === '=' ? '' : '-').toString();
   }
   /**
