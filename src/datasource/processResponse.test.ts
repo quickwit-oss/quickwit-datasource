@@ -22,7 +22,7 @@ function makeDatasource(overrides: { logMessageField?: string; dataLinks?: any[]
 
 describe('processLogsDataFrame', () => {
   describe('with logMessageField configured', () => {
-    it('inserts synthetic $qw_message field from configured field', () => {
+    it('uses configured field value', () => {
       const ds = makeDatasource({ logMessageField: 'line' });
       const df = makeDataFrame([
         makeField('timestamp', FieldType.time, [1000, 2000]),
@@ -32,7 +32,6 @@ describe('processLogsDataFrame', () => {
 
       processLogsDataFrame(ds, df);
 
-      expect(df.fields[0].name).toBe('timestamp');
       expect(df.fields[1].name).toBe('$qw_message');
       expect(df.fields[1].values).toEqual(['hello world', 'goodbye world']);
     });
@@ -52,35 +51,139 @@ describe('processLogsDataFrame', () => {
       expect(df.fields[1].values[0]).toBe('method=GET path=/blog status=200');
     });
 
-    it('inserts empty $qw_message when configured field does not exist', () => {
+    it('falls back when configured field does not exist', () => {
       const ds = makeDatasource({ logMessageField: 'nonexistent' });
       const df = makeDataFrame([
         makeField('timestamp', FieldType.time, [1000]),
-        makeField('line', FieldType.string, ['hello']),
+        makeField('body.message', FieldType.string, ['the real message']),
       ]);
 
       processLogsDataFrame(ds, df);
 
-      // $qw_message is still inserted but with empty values
       expect(df.fields[1].name).toBe('$qw_message');
-      expect(df.fields[1].values[0]).toBe('');
+      expect(df.fields[1].values[0]).toBe('the real message');
+    });
+
+    it('falls back when configured field value is empty for a row', () => {
+      const ds = makeDatasource({ logMessageField: 'line' });
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000, 2000]),
+        makeField('line', FieldType.string, ['has content', '']),
+        makeField('body.message', FieldType.string, ['', 'fallback message']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      expect(df.fields[1].name).toBe('$qw_message');
+      expect(df.fields[1].values[0]).toBe('has content');
+      expect(df.fields[1].values[1]).toBe('fallback message');
     });
   });
 
-  describe('without logMessageField configured', () => {
-    it('does not insert any synthetic field', () => {
+  describe('OTEL fallback (no logMessageField)', () => {
+    it('picks body.message when present', () => {
+      const ds = makeDatasource();
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('body.message', FieldType.string, ['GET /assets/app.js HTTP/1.1 200']),
+        makeField('body.stream', FieldType.string, ['stdout']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      expect(df.fields[1].name).toBe('$qw_message');
+      expect(df.fields[1].values[0]).toBe('GET /assets/app.js HTTP/1.1 200');
+    });
+
+    it('picks attributes.message when body.message is absent', () => {
+      const ds = makeDatasource();
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('attributes.message', FieldType.string, ['SSO user already exists']),
+        makeField('attributes.severity', FieldType.string, ['INFO']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      expect(df.fields[1].name).toBe('$qw_message');
+      expect(df.fields[1].values[0]).toBe('SSO user already exists');
+    });
+
+    it('prefers body.message over attributes.message', () => {
+      const ds = makeDatasource();
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('body.message', FieldType.string, ['from body']),
+        makeField('attributes.message', FieldType.string, ['from attributes']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      expect(df.fields[1].name).toBe('$qw_message');
+      expect(df.fields[1].values[0]).toBe('from body');
+    });
+
+    it('builds key=value summary when no well-known fields exist', () => {
+      const ds = makeDatasource();
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('attributes.method', FieldType.string, ['GET']),
+        makeField('attributes.path', FieldType.string, ['/blog']),
+        makeField('attributes.status', FieldType.number, [200]),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      expect(df.fields[1].name).toBe('$qw_message');
+      expect(df.fields[1].values[0]).toBe('method=GET path=/blog status=200');
+    });
+
+    it('strips attributes. prefix in key=value summary', () => {
       const ds = makeDatasource();
       const df = makeDataFrame([
         makeField('timestamp', FieldType.time, [1000]),
         makeField('attributes.controller', FieldType.string, ['BlogController']),
-        makeField('attributes.method', FieldType.string, ['GET']),
       ]);
 
       processLogsDataFrame(ds, df);
 
-      // No $qw_message field — current behavior is to do nothing
-      const fieldNames = df.fields.map((f) => f.name);
-      expect(fieldNames).not.toContain('$qw_message');
+      expect(df.fields[1].values[0]).toBe('controller=BlogController');
+    });
+
+    it('skips metadata fields in key=value summary', () => {
+      const ds = makeDatasource();
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('attributes.method', FieldType.string, ['GET']),
+        makeField('attributes.pod_name', FieldType.string, ['rx-production-abc123']),
+        makeField('attributes.node_labels.arch', FieldType.string, ['amd64']),
+        makeField('sort', FieldType.other, [[1684398201000]]),
+        makeField('severity_text', FieldType.string, ['INFO']),
+        makeField('body.stream', FieldType.string, ['stdout']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      expect(df.fields[1].name).toBe('$qw_message');
+      expect(df.fields[1].values[0]).toBe('method=GET');
+    });
+
+    it('handles mixed log types per row', () => {
+      const ds = makeDatasource();
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000, 2000, 3000]),
+        makeField('attributes.message', FieldType.string, ['SSO login', '', '']),
+        makeField('attributes.method', FieldType.string, ['', 'GET', '']),
+        makeField('attributes.path', FieldType.string, ['', '/blog', '']),
+        makeField('body.message', FieldType.string, ['', '', 'raw nginx log line']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      expect(df.fields[1].name).toBe('$qw_message');
+      expect(df.fields[1].values[0]).toBe('SSO login');
+      expect(df.fields[1].values[1]).toBe('method=GET path=/blog');
+      expect(df.fields[1].values[2]).toBe('raw nginx log line');
     });
   });
 
@@ -106,7 +209,6 @@ describe('processLogsDataFrame', () => {
 
       processLogsDataFrame(ds, df);
 
-      // Should not have inserted $qw_message
       const fieldNames = df.fields.map((f) => f.name);
       expect(fieldNames).not.toContain('$qw_message');
     });
