@@ -33,6 +33,11 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
 
   const equalityFilters = ['=', '!='];
   if (equalityFilters.includes(filter.operator)) {
+    // Grafana stringifies array values (e.g. ["paperclip","stapler"]) before
+    // passing them as filter values. Tantivy indexes array elements as
+    // individual terms — there's no way to match on array length, order, or
+    // exact composition. For multi-element arrays we use IN (match any),
+    // which is the most useful behavior for log exploration filters.
     const arrayElements = tryParseJsonArray(filter.value);
     if (arrayElements !== null) {
       if (arrayElements.length === 0) {
