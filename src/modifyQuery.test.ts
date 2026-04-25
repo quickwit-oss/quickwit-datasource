@@ -11,22 +11,31 @@ describe('addAddHocFilter', () => {
       expect(result).toBe('attributes.tags:paperclip');
     });
 
-    it('unwraps multi-element array into OR of term queries', () => {
+    it('unwraps multi-element array into IN set query', () => {
       const result = addAddHocFilter('', {
         key: 'attributes.tags',
         operator: '=',
         value: '["paperclip","stapler"]',
       });
-      expect(result).toBe('attributes.tags:paperclip OR attributes.tags:stapler');
+      expect(result).toBe('attributes.tags:IN ["paperclip" "stapler"]');
     });
 
-    it('negated array produces negated term queries', () => {
+    it('negated single-element array produces negated term query', () => {
       const result = addAddHocFilter('', {
         key: 'attributes.tags',
         operator: '!=',
         value: '["paperclip"]',
       });
       expect(result).toBe('-attributes.tags:paperclip');
+    });
+
+    it('negated multi-element array produces negated IN set query', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.tags',
+        operator: '!=',
+        value: '["paperclip","stapler"]',
+      });
+      expect(result).toBe('-attributes.tags:IN ["paperclip" "stapler"]');
     });
 
     it('appends array filter to existing query with AND', () => {
