@@ -3,7 +3,6 @@ import { Observable, lastValueFrom, from, of, map, mergeMap } from 'rxjs';
 import {
   AbstractQuery,
   AdHocVariableFilter,
-  AppEvents,
   CoreApp,
   DataFrame,
   DataQueryRequest,
@@ -20,7 +19,6 @@ import {
 import { BucketAggregation, DataLinkConfig, ElasticsearchQuery, TermsQuery, FieldCapabilitiesResponse } from '@/types';
 import {
   DataSourceWithBackend,
-  getAppEvents,
   getTemplateSrv,
   TemplateSrv } from '@grafana/runtime';
 import { QuickwitOptions } from 'quickwit';
@@ -31,7 +29,7 @@ import { isMetricAggregationWithField } from 'components/QueryEditor/MetricAggre
 import { bucketAggregationConfig } from 'components/QueryEditor/BucketAggregationsEditor/utils';
 import { isBucketAggregationWithField } from 'components/QueryEditor/BucketAggregationsEditor/aggregations';
 import ElasticsearchLanguageProvider from 'LanguageProvider';
-import { fieldTypeMap, hasWhiteSpace } from 'utils';
+import { fieldTypeMap, hasWhiteSpace, isSimpleToken } from 'utils';
 import { addAddHocFilter } from 'modifyQuery';
 import { getQueryResponseProcessor } from 'datasource/processResponse';
 
@@ -67,13 +65,8 @@ export class BaseQuickwitDataSource
   };
   languageProvider: ElasticsearchLanguageProvider;
   // Populated lazily by getFields(). Used by modifyQuery to pick an operator
-  // that's safe for the field's type (phrase queries require positions indexed,
-  // which Quickwit text fields don't have by default).
+  // that matches text field semantics.
   private fieldTypes: Record<string, string> = {};
-  // Tracks (key|value|operator) triples we've already warned about on this
-  // datasource instance so the same filter doesn't spam a toast on every
-  // dashboard re-render.
-  private warnedAdHocFilters: Set<string> = new Set();
 
   getFieldType(name: string): string | undefined {
     return this.fieldTypes[name];
@@ -184,23 +177,9 @@ export class BaseQuickwitDataSource
     const fieldType = this.fieldTypes[key];
     const isText = fieldType === 'text';
 
-    // Text field + value with whitespace: no single filter can represent this.
-    // Quickwit text fields lack positions so phrase fails, and `term` can't
-    // express whitespace. Warn the user and abort rather than add a broken or
-    // approximate filter.
-    if (isText && hasWhiteSpace(rawValue)) {
-      getAppEvents().publish({
-        type: AppEvents.alertWarning.name,
-        payload: [
-          `Cannot filter on "${key}"`,
-          `Quickwit text fields don't index positions by default, so "${rawValue}" can't be filtered as a phrase. Add this filter manually or edit the Lucene query.`,
-        ],
-      });
-      return query;
-    }
-
     const value = rawValue;
-    const operator = isText && value !== ''
+    const useTermOperator = isText && value !== '' && isSimpleToken(value);
+    const operator = useTermOperator
       ? (negate ? 'not term' : 'term')
       : (negate ? '!=' : '=');
 
@@ -314,7 +293,7 @@ export class BaseQuickwitDataSource
   /**
    * Get tag keys for adhoc filters
    */
-  getTagKeys(options: any) {
+  getTagKeys(options: any = {}) {
     const fields = this.getFields({aggregatable:true, range: options.timeRange})
     return lastValueFrom(fields, {defaultValue:[]});
   }
@@ -323,7 +302,8 @@ export class BaseQuickwitDataSource
    * Get tag values for adhoc filters
    */
   getTagValues(options: any) {
-    const terms = this.getTerms({ field: options.key }, options.timeRange)
+    const query = this.addAdHocFilters('', options.filters);
+    const terms = this.getTerms({ field: options.key, query }, options.timeRange)
     return lastValueFrom(terms, {defaultValue:[]});
   }
 
@@ -478,30 +458,10 @@ export class BaseQuickwitDataSource
       const isText = fieldType === 'text';
       const value = filter.value ?? '';
 
-      // Text field + whitespace value + phrase operator would emit a phrase query,
-      // which fails on Quickwit text fields without positions indexed. Skip the
-      // filter — better a no-op than a broken panel. Fire a toast once per
-      // (key|value|operator) so the user knows why it's not applying, without
-      // spamming on every dashboard render.
-      if (isText && hasWhiteSpace(value) && (filter.operator === '=' || filter.operator === '!=')) {
-        const dedupKey = `${filter.key}|${value}|${filter.operator}`;
-        if (!this.warnedAdHocFilters.has(dedupKey)) {
-          this.warnedAdHocFilters.add(dedupKey);
-          getAppEvents().publish({
-            type: AppEvents.alertWarning.name,
-            payload: [
-              `Filter on "${filter.key}" was skipped`,
-              `Quickwit text fields don't index positions by default, so "${value}" can't be filtered as a phrase. Edit the Lucene query directly for this case.`,
-            ],
-          });
-        }
-        return;
-      }
-
-      // For text fields with single-token values, upgrade '=' to 'term' (and
+      // For text fields with simple token values, upgrade '=' to 'term' (and
       // '!=' to 'not term') so the emitted query doesn't require positions.
       let effective = filter;
-      if (isText && !hasWhiteSpace(value)) {
+      if (isText && isSimpleToken(value)) {
         if (filter.operator === '=') {
           effective = { ...filter, operator: 'term' };
         } else if (filter.operator === '!=') {
