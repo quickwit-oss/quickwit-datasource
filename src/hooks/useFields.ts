@@ -6,6 +6,7 @@ import { isBucketAggregationType } from '../components/QueryEditor/BucketAggrega
 import { useDatasource, useRange } from '../components/QueryEditor/ElasticsearchQueryContext';
 import { isMetricAggregationType } from '../components/QueryEditor/MetricAggregationsEditor/aggregations';
 import { MetricAggregationType, BucketAggregationType } from '../types';
+import { fuzzySearchMatch, fuzzySearchSort } from '@/utils';
 
 type AggregationType = BucketAggregationType | MetricAggregationType;
 
@@ -46,7 +47,7 @@ const toSelectableValue = ({ text }: MetricFindValue): SelectableValue<string> =
   value: text,
 });
 
-type MatchType = 'contains' | 'startsWith'
+type MatchType = 'contains' | 'startsWith' | 'fuzzy'
 
 /**
  * Returns a function to query the configured datasource for autocomplete values for the specified aggregation type or data types.
@@ -68,13 +69,18 @@ export const useFields = (type: AggregationType | string[], matchType: MatchType
       rawFields = await lastValueFrom(datasource.getFields({aggregatable:true, type:filter, range:range}));
     }
 
-    return rawFields
+    const fields = rawFields
       .filter(({ text }) => {
         if (q === undefined) {
           return true;
         }
+        if (matchType === 'fuzzy') {
+          return fuzzySearchMatch(text, q);
+        }
         return matchType === 'contains' ? text.includes(q) : text.startsWith(q)
-      })
+      });
+
+    return (matchType === 'fuzzy' ? fuzzySearchSort(fields, ({ text }) => text, q) : fields)
       .map(toSelectableValue);
   };
 };
