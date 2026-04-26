@@ -17,6 +17,58 @@ export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, re
   };
 }
 function getCustomFieldName(fieldname: string) { return `$qw_${fieldname}`; }
+
+const OTEL_MESSAGE_FIELDS = ['body.message', 'attributes.message'];
+
+const SKIP_FIELD_PREFIXES = [
+  'attributes.pod_', 'attributes.node_labels.', 'attributes.namespace_labels.',
+  'attributes.container_image', 'attributes.pod_owner',
+];
+const SKIP_FIELD_NAMES = new Set([
+  'sort', 'severity_text', 'body.stream',
+]);
+
+function isMetadataField(name: string, timeField: string): boolean {
+  if (name === timeField || SKIP_FIELD_NAMES.has(name)) {
+    return true;
+  }
+  return SKIP_FIELD_PREFIXES.some((prefix) => name.startsWith(prefix));
+}
+
+function stripPrefix(name: string): string {
+  if (name.startsWith('attributes.')) {
+    return name.slice('attributes.'.length);
+  }
+  if (name.startsWith('body.')) {
+    return name.slice('body.'.length);
+  }
+  return name;
+}
+
+function buildFallbackMessage(dataFrame: DataFrame, rowIdx: number, timeFieldName: string): string {
+  for (const candidate of OTEL_MESSAGE_FIELDS) {
+    const field = dataFrame.fields.find((f) => f.name === candidate);
+    if (field) {
+      const val = field.values[rowIdx];
+      if (val != null && val !== '') {
+        return String(val);
+      }
+    }
+  }
+
+  const parts: string[] = [];
+  for (const field of dataFrame.fields) {
+    if (isMetadataField(field.name, timeFieldName) || field.type === FieldType.time) {
+      continue;
+    }
+    const val = field.values[rowIdx];
+    if (val != null && val !== '') {
+      parts.push(`${stripPrefix(field.name)}=${val}`);
+    }
+  }
+  return parts.join(' ');
+}
+
 export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFrame: DataFrame) {
   // Ignore log volume dataframe, no need to add links or a displayed message field.
   if (!dataFrame.refId || dataFrame.refId.startsWith('log-volume')) {
@@ -26,38 +78,46 @@ export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFra
   if (dataFrame.length===0 || dataFrame.fields.length === 0) {
     return;
   }
-  if (datasource.logMessageField) {
-    const messageFields = datasource.logMessageField.split(',');
-    let field_idx_list = [];
-    for (const messageField of messageFields) {
-      const field_idx = dataFrame.fields.findIndex((field) => field.name === messageField);
-      if (field_idx !== -1) {
-        field_idx_list.push(field_idx);
-      }
+
+  const configuredFields = datasource.logMessageField ? datasource.logMessageField.split(',') : [];
+  const field_idx_list: number[] = [];
+  for (const messageField of configuredFields) {
+    const field_idx = dataFrame.fields.findIndex((field) => field.name === messageField);
+    if (field_idx !== -1) {
+      field_idx_list.push(field_idx);
     }
-    const displayedMessages = Array(dataFrame.length);
-    for (let idx = 0; idx < dataFrame.length; idx++) {
-      let displayedMessage = "";
-      // If we have only one field, we assume the field name is obvious for the user and we don't need to show it.
-      if (field_idx_list.length === 1) {
-        displayedMessage = `${dataFrame.fields[field_idx_list[0]].values[idx]}`;
-      } else {
-        for (const field_idx of field_idx_list) {
-          displayedMessage += ` ${dataFrame.fields[field_idx].name}=${dataFrame.fields[field_idx].values[idx]}`;
-        }
+  }
+
+  const timeFieldName = dataFrame.fields.find((f) => f.type === FieldType.time)?.name ?? '';
+  const displayedMessages = Array(dataFrame.length);
+
+  for (let idx = 0; idx < dataFrame.length; idx++) {
+    let displayedMessage = "";
+
+    if (field_idx_list.length === 1) {
+      displayedMessage = `${dataFrame.fields[field_idx_list[0]].values[idx] ?? ''}`;
+    } else if (field_idx_list.length > 1) {
+      for (const field_idx of field_idx_list) {
+        displayedMessage += ` ${dataFrame.fields[field_idx].name}=${dataFrame.fields[field_idx].values[idx]}`;
       }
-      displayedMessages[idx] = displayedMessage.trim();
+      displayedMessage = displayedMessage.trim();
     }
 
-    const newField: Field = {
-      name: getCustomFieldName('message'),
-      type: FieldType.string,
-      config: {},
-      values: displayedMessages,
-    };
-    const [timestamp, ...rest] = dataFrame.fields;
-    dataFrame.fields = [timestamp, newField, ...rest];
+    if (!displayedMessage) {
+      displayedMessage = buildFallbackMessage(dataFrame, idx, timeFieldName);
+    }
+
+    displayedMessages[idx] = displayedMessage;
   }
+
+  const newField: Field = {
+    name: getCustomFieldName('message'),
+    type: FieldType.string,
+    config: {},
+    values: displayedMessages,
+  };
+  const [timestamp, ...rest] = dataFrame.fields;
+  dataFrame.fields = [timestamp, newField, ...rest];
 
   if (!datasource.dataLinks.length) {
     return;
