@@ -26,6 +26,7 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
    */
   const key = escapeFilter(filter.key);
   const value = escapeFilterValue(filter.value);
+  const termValue = escapeFilter(filter.value);
   let addHocFilter = '';
   switch (filter.operator) {
     case '=~':
@@ -41,10 +42,10 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
       addHocFilter = `${key}:<${value}`;
       break;
     case 'term':
-      addHocFilter = `${key}:${value}`;
+      addHocFilter = `${key}:${termValue}`;
       break;
     case 'not term':
-      addHocFilter = `-${key}:${value}`;
+      addHocFilter = `-${key}:${termValue}`;
       break;
     case 'exists':
       addHocFilter = `${key}:*`;

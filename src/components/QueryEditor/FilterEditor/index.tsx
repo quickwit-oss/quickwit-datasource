@@ -7,7 +7,7 @@ import { QueryEditorRow } from '../QueryEditorRow';
 
 import { QueryFilter } from '@/types';
 import { Icon, InlineSegmentGroup, Segment, SegmentAsync, Tooltip } from '@grafana/ui';
-import { MetricFindValue, SelectableValue } from '@grafana/data';
+import { AdHocVariableFilter, MetricFindValue, SelectableValue } from '@grafana/data';
 import {
   addFilter,
   removeFilter,
@@ -17,10 +17,9 @@ import {
   changeFilterValue,
 } from '@/components/QueryEditor/FilterEditor/state/actions';
 import { segmentStyles } from '@/components/QueryEditor/styles';
-import { useFields } from '@/hooks/useFields';
 import { newFilterId } from '@/utils/uid';
 import { categorizeFieldType, filterOperations, filterOperationsFor } from '@/queryDef';
-import { hasWhiteSpace, isSet } from '@/utils';
+import { fuzzySearchSort, hasWhiteSpace, isSet } from '@/utils';
 
 interface FilterEditorProps {
   onSubmit: () => void;
@@ -46,6 +45,30 @@ function filterErrors(filter: QueryFilter): string[] {
   }
 
   return errors;
+}
+
+function isFilterComplete(filter: QueryFilter): boolean {
+  return !filter.hide && filterErrors(filter).length === 0;
+}
+
+export function getPreviousAdHocFilters(filters: QueryFilter[] | undefined, currentId: QueryFilter['id']): AdHocVariableFilter[] {
+  const currentIndex = filters?.findIndex((filter) => filter.id === currentId) ?? -1;
+  if (!filters || currentIndex <= 0) {
+    return [];
+  }
+
+  return filters
+    .slice(0, currentIndex)
+    .filter(isFilterComplete)
+    .map((filter) => filter.filter);
+}
+
+function toFuzzyOptions(values: MetricFindValue[], query?: string): Array<SelectableValue<string>> {
+  return fuzzySearchSort(
+    values.map((value) => String(value.text)),
+    (text) => text,
+    query
+  ).map((text) => ({ label: text, value: text }));
 }
 
 export const FilterEditor = ({ onSubmit }: FilterEditorProps) => {
@@ -98,21 +121,27 @@ export const FilterEditorRow = ({ value, onSubmit }: FilterEditorRowProps) => {
   const dispatch = useDispatch();
   const datasource = useDatasource();
   const range = useRange();
-  const getFields = useFields('filters', 'startsWith');
+  const { filters } = useQuery();
+  const previousFilters = getPreviousAdHocFilters(filters, value.id);
 
   const fieldCategory = categorizeFieldType(datasource.getFieldType?.(value.filter.key));
   const visibleOperations = filterOperationsFor(fieldCategory);
+
+  const loadFields = async (query?: string): Promise<Array<SelectableValue<string>>> => {
+    const values = await datasource.getTagKeys({ filters: previousFilters, timeRange: range });
+    return toFuzzyOptions(values as MetricFindValue[], query);
+  };
 
   const loadValues = async (query?: string): Promise<Array<SelectableValue<string>>> => {
     if (!isSet(value.filter.key) || !datasource.getTagValues) {
       return [];
     }
-    const values: MetricFindValue[] = await datasource.getTagValues({ key: value.filter.key, timeRange: range });
-    const q = query?.toLowerCase();
-    return values
-      .map((v) => String(v.text))
-      .filter((text) => !q || text.toLowerCase().includes(q))
-      .map((text) => ({ label: text, value: text }));
+    const values: MetricFindValue[] = await datasource.getTagValues({
+      key: value.filter.key,
+      filters: previousFilters,
+      timeRange: range,
+    });
+    return toFuzzyOptions(values, query);
   };
 
   return (
@@ -121,7 +150,7 @@ export const FilterEditorRow = ({ value, onSubmit }: FilterEditorRowProps) => {
         <SegmentAsync
           allowCustomValue={true}
           className={segmentStyles}
-          loadOptions={getFields}
+          loadOptions={loadFields}
           reloadOptionsOnChange={true}
           onChange={(e) => {
             const newKey = e.value ?? '';

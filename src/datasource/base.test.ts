@@ -1,4 +1,9 @@
-import { formatQuery, luceneEscape } from './base';
+import { AdHocVariableFilter } from '@grafana/data';
+import { from } from 'rxjs';
+
+import { addAddHocFilter } from '../modifyQuery';
+import { ElasticsearchQuery } from '../types';
+import { BaseQuickwitDataSource, formatQuery, luceneEscape } from './base';
 
 describe('BaseQuickwitDataSource', () => {
   describe('luceneEscape', () => {
@@ -170,5 +175,151 @@ describe('BaseQuickwitDataSource', () => {
       expect(result).toBe('IN ["value1" "value2"]');
     });
   });
+  });
+
+  describe('quick filters', () => {
+    const addFilterToQuery = (
+      fieldTypes: Record<string, string>,
+      query: ElasticsearchQuery,
+      key: string,
+      value: string,
+      negate = false
+    ) => {
+      return (BaseQuickwitDataSource.prototype as any).addFilterToQuery.call(
+        { fieldTypes },
+        query,
+        key,
+        value,
+        negate
+      ) as ElasticsearchQuery;
+    };
+
+    const renderAdHocFilters = (
+      fieldTypes: Record<string, string>,
+      filters: AdHocVariableFilter[]
+    ) => {
+      return (BaseQuickwitDataSource.prototype as any).addAdHocFilters.call(
+        { fieldTypes },
+        '',
+        filters
+      ) as string;
+    };
+
+    it('adds text filters with whitespace as phrase filters', () => {
+      const query = { refId: 'A', query: '', metrics: [], bucketAggs: [], filters: [] } as any;
+
+      const updatedQuery = addFilterToQuery(
+        { 'attributes.grpc_message': 'text' },
+        query,
+        'attributes.grpc_message',
+        'Error:[(0) invalid token, ]'
+      );
+
+      expect(updatedQuery.filters?.[0].filter).toEqual({
+        key: 'attributes.grpc_message',
+        operator: '=',
+        value: 'Error:[(0) invalid token, ]',
+      });
+    });
+
+    it('renders text phrase filters with quoted Quickwit syntax', () => {
+      const result = renderAdHocFilters(
+        { 'attributes.grpc_message': 'text' },
+        [{
+          key: 'attributes.grpc_message',
+          operator: '=',
+          value: 'Error:[(0) invalid token, ]',
+        }]
+      );
+
+      expect(result).toBe('attributes.grpc_message:"Error:[(0) invalid token, ]"');
+    });
+
+    it('renders negative text phrase filters with quoted Quickwit syntax', () => {
+      const result = renderAdHocFilters(
+        { 'attributes.grpc_message': 'text' },
+        [{
+          key: 'attributes.grpc_message',
+          operator: '!=',
+          value: 'Error:[(0) invalid token, ]',
+        }]
+      );
+
+      expect(result).toBe('-attributes.grpc_message:"Error:[(0) invalid token, ]"');
+    });
+
+    it('keeps simple-token text filters as term filters', () => {
+      const query = { refId: 'A', query: '', metrics: [], bucketAggs: [], filters: [] } as any;
+
+      const updatedQuery = addFilterToQuery(
+        { 'attributes.grpc_message': 'text' },
+        query,
+        'attributes.grpc_message',
+        'unavailable'
+      );
+
+      expect(updatedQuery.filters?.[0].filter.operator).toBe('term');
+    });
+
+    it('keeps punctuated text filters as phrase filters', () => {
+      const query = { refId: 'A', query: '', metrics: [], bucketAggs: [], filters: [] } as any;
+
+      const updatedQuery = addFilterToQuery(
+        { service_name: 'text' },
+        query,
+        'service_name',
+        'auth-api'
+      );
+
+      expect(updatedQuery.filters?.[0].filter).toEqual({
+        key: 'service_name',
+        operator: '=',
+        value: 'auth-api',
+      });
+    });
+
+    it('renders punctuated text filters with quoted Quickwit syntax', () => {
+      const result = renderAdHocFilters(
+        { service_name: 'text' },
+        [{
+          key: 'service_name',
+          operator: '=',
+          value: 'auth-api',
+        }]
+      );
+
+      expect(result).toBe('service_name:"auth-api"');
+    });
+
+    it('escapes special characters in unquoted term filters', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.grpc_message',
+        operator: 'term',
+        value: 'error:foo',
+      });
+
+      expect(result).toBe('attributes.grpc_message:error\\:foo');
+    });
+
+    it('applies prior filters when loading tag values', async () => {
+      const getTerms = jest.fn(() => from([[]]));
+
+      await (BaseQuickwitDataSource.prototype as any).getTagValues.call(
+        {
+          fieldTypes: {},
+          addAdHocFilters: BaseQuickwitDataSource.prototype.addAdHocFilters,
+          getTerms,
+        },
+        {
+          key: 'status',
+          filters: [{ key: 'service', operator: '=', value: 'frontend' }],
+        }
+      );
+
+      expect(getTerms).toHaveBeenCalledWith(
+        { field: 'status', query: 'service:"frontend"' },
+        undefined
+      );
+    });
   });
 });
