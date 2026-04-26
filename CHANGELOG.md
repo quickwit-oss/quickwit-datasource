@@ -5,9 +5,14 @@
 ### What's Changed
 
 - React 19 compatibility for Grafana 13
+- Add quick filters with value autocomplete and clearer filter operations
+- Show useful default log messages for OTEL logs when no message field is configured
 - Migrate e2e tests from Cypress to Playwright and add Quickwit datasource e2e test
 - Add Grafana version matrix to e2e tests
 - Fix Shift-Enter keymapping on latest Grafana versions
+- Fix missing `AND` when adding ad hoc filters
+- Document Grafana 12.1+ plugin installation with `GF_PLUGINS_PREINSTALL_SYNC`
+- Handle Grafana 13 overlays in e2e tests
 - Bump Go and Node dependencies to fix high vulnerabilities
 - Bump `grafana/plugin-actions/is-compatible` GitHub action
 

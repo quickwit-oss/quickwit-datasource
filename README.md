@@ -7,8 +7,11 @@ The Quickwit data source plugin allows you to query and visualize Quickwit data 
 ## 🎉 What's New in v0.6.0
 
 - **Grafana 12.1+ and 13 Support** (React 19 compatibility)
+- **Quick filters** with value autocomplete and clearer filter operations
+- **Better OTEL log display** when no message field is configured
 - **Playwright e2e tests** replacing Cypress, with a Grafana version matrix
 - **Fixed Shift-Enter keymapping** on latest Grafana versions
+- **Fixed ad hoc filters** when appending filters to existing queries
 - **Security updates**: Go and Node dependency bumps
 
 It is available for installation directly from the
