@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { DataSourceHttpSettings, Input, InlineField, FieldSet } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
+import { DataSourcePicker } from '@grafana/runtime';
 import { QuickwitOptions } from '../quickwit';
 import { coerceOptions } from './utils';
 import { Divider } from '../components/Divider';
@@ -57,7 +58,7 @@ export const QuickwitDataLinks = ({ value, onChange }: DetailsProps) => {
         }}
       />
     </div>
-  )
+  );
 };
 
 export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
@@ -69,16 +70,24 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
             <Input
               id="quickwit_index_id"
               value={value.jsonData.index}
-              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, index: event.currentTarget.value}})}
+              onChange={(event) =>
+                onChange({ ...value, jsonData: { ...value.jsonData, index: event.currentTarget.value } })
+              }
               placeholder="otel-logs-v0"
               width={40}
             />
           </InlineField>
-          <InlineField label="Message field name" labelWidth={26} tooltip="Field used to display a log line in the Explore view">
+          <InlineField
+            label="Message field name"
+            labelWidth={26}
+            tooltip="Field used to display a log line in the Explore view"
+          >
             <Input
               id="quickwit_log_message_field"
               value={value.jsonData.logMessageField}
-              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, logMessageField: event.currentTarget.value}})}
+              onChange={(event) =>
+                onChange({ ...value, jsonData: { ...value.jsonData, logMessageField: event.currentTarget.value } })
+              }
               placeholder="body.message"
               width={40}
             />
@@ -87,7 +96,9 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
             <Input
               id="quickwit_log_level_field"
               value={value.jsonData.logLevelField}
-              onChange={(event) => onChange({ ...value, jsonData: {...value.jsonData, logLevelField: event.currentTarget.value}})}
+              onChange={(event) =>
+                onChange({ ...value, jsonData: { ...value.jsonData, logLevelField: event.currentTarget.value } })
+              }
               placeholder="level"
               width={40}
             />
@@ -98,9 +109,74 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
             <Input
               id="quickwit_defaults_metricaggregation_logs_limit"
               value={value.jsonData.queryEditorConfig?.defaults?.['metricAggregation.logs.settings.limit']}
-              onChange={(event) => onChange(_.merge(value, {jsonData:{queryEditorConfig:{defaults:{'metricAggregation.logs.settings.limit':event.currentTarget.value}}}}))}
+              onChange={(event) =>
+                onChange(
+                  _.merge(value, {
+                    jsonData: {
+                      queryEditorConfig: {
+                        defaults: { 'metricAggregation.logs.settings.limit': event.currentTarget.value },
+                      },
+                    },
+                  })
+                )
+              }
               placeholder="100"
               width={40}
+            />
+          </InlineField>
+        </FieldSet>
+        <FieldSet label="Trace/log correlations">
+          <InlineField
+            label="Logs datasource"
+            labelWidth={26}
+            tooltip="Quickwit logs datasource used by trace span links. Leave empty to use this datasource."
+          >
+            <DataSourcePicker
+              logs={true}
+              noDefault={true}
+              current={value.jsonData.logsDatasourceUid || null}
+              width={40}
+              onClear={() =>
+                onChange({ ...value, jsonData: { ...value.jsonData, logsDatasourceUid: '', logsDatasourceName: '' } })
+              }
+              onChange={(ds) =>
+                onChange({
+                  ...value,
+                  jsonData: {
+                    ...value.jsonData,
+                    logsDatasourceUid: ds.uid,
+                    logsDatasourceName: ds.name,
+                  },
+                })
+              }
+            />
+          </InlineField>
+          <InlineField
+            label="Traces datasource"
+            labelWidth={26}
+            tooltip="Quickwit traces datasource used by log rows that contain a trace_id field. Leave empty to use this datasource."
+          >
+            <DataSourcePicker
+              tracing={true}
+              noDefault={true}
+              current={value.jsonData.tracesDatasourceUid || null}
+              width={40}
+              onClear={() =>
+                onChange({
+                  ...value,
+                  jsonData: { ...value.jsonData, tracesDatasourceUid: '', tracesDatasourceName: '' },
+                })
+              }
+              onChange={(ds) =>
+                onChange({
+                  ...value,
+                  jsonData: {
+                    ...value.jsonData,
+                    tracesDatasourceUid: ds.uid,
+                    tracesDatasourceName: ds.name,
+                  },
+                })
+              }
             />
           </InlineField>
         </FieldSet>

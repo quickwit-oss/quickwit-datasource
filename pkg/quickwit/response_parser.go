@@ -41,7 +41,7 @@ const (
 
 var searchWordsRegex = regexp.MustCompile(regexp.QuoteMeta(es.HighlightPreTagsString) + `(.*?)` + regexp.QuoteMeta(es.HighlightPostTagsString))
 
-func parseResponse(rawResponses []*json.RawMessage, targets []*Query, configuredFields es.ConfiguredFields) (*backend.QueryDataResponse, error) {
+func parseResponse(rawResponses []*json.RawMessage, targets []*Query, configuredFields es.ConfiguredFields, dsInfo *es.DatasourceInfo) (*backend.QueryDataResponse, error) {
 	result := backend.QueryDataResponse{
 		Responses: backend.Responses{},
 	}
@@ -54,7 +54,7 @@ func parseResponse(rawResponses []*json.RawMessage, targets []*Query, configured
 
 		byteReader := bytes.NewReader(*rawRes)
 		dec := json.NewDecoder(byteReader)
-		if isLogsQuery(target) {
+		if isLogsQuery(target) || isTraceSearchQuery(target) || isTracesQuery(target) {
 			dec.UseNumber()
 		}
 		var res *es.SearchResponse
@@ -88,6 +88,18 @@ func parseResponse(rawResponses []*json.RawMessage, targets []*Query, configured
 			result.Responses[target.RefID] = queryRes
 		} else if isLogsQuery(target) {
 			err := processLogsResponse(res, target, configuredFields, &queryRes)
+			if err != nil {
+				return &backend.QueryDataResponse{}, err
+			}
+			result.Responses[target.RefID] = queryRes
+		} else if isTraceSearchQuery(target) {
+			err := processTraceSearchResponse(res, target, dsInfo, &queryRes)
+			if err != nil {
+				return &backend.QueryDataResponse{}, err
+			}
+			result.Responses[target.RefID] = queryRes
+		} else if isTracesQuery(target) {
+			err := processTracesResponse(res, target, configuredFields, dsInfo, &queryRes)
 			if err != nil {
 				return &backend.QueryDataResponse{}, err
 			}

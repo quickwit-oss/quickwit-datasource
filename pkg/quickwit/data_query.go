@@ -30,6 +30,10 @@ func buildMSR(queries []*Query, defaultTimeField string) ([]*es.SearchRequest, e
 
 		if isLogsQuery(q) {
 			processLogsQuery(q, b, q.RangeFrom, q.RangeTo, defaultTimeField)
+		} else if isTraceSearchQuery(q) {
+			processTraceSearchQuery(q, b, defaultTimeField)
+		} else if isTracesQuery(q) {
+			processTracesQuery(q, b, defaultTimeField)
 		} else if isDocumentQuery(q) {
 			processDocumentQuery(q, b, q.RangeFrom, q.RangeTo, defaultTimeField)
 		} else {
@@ -269,8 +273,8 @@ func getPipelineAggField(m *MetricAgg) string {
 
 func isQueryWithError(query *Query) error {
 	if len(query.BucketAggs) == 0 {
-		// If no aggregations, only document and logs queries are valid
-		if len(query.Metrics) == 0 || !(isLogsQuery(query) || isDocumentQuery(query)) {
+		// If no aggregations, only document, logs, and trace queries are valid
+		if len(query.Metrics) == 0 || !(isLogsQuery(query) || isTraceSearchQuery(query) || isTracesQuery(query) || isDocumentQuery(query)) {
 			return fmt.Errorf("invalid query, missing metrics and aggregations")
 		}
 	} else {
@@ -302,7 +306,15 @@ func isQueryWithError(query *Query) error {
 }
 
 func isLogsQuery(query *Query) bool {
-	return query.Metrics[0].Type == logsType
+	return queryMetricType(query) == logsType
+}
+
+func isTracesQuery(query *Query) bool {
+	return queryMetricType(query) == tracesType
+}
+
+func isTraceSearchQuery(query *Query) bool {
+	return queryMetricType(query) == traceSearchType
 }
 
 func isDocumentQuery(query *Query) bool {
@@ -310,11 +322,18 @@ func isDocumentQuery(query *Query) bool {
 }
 
 func isRawDataQuery(query *Query) bool {
-	return query.Metrics[0].Type == rawDataType
+	return queryMetricType(query) == rawDataType
 }
 
 func isRawDocumentQuery(query *Query) bool {
-	return query.Metrics[0].Type == rawDocumentType
+	return queryMetricType(query) == rawDocumentType
+}
+
+func queryMetricType(query *Query) string {
+	if query == nil || len(query.Metrics) == 0 {
+		return ""
+	}
+	return query.Metrics[0].Type
 }
 
 func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
@@ -335,6 +354,18 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 	for _, value := range searchAfter {
 		b.AddSearchAfter(value)
 	}
+}
+
+func processTracesQuery(q *Query, b *es.SearchRequestBuilder, defaultTimeField string) {
+	metric := q.Metrics[0]
+	b.Sort(es.SortOrderAsc, defaultTimeField, "epoch_nanos_int")
+	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
+}
+
+func processTraceSearchQuery(q *Query, b *es.SearchRequestBuilder, defaultTimeField string) {
+	metric := q.Metrics[0]
+	b.Sort(es.SortOrderDesc, defaultTimeField, "epoch_nanos_int")
+	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("spanLimit").MustString(), 5000))
 }
 
 func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {

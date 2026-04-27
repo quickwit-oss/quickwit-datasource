@@ -17,6 +17,24 @@ You need a Quickwit standalone server or cluster.
 The Quickwit data source plugin works with dashboards and explore views.
 Alerts are also available.
 
+### Logs and traces
+
+The query editor supports logs, trace search, full trace view, and raw data queries.
+
+For OpenTelemetry traces, use:
+
+- **Trace search** to find traces from matching spans.
+- **Traces** to open a single trace by `trace_id`.
+
+Trace results include span events, span status, exception stack traces, service names, service tags, span tags, and service node graph frames.
+
+When logs and traces are stored in separate Quickwit indexes, create one Quickwit datasource per index and configure the related datasource fields:
+
+- On the logs datasource, set the traces datasource used by log-to-trace links.
+- On the traces datasource, set the logs datasource used by trace-to-logs links.
+
+Log-to-trace links are added for log fields named `trace_id`, `traceID`, `traceId`, or `attributes.trace_id`. Trace-to-logs links query logs with both `trace_id` and `span_id`.
+
 ## Installation
 
 ### Installation on Grafana Cloud

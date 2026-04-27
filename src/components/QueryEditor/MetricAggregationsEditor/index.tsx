@@ -25,13 +25,29 @@ export const MetricAggregationsEditor = ({ nextId }: Props) => {
       {metrics?.map((metric, index) => {
         switch (metric.type) {
           case 'logs':
-            return <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Logs">
+            return (
+              <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Logs">
                 <SettingsEditor metric={metric} previousMetrics={[]} />
-              </QueryEditorBaseRow>;
+              </QueryEditorBaseRow>
+            );
+          case 'traces':
+            return (
+              <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Traces">
+                <SettingsEditor metric={metric} previousMetrics={[]} />
+              </QueryEditorBaseRow>
+            );
+          case 'trace_search':
+            return (
+              <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Trace search">
+                <SettingsEditor metric={metric} previousMetrics={[]} />
+              </QueryEditorBaseRow>
+            );
           case 'raw_data':
-            return <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Raw Data">
+            return (
+              <QueryEditorBaseRow key={`${metric.type}-${metric.id}`} label="Raw Data">
                 <SettingsEditor metric={metric} previousMetrics={[]} />
-              </QueryEditorBaseRow>;
+              </QueryEditorBaseRow>
+            );
           default:
             return (
               <QueryEditorRow

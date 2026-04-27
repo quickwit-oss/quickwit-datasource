@@ -45,7 +45,7 @@ func queryData(ctx context.Context, dataQueries []backend.DataQuery, dsInfo *es.
 		return &backend.QueryDataResponse{}, err
 	}
 
-	return parseResponse(res, queries, dsInfo.ConfiguredFields)
+	return parseResponse(res, queries, dsInfo.ConfiguredFields, dsInfo)
 }
 
 func handleQuickwitErrors(err error) (*backend.QueryDataResponse, error) {
