@@ -5,6 +5,7 @@ import { CoreApp, TimeRange } from '@grafana/data';
 import { BaseQuickwitDataSource } from '@/datasource/base';
 import { combineReducers, useStatelessReducer, DispatchContext } from '@/hooks/useStatelessReducer';
 import { ElasticsearchQuery } from '@/types';
+import { stripQueryType } from '@/queryModel';
 
 import { createReducer as createBucketAggsReducer } from './BucketAggregationsEditor/state/reducer';
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';
@@ -60,7 +61,7 @@ export const ElasticsearchProvider = withStore(({
 
   const onStateChange = useCallback(
     (query: ElasticsearchQuery) => {
-      onChange(query);
+      onChange(stripQueryType(query));
     },
     [onChange]
   );

@@ -13,10 +13,23 @@ function makeDataFrame(fields: Field[], refId = 'A'): DataFrame {
   };
 }
 
-function makeDatasource(overrides: { logMessageField?: string; dataLinks?: any[] } = {}) {
+function makeDatasource(
+  overrides: {
+    uid?: string;
+    name?: string;
+    logMessageField?: string;
+    dataLinks?: any[];
+    tracesDatasourceUid?: string;
+    tracesDatasourceName?: string;
+  } = {}
+) {
   return {
+    uid: overrides.uid ?? '',
+    name: overrides.name ?? '',
     logMessageField: overrides.logMessageField ?? '',
     dataLinks: overrides.dataLinks ?? [],
+    tracesDatasourceUid: overrides.tracesDatasourceUid ?? '',
+    tracesDatasourceName: overrides.tracesDatasourceName ?? '',
   } as any;
 }
 
@@ -200,10 +213,7 @@ describe('processLogsDataFrame', () => {
     it('skips log-volume dataframes', () => {
       const ds = makeDatasource({ logMessageField: 'line' });
       const df = makeDataFrame(
-        [
-          makeField('timestamp', FieldType.time, [1000]),
-          makeField('line', FieldType.string, ['hello']),
-        ],
+        [makeField('timestamp', FieldType.time, [1000]), makeField('line', FieldType.string, ['hello'])],
         'log-volume-A'
       );
 
@@ -217,10 +227,7 @@ describe('processLogsDataFrame', () => {
       const ds = makeDatasource({ logMessageField: 'line' });
       const df: DataFrame = {
         refId: undefined,
-        fields: [
-          makeField('timestamp', FieldType.time, [1000]),
-          makeField('line', FieldType.string, ['hello']),
-        ],
+        fields: [makeField('timestamp', FieldType.time, [1000]), makeField('line', FieldType.string, ['hello'])],
         length: 1,
       };
 
@@ -228,6 +235,90 @@ describe('processLogsDataFrame', () => {
 
       const fieldNames = df.fields.map((f) => f.name);
       expect(fieldNames).not.toContain('$qw_message');
+    });
+  });
+
+  describe('log-to-trace links', () => {
+    it('adds an internal trace link to trace_id fields', () => {
+      const ds = makeDatasource({
+        uid: 'logs-uid',
+        name: 'Quickwit Logs',
+        tracesDatasourceUid: 'traces-uid',
+        tracesDatasourceName: 'Quickwit Traces',
+      });
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('trace_id', FieldType.string, ['3c191d03fa8be0653c191d03fa8be065']),
+        makeField('body.message', FieldType.string, ['checkout failed']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      const traceIDField = df.fields.find((field) => field.name === 'trace_id');
+      expect(traceIDField?.config.links).toHaveLength(1);
+      expect(traceIDField?.config.links?.[0].title).toBe('Open trace');
+      expect(traceIDField?.config.links?.[0].internal?.datasourceUid).toBe('traces-uid');
+      expect(traceIDField?.config.links?.[0].internal?.datasourceName).toBe('Quickwit Traces');
+      expect((traceIDField?.config.links?.[0].internal?.query as any).query).toBe('trace_id:${__value.raw}');
+      expect((traceIDField?.config.links?.[0].internal?.query as any).queryType).toBe('traces');
+      expect((traceIDField?.config.links?.[0].internal?.query as any).datasource).toEqual({
+        type: 'quickwit-quickwit-datasource',
+        uid: 'traces-uid',
+      });
+      expect((traceIDField?.config.links?.[0].internal?.query as any).metrics[0].type).toBe('traces');
+    });
+
+    it.each(['traceID', 'traceId', 'attributes.trace_id'])('adds the trace link to %s fields', (fieldName) => {
+      const ds = makeDatasource({ uid: 'logs-uid', name: 'Quickwit Logs' });
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField(fieldName, FieldType.string, ['3c191d03fa8be0653c191d03fa8be065']),
+        makeField('body.message', FieldType.string, ['checkout failed']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      const traceIDField = df.fields.find((field) => field.name === fieldName);
+      expect(traceIDField?.config.links).toHaveLength(1);
+      expect(traceIDField?.config.links?.[0].title).toBe('Open trace');
+      expect(traceIDField?.config.links?.[0].internal?.datasourceUid).toBe('logs-uid');
+      expect(traceIDField?.config.links?.[0].internal?.datasourceName).toBe('Quickwit Logs');
+    });
+
+    it('preserves configured data links when adding the trace link', () => {
+      const ds = makeDatasource({
+        uid: 'logs-uid',
+        dataLinks: [{ field: 'trace_id', url: 'https://example.com/${__value.raw}', urlDisplayLabel: 'External' }],
+      });
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('trace_id', FieldType.string, ['3c191d03fa8be0653c191d03fa8be065']),
+        makeField('body.message', FieldType.string, ['checkout failed']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      const traceIDField = df.fields.find((field) => field.name === 'trace_id');
+      expect(traceIDField?.config.links?.map((link) => link.title)).toEqual(['Open trace', 'External']);
+    });
+
+    it('preserves configured links even when titles match the automatic trace link', () => {
+      const ds = makeDatasource({
+        uid: 'logs-uid',
+        dataLinks: [{ field: 'trace_id', url: 'https://example.com/${__value.raw}', urlDisplayLabel: 'Open trace' }],
+      });
+      const df = makeDataFrame([
+        makeField('timestamp', FieldType.time, [1000]),
+        makeField('trace_id', FieldType.string, ['3c191d03fa8be0653c191d03fa8be065']),
+        makeField('body.message', FieldType.string, ['checkout failed']),
+      ]);
+
+      processLogsDataFrame(ds, df);
+
+      const traceIDField = df.fields.find((field) => field.name === 'trace_id');
+      expect(traceIDField?.config.links).toHaveLength(2);
+      expect(traceIDField?.config.links?.[0].internal?.query).toBeDefined();
+      expect(traceIDField?.config.links?.[1].url).toBe('https://example.com/${__value.raw}');
     });
   });
 });

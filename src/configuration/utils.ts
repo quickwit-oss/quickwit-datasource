@@ -17,6 +17,10 @@ export const coerceOptions = (
       filterAutocompleteLimit: options.jsonData.filterAutocompleteLimit ?? '1000',
       filterAutocompleteChainMode,
       filterAutocompleteUseFilterChains: filterAutocompleteChainMode !== 'none',
+      logsDatasourceUid: options.jsonData.logsDatasourceUid || '',
+      logsDatasourceName: options.jsonData.logsDatasourceName || '',
+      tracesDatasourceUid: options.jsonData.tracesDatasourceUid || '',
+      tracesDatasourceName: options.jsonData.tracesDatasourceName || '',
     },
   };
 };

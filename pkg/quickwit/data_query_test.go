@@ -12,6 +12,18 @@ import (
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 )
 
+func TestQueryTypeHelpersDoNotPanicWithoutMetrics(t *testing.T) {
+	query := &Query{}
+
+	require.NotPanics(t, func() {
+		assert.False(t, isLogsQuery(query))
+		assert.False(t, isTracesQuery(query))
+		assert.False(t, isTraceSearchQuery(query))
+		assert.False(t, isRawDataQuery(query))
+		assert.False(t, isRawDocumentQuery(query))
+	})
+}
+
 func TestExecuteElasticsearchDataQuery(t *testing.T) {
 	from := time.Date(2018, 5, 15, 17, 50, 0, 0, time.UTC)
 	to := time.Date(2018, 5, 15, 17, 55, 0, 0, time.UTC)
@@ -1321,6 +1333,87 @@ func TestExecuteElasticsearchDataQuery(t *testing.T) {
 			require.Equal(t, sr.Size, 1000)
 		})
 
+		t.Run("With traces query should return query sorted by ascending time and apply the picker range", func(t *testing.T) {
+			c := newFakeClient()
+			_, err := executeElasticsearchDataQuery(c, `{
+				"query": "trace_id:3c191d03fa8be0653c191d03fa8be065",
+				"metrics": [{ "type": "traces", "id": "1", "settings": { "limit": "5000" }}]
+			}`, from, to)
+			require.NoError(t, err)
+			sr := c.multisearchRequests[0][0]
+			require.Equal(t, sr.Size, 5000)
+			require.Equal(t, sr.Sort[0]["@timestamp"]["order"], "asc")
+
+			require.Len(t, sr.Query.Bool.Filters, 2)
+			rangeFilter := sr.Query.Bool.Filters[0].(*es.DateRangeFilter)
+			require.Equal(t, rangeFilter.Lte, "2018-05-15T17:55:00Z")
+			require.Equal(t, rangeFilter.Gte, "2018-05-15T17:50:00Z")
+			queryFilter := sr.Query.Bool.Filters[1].(*es.QueryStringFilter)
+			require.Equal(t, queryFilter.Query, "trace_id:3c191d03fa8be0653c191d03fa8be065")
+		})
+
+		t.Run("With traces query using a non-trace-id filter should keep the time range", func(t *testing.T) {
+			c := newFakeClient()
+			_, err := executeElasticsearchDataQuery(c, `{
+				"query": "service_name:quickwit",
+				"metrics": [{ "type": "traces", "id": "1", "settings": { "limit": "5000" }}]
+			}`, from, to)
+			require.NoError(t, err)
+			sr := c.multisearchRequests[0][0]
+
+			rangeFilter := sr.Query.Bool.Filters[0].(*es.DateRangeFilter)
+			require.Equal(t, rangeFilter.Lte, "2018-05-15T17:55:00Z")
+			require.Equal(t, rangeFilter.Gte, "2018-05-15T17:50:00Z")
+			queryFilter := sr.Query.Bool.Filters[1].(*es.QueryStringFilter)
+			require.Equal(t, queryFilter.Query, "service_name:quickwit")
+		})
+
+		t.Run("With trace search query should scan spans sorted by descending time", func(t *testing.T) {
+			c := newFakeClient()
+			_, err := executeElasticsearchDataQuery(c, `{
+				"query": "service_name:quickwit",
+				"metrics": [{ "type": "trace_search", "id": "1", "settings": { "limit": "20", "spanLimit": "2500" }}]
+			}`, from, to)
+			require.NoError(t, err)
+			sr := c.multisearchRequests[0][0]
+			require.Equal(t, sr.Size, 2500)
+			require.Equal(t, sr.Sort[0]["@timestamp"]["order"], "desc")
+
+			rangeFilter := sr.Query.Bool.Filters[0].(*es.DateRangeFilter)
+			require.Equal(t, rangeFilter.Lte, "2018-05-15T17:55:00Z")
+			require.Equal(t, rangeFilter.Gte, "2018-05-15T17:50:00Z")
+			queryFilter := sr.Query.Bool.Filters[1].(*es.QueryStringFilter)
+			require.Equal(t, queryFilter.Query, "service_name:quickwit")
+		})
+
+		t.Run("With trace search builder settings should add structured trace filters", func(t *testing.T) {
+			c := newFakeClient()
+			_, err := executeElasticsearchDataQuery(c, `{
+				"query": "span_attributes.http.method:GET",
+				"metrics": [{
+					"type": "trace_search",
+					"id": "1",
+					"settings": {
+						"limit": "20",
+						"spanLimit": "2500",
+						"serviceName": "checkout",
+						"spanName": "GET /checkout",
+						"status": "error",
+						"minDuration": "100ms",
+						"maxDuration": "1.2s"
+					}
+				}]
+			}`, from, to)
+			require.NoError(t, err)
+			sr := c.multisearchRequests[0][0]
+
+			require.Len(t, sr.Query.Bool.Filters, 3)
+			queryFilter := sr.Query.Bool.Filters[1].(*es.QueryStringFilter)
+			require.Equal(t, "span_attributes.http.method:GET", queryFilter.Query)
+			traceSearchFilter := sr.Query.Bool.Filters[2].(*es.QueryStringFilter)
+			require.Equal(t, `service_name:"checkout" AND span_name:"GET /checkout" AND (span_status.code:Error OR span_status.code:ERROR OR span_status.code:error OR span_status.code:STATUS_CODE_ERROR OR span_status.code:2 OR span_attributes.error:true OR span_attributes.otel.status_code:ERROR) AND span_duration_millis:>=100 AND span_duration_millis:<=1200`, traceSearchFilter.Query)
+		})
+
 		t.Run("With invalid query should return error", (func(t *testing.T) {
 			c := newFakeClient()
 			_, err := executeElasticsearchDataQuery(c, `{
@@ -1721,5 +1814,5 @@ func executeElasticsearchDataQuery(c es.Client, body string, from, to time.Time)
 		return &backend.QueryDataResponse{}, err
 	}
 
-	return parseResponse(res, queries, configuredFields)
+	return parseResponse(res, queries, configuredFields, nil)
 }

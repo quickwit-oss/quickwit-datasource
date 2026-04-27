@@ -17,6 +17,7 @@ import { SettingField } from './SettingField';
 import { TopMetricsSettingsEditor } from './TopMetricsSettingsEditor';
 import { useDescription } from './useDescription';
 import { LogsSettingsEditor } from './LogsSettingsEditor';
+import { TraceSearchSettingsEditor } from './TraceSearchSettingsEditor';
 
 // TODO: Move this somewhere and share it with BucketsAggregation Editor
 export const inlineFieldProps: Partial<ComponentProps<typeof InlineField>> = {
@@ -52,7 +53,7 @@ export const SettingsEditor = ({ metric, previousMetrics }: Props) => {
   ];
 
   return (
-    <SettingsEditorContainer label={description} hidden={metric.hide}>
+    <SettingsEditorContainer label={description} hidden={metric.hide} defaultOpen={metric.type === 'trace_search'}>
       {metric.type === 'derivative' && <SettingField label="Unit" metric={metric} settingName="unit" />}
 
       {metric.type === 'serial_diff' && <SettingField label="Lag" metric={metric} settingName="lag" placeholder="1" />}
@@ -85,8 +86,40 @@ export const SettingsEditor = ({ metric, previousMetrics }: Props) => {
         </InlineField>
       )}
 
-      {metric.type === 'logs' && (
-        <LogsSettingsEditor metric={metric}></LogsSettingsEditor>
+      {metric.type === 'logs' && <LogsSettingsEditor metric={metric}></LogsSettingsEditor>}
+
+      {metric.type === 'traces' && (
+        <InlineField label="Limit" {...inlineFieldProps}>
+          <Input
+            id={`ES-query-${query.refId}_metric-${metric.id}-limit`}
+            onBlur={(e) => dispatch(changeMetricSetting({ metric, settingName: 'limit', newValue: e.target.value }))}
+            defaultValue={metric.settings?.limit ?? metricAggregationConfig['traces'].defaults.settings?.limit}
+          />
+        </InlineField>
+      )}
+
+      {metric.type === 'trace_search' && (
+        <>
+          <TraceSearchSettingsEditor metric={metric} />
+          <InlineField label="Trace limit" {...inlineFieldProps}>
+            <Input
+              id={`ES-query-${query.refId}_metric-${metric.id}-trace-limit`}
+              onBlur={(e) => dispatch(changeMetricSetting({ metric, settingName: 'limit', newValue: e.target.value }))}
+              defaultValue={metric.settings?.limit ?? metricAggregationConfig['trace_search'].defaults.settings?.limit}
+            />
+          </InlineField>
+          <InlineField label="Span scan limit" {...inlineFieldProps}>
+            <Input
+              id={`ES-query-${query.refId}_metric-${metric.id}-span-limit`}
+              onBlur={(e) =>
+                dispatch(changeMetricSetting({ metric, settingName: 'spanLimit', newValue: e.target.value }))
+              }
+              defaultValue={
+                metric.settings?.spanLimit ?? metricAggregationConfig['trace_search'].defaults.settings?.spanLimit
+              }
+            />
+          </InlineField>
+        </>
       )}
 
       {metric.type === 'cardinality' && (
