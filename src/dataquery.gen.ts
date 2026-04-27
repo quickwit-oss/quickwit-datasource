@@ -121,7 +121,7 @@ export interface GeoHashGridSettings {
 
 export type PipelineMetricAggregationType = ('moving_avg' | 'moving_fn' | 'derivative' | 'serial_diff' | 'cumulative_sum' | 'bucket_script');
 
-export type MetricAggregationType = ('count' | 'avg' | 'sum' | 'min' | 'max' | 'extended_stats' | 'percentiles' | 'cardinality' | 'raw_document' | 'raw_data' | 'logs' | 'rate' | 'top_metrics' | PipelineMetricAggregationType);
+export type MetricAggregationType = ('count' | 'avg' | 'sum' | 'min' | 'max' | 'extended_stats' | 'percentiles' | 'cardinality' | 'raw_document' | 'raw_data' | 'logs' | 'traces' | 'trace_search' | 'rate' | 'top_metrics' | PipelineMetricAggregationType);
 
 export interface BaseMetricAggregation {
   hide?: boolean;
@@ -257,6 +257,21 @@ export interface Logs extends BaseMetricAggregation {
   type: 'logs';
 }
 
+export interface Traces extends BaseMetricAggregation {
+  settings?: {
+    limit?: string;
+  };
+  type: 'traces';
+}
+
+export interface TraceSearch extends BaseMetricAggregation {
+  settings?: {
+    limit?: string;
+    spanLimit?: string;
+  };
+  type: 'trace_search';
+}
+
 export interface Rate extends MetricAggregationWithField {
   settings?: {
     unit?: string;
@@ -384,7 +399,7 @@ export interface TopMetrics extends BaseMetricAggregation {
 
 export type PipelineMetricAggregation = (MovingAverage | Derivative | CumulativeSum | BucketScript);
 
-export type MetricAggregationWithSettings = (BucketScript | CumulativeSum | Derivative | SerialDiff | RawData | RawDocument | UniqueCount | Percentiles | ExtendedStats | Min | Max | Sum | Average | MovingAverage | MovingFunction | Logs | Rate | TopMetrics);
+export type MetricAggregationWithSettings = (BucketScript | CumulativeSum | Derivative | SerialDiff | RawData | RawDocument | UniqueCount | Percentiles | ExtendedStats | Min | Max | Sum | Average | MovingAverage | MovingFunction | Logs | Traces | TraceSearch | Rate | TopMetrics);
 
 export interface Elasticsearch extends DataQuery {
   /**

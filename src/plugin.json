@@ -8,15 +8,16 @@
   "alerting": true,
   "annotations": true,
   "logs": true,
+  "tracing": true,
   "executable": "gpx_quickwit",
   "category": "logging",
   "info": {
-    "description": "Quickwit is an OSS, Cloud-Native search engine on object storage. This plugin allows you to visualize logs and build dashboards on top of Quickwit.",
+    "description": "Quickwit is an OSS, Cloud-Native search engine on object storage. This plugin allows you to visualize logs, traces, and build dashboards on top of Quickwit.",
     "author": {
       "name": "Quickwit",
       "url": "https://quickwit.io"
     },
-    "keywords": ["datasource", "logs", "log management", "log observability", "log analytics", "quickwit"],
+    "keywords": ["datasource", "logs", "traces", "log management", "log observability", "log analytics", "quickwit"],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"

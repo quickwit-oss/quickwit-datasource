@@ -22,6 +22,12 @@ type ReadyStatus struct {
 
 type DatasourceInfo struct {
 	ID                         int64
+	UID                        string
+	Name                       string
+	LogsDatasourceUID          string
+	LogsDatasourceName         string
+	TracesDatasourceUID        string
+	TracesDatasourceName       string
 	HTTPClient                 *http.Client
 	URL                        string
 	Database                   string

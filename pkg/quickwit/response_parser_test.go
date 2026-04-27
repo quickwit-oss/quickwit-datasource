@@ -3413,6 +3413,10 @@ func TestTrimEdges(t *testing.T) {
 }
 
 func parseTestResponse(tsdbQueries map[string]string, responseBody string) (*backend.QueryDataResponse, error) {
+	return parseTestResponseWithDatasourceInfo(tsdbQueries, responseBody, nil)
+}
+
+func parseTestResponseWithDatasourceInfo(tsdbQueries map[string]string, responseBody string, dsInfo *es.DatasourceInfo) (*backend.QueryDataResponse, error) {
 	from := time.Date(2018, 5, 15, 17, 50, 0, 0, time.UTC)
 	to := time.Date(2018, 5, 15, 17, 55, 0, 0, time.UTC)
 	configuredFields := es.ConfiguredFields{
@@ -3448,7 +3452,7 @@ func parseTestResponse(tsdbQueries map[string]string, responseBody string) (*bac
 		return nil, err
 	}
 
-	return parseResponse(response.Responses, queries, configuredFields)
+	return parseResponse(response.Responses, queries, configuredFields, dsInfo)
 }
 
 func requireTimeValue(t *testing.T, expected int64, frame *data.Frame, index int) {

@@ -10,6 +10,10 @@ export const coerceOptions = (
       ...options.jsonData,
       logMessageField: options.jsonData.logMessageField || '',
       logLevelField: options.jsonData.logLevelField || '',
+      logsDatasourceUid: options.jsonData.logsDatasourceUid || '',
+      logsDatasourceName: options.jsonData.logsDatasourceName || '',
+      tracesDatasourceUid: options.jsonData.tracesDatasourceUid || '',
+      tracesDatasourceName: options.jsonData.tracesDatasourceName || '',
     },
   };
 };

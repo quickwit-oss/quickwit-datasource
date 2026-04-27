@@ -85,8 +85,39 @@ export const SettingsEditor = ({ metric, previousMetrics }: Props) => {
         </InlineField>
       )}
 
-      {metric.type === 'logs' && (
-        <LogsSettingsEditor metric={metric}></LogsSettingsEditor>
+      {metric.type === 'logs' && <LogsSettingsEditor metric={metric}></LogsSettingsEditor>}
+
+      {metric.type === 'traces' && (
+        <InlineField label="Limit" {...inlineFieldProps}>
+          <Input
+            id={`ES-query-${query.refId}_metric-${metric.id}-limit`}
+            onBlur={(e) => dispatch(changeMetricSetting({ metric, settingName: 'limit', newValue: e.target.value }))}
+            defaultValue={metric.settings?.limit ?? metricAggregationConfig['traces'].defaults.settings?.limit}
+          />
+        </InlineField>
+      )}
+
+      {metric.type === 'trace_search' && (
+        <>
+          <InlineField label="Trace limit" {...inlineFieldProps}>
+            <Input
+              id={`ES-query-${query.refId}_metric-${metric.id}-trace-limit`}
+              onBlur={(e) => dispatch(changeMetricSetting({ metric, settingName: 'limit', newValue: e.target.value }))}
+              defaultValue={metric.settings?.limit ?? metricAggregationConfig['trace_search'].defaults.settings?.limit}
+            />
+          </InlineField>
+          <InlineField label="Span scan limit" {...inlineFieldProps}>
+            <Input
+              id={`ES-query-${query.refId}_metric-${metric.id}-span-limit`}
+              onBlur={(e) =>
+                dispatch(changeMetricSetting({ metric, settingName: 'spanLimit', newValue: e.target.value }))
+              }
+              defaultValue={
+                metric.settings?.spanLimit ?? metricAggregationConfig['trace_search'].defaults.settings?.spanLimit
+              }
+            />
+          </InlineField>
+        </>
       )}
 
       {metric.type === 'cardinality' && (
