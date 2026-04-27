@@ -46,7 +46,7 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
       const modifier = filter.operator === '=' ? '' : '-';
       const key = escapeFilter(filter.key);
       if (arrayElements.length === 1) {
-        return concatenate(query, `${modifier}${key}:${escapeFilterValue(arrayElements[0])}`, 'AND');
+        return concatenate(query, `${modifier}${key}:"${escapeFilterValue(arrayElements[0])}"`, 'AND');
       }
       const terms = arrayElements.map((el) => `"${escapeFilterValue(el)}"`).join(' ');
       return concatenate(query, `${modifier}${key}:IN [${terms}]`, 'AND');
