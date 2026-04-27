@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
@@ -329,11 +330,77 @@ func isRawDocumentQuery(query *Query) bool {
 	return queryMetricType(query) == rawDocumentType
 }
 
-func queryMetricType(query *Query) string {
+var (
+	bareTraceIDPattern  = regexp.MustCompile(`^[0-9a-fA-F]{32}$`)
+	traceIDFieldPattern = regexp.MustCompile(`(?i)^(trace_id|traceID|traceId)\s*:\s*"?[0-9a-f]{32}"?\s*$`)
+)
+
+func firstMetricType(query *Query) string {
 	if query == nil || len(query.Metrics) == 0 {
 		return ""
 	}
 	return query.Metrics[0].Type
+}
+
+func queryMetricType(query *Query) string {
+	return firstMetricType(query)
+}
+
+func isBareTraceIDQuery(rawQuery string) bool {
+	return bareTraceIDPattern.MatchString(strings.TrimSpace(rawQuery))
+}
+
+func isTraceIDFieldQuery(rawQuery string) bool {
+	return traceIDFieldPattern.MatchString(strings.TrimSpace(rawQuery))
+}
+
+func canInferTraceLink(query *Query) bool {
+	firstMetricType := firstMetricType(query)
+	return firstMetricType == "" || firstMetricType == logsType || firstMetricType == tracesType
+}
+
+func normalizeInternalLinkTraceQuery(query *Query) {
+	if query == nil {
+		return
+	}
+
+	if query.QueryType != tracesType &&
+		firstMetricType(query) != tracesType &&
+		!(canInferTraceLink(query) && isBareTraceIDQuery(query.RawQuery)) &&
+		!(firstMetricType(query) == logsType && isTraceIDFieldQuery(query.RawQuery)) {
+		return
+	}
+
+	rawQuery := strings.TrimSpace(query.RawQuery)
+	if isBareTraceIDQuery(rawQuery) {
+		query.RawQuery = "trace_id:" + rawQuery
+	}
+	query.QueryType = tracesType
+	query.BucketAggs = []*BucketAgg{}
+
+	if len(query.Metrics) == 0 {
+		query.Metrics = []*MetricAgg{
+			{
+				ID:       "1",
+				Type:     tracesType,
+				Settings: simplejson.NewFromAny(map[string]interface{}{"limit": "1000"}),
+				Meta:     simplejson.New(),
+			},
+		}
+		return
+	}
+
+	query.Metrics = query.Metrics[:1]
+	query.Metrics[0].Type = tracesType
+	if query.Metrics[0].ID == "" {
+		query.Metrics[0].ID = "1"
+	}
+	if query.Metrics[0].Settings == nil {
+		query.Metrics[0].Settings = simplejson.New()
+	}
+	if query.Metrics[0].Settings.Get("limit").MustString() == "" {
+		query.Metrics[0].Settings.Set("limit", "1000")
+	}
 }
 
 func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {

@@ -29,6 +29,7 @@ import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { fieldTypeMap, hasWhiteSpace, isSimpleToken } from 'utils';
 import { addAddHocFilter } from 'modifyQuery';
 import { getQueryResponseProcessor } from 'datasource/processResponse';
+import { normalizeInternalLinkQuery } from '@/queryModel';
 
 import { SECOND } from 'utils/time';
 import { GConstructor } from 'utils/mixins';
@@ -99,8 +100,12 @@ export class BaseQuickwitDataSource
   }
 
   query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
-    const queryProcessor = getQueryResponseProcessor(this, request);
-    return super.query(request).pipe(map(queryProcessor.processResponse));
+    const normalizedRequest = {
+      ...request,
+      targets: request.targets.map(normalizeInternalLinkQuery),
+    };
+    const queryProcessor = getQueryResponseProcessor(this, normalizedRequest);
+    return super.query(normalizedRequest).pipe(map(queryProcessor.processResponse));
   }
 
   /**
@@ -475,7 +480,7 @@ export class BaseQuickwitDataSource
     };
 
     const finalQuery = JSON.parse(this.templateSrv.replace(JSON.stringify(expandedQuery), scopedVars));
-    return finalQuery;
+    return normalizeInternalLinkQuery(finalQuery);
   }
 
   addAdHocFilters(query: string, adhocFilters?: AdHocVariableFilter[]) {

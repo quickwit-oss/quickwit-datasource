@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	tracesType      = "traces"
-	traceSearchType = "trace_search"
+	tracesType       = "traces"
+	traceSearchType  = "trace_search"
+	quickwitPluginID = "quickwit-quickwit-datasource"
 
 	maxTraceStackTraceBytes      = 64 * 1024
 	traceStackTraceTruncatedText = "\n... truncated"
@@ -1005,6 +1006,9 @@ func traceInternalDataLinks(title string, datasourceUID string, datasourceName s
 				Query: map[string]interface{}{
 					"refId":      "A",
 					"query":      query,
+					"queryType":  metricType,
+					"datasource": map[string]string{"type": quickwitPluginID, "uid": datasourceUID},
+					"filters":    []interface{}{},
 					"bucketAggs": []interface{}{},
 					"metrics": []map[string]interface{}{
 						{

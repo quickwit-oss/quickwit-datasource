@@ -101,5 +101,92 @@ func TestParseQuery(t *testing.T) {
 			require.Equal(t, q.BucketAggs[1].Settings.Get("min_doc_count").MustInt(), 0)
 			require.Equal(t, q.BucketAggs[1].Settings.Get("trimEdges").MustInt(), 0)
 		})
+
+		t.Run("Should normalize exemplar-style bare trace id links", func(t *testing.T) {
+			traceID := "75d7a6e5c07de26e0238cd17a281a190"
+			body := `{
+				"query": "` + traceID + `",
+				"queryType": "traces",
+				"metrics": [{ "type": "logs", "id": "3", "settings": { "limit": "100" } }],
+				"bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "2" }]
+			}`
+			dataQuery, err := newDataQuery(body)
+			require.NoError(t, err)
+			queries, err := parseQuery(dataQuery.Queries)
+			require.NoError(t, err)
+			require.Len(t, queries, 1)
+
+			q := queries[0]
+			require.Equal(t, "trace_id:"+traceID, q.RawQuery)
+			require.Equal(t, tracesType, q.QueryType)
+			require.Len(t, q.Metrics, 1)
+			require.Equal(t, tracesType, q.Metrics[0].Type)
+			require.Equal(t, "3", q.Metrics[0].ID)
+			require.Equal(t, "100", q.Metrics[0].Settings.Get("limit").MustString())
+			require.Empty(t, q.BucketAggs)
+		})
+
+		t.Run("Should create a traces metric for bare trace id links without metrics", func(t *testing.T) {
+			traceID := "75d7a6e5c07de26e0238cd17a281a190"
+			body := `{
+				"query": "` + traceID + `",
+				"metrics": [],
+				"bucketAggs": []
+			}`
+			dataQuery, err := newDataQuery(body)
+			require.NoError(t, err)
+			queries, err := parseQuery(dataQuery.Queries)
+			require.NoError(t, err)
+			require.Len(t, queries, 1)
+
+			q := queries[0]
+			require.Equal(t, "trace_id:"+traceID, q.RawQuery)
+			require.Equal(t, tracesType, q.QueryType)
+			require.Len(t, q.Metrics, 1)
+			require.Equal(t, tracesType, q.Metrics[0].Type)
+			require.Equal(t, "1", q.Metrics[0].ID)
+			require.Equal(t, "1000", q.Metrics[0].Settings.Get("limit").MustString())
+		})
+
+		t.Run("Should not normalize regular metric queries with bare hex filters", func(t *testing.T) {
+			traceID := "75d7a6e5c07de26e0238cd17a281a190"
+			body := `{
+				"query": "` + traceID + `",
+				"metrics": [{ "type": "count", "id": "1" }],
+				"bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "2" }]
+			}`
+			dataQuery, err := newDataQuery(body)
+			require.NoError(t, err)
+			queries, err := parseQuery(dataQuery.Queries)
+			require.NoError(t, err)
+			require.Len(t, queries, 1)
+
+			q := queries[0]
+			require.Equal(t, traceID, q.RawQuery)
+			require.Empty(t, q.QueryType)
+			require.Len(t, q.Metrics, 1)
+			require.Equal(t, countType, q.Metrics[0].Type)
+			require.Len(t, q.BucketAggs, 1)
+		})
+
+		t.Run("Should not normalize span-specific log correlation queries", func(t *testing.T) {
+			traceID := "75d7a6e5c07de26e0238cd17a281a190"
+			body := `{
+				"query": "trace_id:` + traceID + ` AND span_id:cccccccccccccccc",
+				"metrics": [{ "type": "logs", "id": "3", "settings": { "limit": "100" } }],
+				"bucketAggs": []
+			}`
+			dataQuery, err := newDataQuery(body)
+			require.NoError(t, err)
+			queries, err := parseQuery(dataQuery.Queries)
+			require.NoError(t, err)
+			require.Len(t, queries, 1)
+
+			q := queries[0]
+			require.Equal(t, "trace_id:"+traceID+" AND span_id:cccccccccccccccc", q.RawQuery)
+			require.Empty(t, q.QueryType)
+			require.Len(t, q.Metrics, 1)
+			require.Equal(t, logsType, q.Metrics[0].Type)
+		})
 	})
 }

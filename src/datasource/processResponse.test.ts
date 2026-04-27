@@ -260,6 +260,11 @@ describe('processLogsDataFrame', () => {
       expect(traceIDField?.config.links?.[0].internal?.datasourceUid).toBe('traces-uid');
       expect(traceIDField?.config.links?.[0].internal?.datasourceName).toBe('Quickwit Traces');
       expect((traceIDField?.config.links?.[0].internal?.query as any).query).toBe('trace_id:${__value.raw}');
+      expect((traceIDField?.config.links?.[0].internal?.query as any).queryType).toBe('traces');
+      expect((traceIDField?.config.links?.[0].internal?.query as any).datasource).toEqual({
+        type: 'quickwit-quickwit-datasource',
+        uid: 'traces-uid',
+      });
       expect((traceIDField?.config.links?.[0].internal?.query as any).metrics[0].type).toBe('traces');
     });
 

@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 
-import React, { createContext, useRef } from 'react';
+import React, { createContext, useEffect, useRef } from 'react';
 import { debounceTime, throttleTime } from 'rxjs';
 import { useObservableCallback, useSubscription } from 'observable-hooks'
 
@@ -26,20 +26,29 @@ import { getHook } from '@/utils/context';
 import { LuceneQueryEditor } from '@/components/LuceneQueryEditor';
 import { useDatasourceFields } from '@/datasource/utils';
 import { FilterEditor } from '@/components/QueryEditor/FilterEditor';
+import { normalizeInternalLinkQuery } from '@/queryModel';
 
 export type ElasticQueryEditorProps = QueryEditorProps<ElasticDatasource, ElasticsearchQuery, QuickwitOptions>;
 
 export const QueryEditor = ({ query, onChange, onRunQuery, datasource, range, app }: ElasticQueryEditorProps) => {
+  const normalizedQuery = normalizeInternalLinkQuery(query);
+
+  useEffect(() => {
+    if (normalizedQuery !== query) {
+      onChange(normalizedQuery);
+    }
+  }, [normalizedQuery, onChange, query]);
+
   return (
     <ElasticsearchProvider
       datasource={datasource}
       onChange={onChange}
       app={app || CoreApp.Unknown}
       onRunQuery={onRunQuery}
-      query={query}
+      query={normalizedQuery}
       range={range || getDefaultTimeRange()}
     >
-      <QueryEditorForm value={query} onRunQuery={onRunQuery} />
+      <QueryEditorForm value={normalizedQuery} onRunQuery={onRunQuery} />
     </ElasticsearchProvider>
   );
 };

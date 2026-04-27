@@ -441,6 +441,8 @@ func TestTraceDataLinks(t *testing.T) {
 
 		query := link.Internal.Query.(map[string]interface{})
 		require.Equal(t, "trace_id:${__span.traceId} AND span_id:${__span.spanId}", query["query"])
+		require.Equal(t, logsType, query["queryType"])
+		require.Equal(t, map[string]string{"type": quickwitPluginID, "uid": "logs-uid"}, query["datasource"])
 		require.Equal(t, logsType, query["metrics"].([]map[string]interface{})[0]["type"])
 	})
 
@@ -495,6 +497,8 @@ func TestTraceDataLinks(t *testing.T) {
 
 		query := link.Internal.Query.(map[string]interface{})
 		require.Equal(t, "trace_id:${__value.raw}", query["query"])
+		require.Equal(t, tracesType, query["queryType"])
+		require.Equal(t, map[string]string{"type": quickwitPluginID, "uid": "traces-uid"}, query["datasource"])
 		require.Equal(t, tracesType, query["metrics"].([]map[string]interface{})[0]["type"])
 	})
 }

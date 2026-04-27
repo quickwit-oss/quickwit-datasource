@@ -25,6 +25,7 @@ function getCustomFieldName(fieldname: string) {
 
 const OTEL_MESSAGE_FIELDS = ['body.message', 'attributes.message'];
 const TRACE_ID_FIELDS = ['trace_id', 'traceID', 'traceId', 'attributes.trace_id'];
+const QUICKWIT_DATASOURCE_TYPE = 'quickwit-quickwit-datasource';
 
 const SKIP_FIELD_PREFIXES = [
   'attributes.pod_',
@@ -170,7 +171,13 @@ function addLogToTraceLink(datasource: BaseQuickwitDataSource, dataFrame: DataFr
         query: {
           refId: 'A',
           query: 'trace_id:${__value.raw}',
+          queryType: 'traces',
+          datasource: {
+            type: QUICKWIT_DATASOURCE_TYPE,
+            uid: datasourceUid,
+          },
           bucketAggs: [],
+          filters: [],
           metrics: [
             {
               id: '1',

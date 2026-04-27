@@ -9,6 +9,7 @@ import (
 // Query represents the time series query model of the datasource
 type Query struct {
 	RawQuery      string       `json:"query"`
+	QueryType     string       `json:"queryType"`
 	BucketAggs    []*BucketAgg `json:"bucketAggs"`
 	Metrics       []*MetricAgg `json:"metrics"`
 	Alias         string       `json:"alias"`
