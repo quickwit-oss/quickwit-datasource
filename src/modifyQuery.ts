@@ -1,6 +1,21 @@
 import { escapeFilter, escapeFilterValue, concatenate, LuceneQuery } from 'utils/lucene';
 import { AdHocVariableFilter } from '@grafana/data';
 
+function tryParseJsonArray(value: string): string[] | null {
+  if (!value.startsWith('[')) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed) && parsed.every((el) => typeof el === 'string')) {
+      return parsed;
+    }
+  } catch {
+    // not valid JSON
+  }
+  return null;
+}
+
 /**
  * Adds a label:"value" expression to the query.
  */
@@ -18,6 +33,24 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
 
   const equalityFilters = ['=', '!='];
   if (equalityFilters.includes(filter.operator)) {
+    // Grafana stringifies array values (e.g. ["paperclip","stapler"]) before
+    // passing them as filter values. Tantivy indexes array elements as
+    // individual terms — there's no way to match on array length, order, or
+    // exact composition. For multi-element arrays we use IN (match any),
+    // which is the most useful behavior for log exploration filters.
+    const arrayElements = tryParseJsonArray(filter.value);
+    if (arrayElements !== null) {
+      if (arrayElements.length === 0) {
+        return query;
+      }
+      const modifier = filter.operator === '=' ? '' : '-';
+      const key = escapeFilter(filter.key);
+      if (arrayElements.length === 1) {
+        return concatenate(query, `${modifier}${key}:${escapeFilterValue(arrayElements[0])}`, 'AND');
+      }
+      const terms = arrayElements.map((el) => `"${escapeFilterValue(el)}"`).join(' ');
+      return concatenate(query, `${modifier}${key}:IN [${terms}]`, 'AND');
+    }
     return LuceneQuery.parse(query).addFilter(filter.key, filter.value, filter.operator === '=' ? '' : '-').toString();
   }
   /**
