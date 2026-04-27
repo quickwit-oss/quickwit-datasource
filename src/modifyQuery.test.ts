@@ -2,13 +2,13 @@ import { addAddHocFilter } from './modifyQuery';
 
 describe('addAddHocFilter', () => {
   describe('array values', () => {
-    it('unwraps single-element array into a term query', () => {
+    it('unwraps single-element array into a phrase query', () => {
       const result = addAddHocFilter('', {
         key: 'attributes.tags',
         operator: '=',
         value: '["paperclip"]',
       });
-      expect(result).toBe('attributes.tags:paperclip');
+      expect(result).toBe('attributes.tags:"paperclip"');
     });
 
     it('unwraps multi-element array into IN set query', () => {
@@ -20,13 +20,13 @@ describe('addAddHocFilter', () => {
       expect(result).toBe('attributes.tags:IN ["paperclip" "stapler"]');
     });
 
-    it('negated single-element array produces negated term query', () => {
+    it('negated single-element array produces negated phrase query', () => {
       const result = addAddHocFilter('', {
         key: 'attributes.tags',
         operator: '!=',
         value: '["paperclip"]',
       });
-      expect(result).toBe('-attributes.tags:paperclip');
+      expect(result).toBe('-attributes.tags:"paperclip"');
     });
 
     it('negated multi-element array produces negated IN set query', () => {
@@ -44,7 +44,43 @@ describe('addAddHocFilter', () => {
         operator: '=',
         value: '["paperclip"]',
       });
-      expect(result).toBe('status:200 AND attributes.tags:paperclip');
+      expect(result).toBe('status:200 AND attributes.tags:"paperclip"');
+    });
+
+    it('handles single-element array with spaces in value', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.tags',
+        operator: '=',
+        value: '["foo bar"]',
+      });
+      expect(result).toBe('attributes.tags:"foo bar"');
+    });
+
+    it('handles single-element array with colons in value', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.tags',
+        operator: '=',
+        value: '["foo:bar"]',
+      });
+      expect(result).toBe('attributes.tags:"foo:bar"');
+    });
+
+    it('handles multi-element array with spaces in values', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.tags',
+        operator: '=',
+        value: '["foo bar","baz qux"]',
+      });
+      expect(result).toBe('attributes.tags:IN ["foo bar" "baz qux"]');
+    });
+
+    it('handles array values containing double quotes', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.tags',
+        operator: '=',
+        value: '["say \\"hello\\""]',
+      });
+      expect(result).toBe('attributes.tags:"say \\"hello\\""');
     });
 
     it('passes through non-array bracket strings unchanged', () => {
