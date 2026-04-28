@@ -21,7 +21,7 @@ import {
   DataSourceWithBackend,
   getTemplateSrv,
   TemplateSrv } from '@grafana/runtime';
-import { QuickwitOptions } from 'quickwit';
+import { FilterAutocompleteChainMode, QuickwitOptions } from 'quickwit';
 import { getDataQuery } from 'QueryBuilder/elastic';
 
 import { metricAggregationConfig } from 'components/QueryEditor/MetricAggregationsEditor/utils';
@@ -41,13 +41,45 @@ import { isSet } from '@/utils';
 
 export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>
 
-const getQueryUid = uidMaker("query")
+const getQueryUid = uidMaker('query');
+export const DEFAULT_FILTER_AUTOCOMPLETE_LIMIT = 1000;
+const DEFAULT_FILTER_AUTOCOMPLETE_CHAIN_MODE: FilterAutocompleteChainMode = 'sample';
+const FULL_FILTER_CHAIN_PAGE_SIZE = 1000;
+
+export function parseFilterAutocompleteLimit(value: unknown): number {
+  if (value === undefined || value === null || value === '') {
+    return DEFAULT_FILTER_AUTOCOMPLETE_LIMIT;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return DEFAULT_FILTER_AUTOCOMPLETE_LIMIT;
+  }
+  return Math.floor(parsed);
+}
+
+export function parseFilterAutocompleteChainMode(
+  value: unknown,
+  legacyUseFilterChains?: boolean
+): FilterAutocompleteChainMode {
+  if (value === 'none' || value === 'sample' || value === 'full') {
+    return value;
+  }
+  if (legacyUseFilterChains === false) {
+    return 'none';
+  }
+  return DEFAULT_FILTER_AUTOCOMPLETE_CHAIN_MODE;
+}
 
 type FieldCapsSpec = {
   aggregatable?: boolean,
   searchable?: boolean,
   type?: string[],
   range?: TimeRange
+}
+
+type QuickwitSearchResponse = {
+  num_hits?: number,
+  hits?: Array<Record<string, unknown>>,
 }
 
 export class BaseQuickwitDataSource
@@ -63,6 +95,8 @@ export class BaseQuickwitDataSource
   queryEditorConfig?: {
     defaults?: DefaultsConfigOverrides
   };
+  filterAutocompleteLimit: number;
+  filterAutocompleteChainMode: FilterAutocompleteChainMode;
   languageProvider: ElasticsearchLanguageProvider;
   // Populated lazily by getFields(). Used by modifyQuery to pick an operator
   // that matches text field semantics.
@@ -85,6 +119,11 @@ export class BaseQuickwitDataSource
     this.logLevelField = settingsData.logLevelField || '';
     this.dataLinks = settingsData.dataLinks || [];
     this.queryEditorConfig = settingsData.queryEditorConfig || {};
+    this.filterAutocompleteLimit = parseFilterAutocompleteLimit(settingsData.filterAutocompleteLimit);
+    this.filterAutocompleteChainMode = parseFilterAutocompleteChainMode(
+      settingsData.filterAutocompleteChainMode,
+      settingsData.filterAutocompleteUseFilterChains
+    );
     this.languageProvider = new ElasticsearchLanguageProvider(this);
     this.annotations = {};
 
@@ -154,66 +193,111 @@ export class BaseQuickwitDataSource
     const key = filter.options.key;
     const rawValue = String(filter.options.value ?? '');
     const negate = filter.type === 'FILTER_OUT';
+    const operator = this.getFilterOperator(key, rawValue, negate);
+    const oppositeOperator = this.getFilterOperator(key, rawValue, !negate);
+    const emptyFilter = () => [{ id: newFilterId(), filter: { key: '', operator: '=', value: '' } }];
+    const filters = query.filters ?? [];
 
-    // If the same (key, value) filter is already present, toggle it off.
-    const existingIdx = (query.filters ?? []).findIndex(
-      (f) => f.filter.key === key && f.filter.value === rawValue
+    // If the same filter is already present, toggle it off.
+    const existingIdx = filters.findIndex(
+      (f) => !f.hide && f.filter.key === key && f.filter.value === rawValue && f.filter.operator === operator
     );
     if (existingIdx !== -1) {
-      const next = [...(query.filters ?? [])];
+      const next = [...filters];
       next.splice(existingIdx, 1);
-      return { ...query, filters: next.length ? next : [{ id: newFilterId(), filter: { key: '', operator: '=', value: '' } }] };
+      return { ...query, filters: next.length ? next : emptyFilter() };
     }
+
+    // If the opposite filter is present, replace it.
+    const oppositeIdx = filters.findIndex(
+      (f) => !f.hide && f.filter.key === key && f.filter.value === rawValue && f.filter.operator === oppositeOperator
+    );
+    if (oppositeIdx !== -1) {
+      return {
+        ...query,
+        filters: filters.map((existing, index) =>
+          index === oppositeIdx
+            ? { ...existing, hide: false, filter: { key, operator, value: rawValue } }
+            : existing
+        ),
+      };
+    }
+
     return this.addFilterToQuery(query, key, rawValue, negate);
   }
 
-  queryHasFilter(query: ElasticsearchQuery, filter: { key: string; value: string }): boolean {
+  queryHasFilter(query: ElasticsearchQuery, filter: { key: string; value: string; operator?: string; type?: string }): boolean {
+    const expectedOperator = filter.operator || (
+      filter.type === 'FILTER_FOR' || filter.type === 'FILTER_OUT'
+        ? this.getFilterOperator(filter.key, String(filter.value ?? ''), filter.type === 'FILTER_OUT')
+        : undefined
+    );
     return (query.filters ?? []).some(
-      (f) => f.filter.key === filter.key && f.filter.value === filter.value && !f.hide
+      (f) =>
+        f.filter.key === filter.key &&
+        f.filter.value === filter.value &&
+        !f.hide &&
+        (expectedOperator === undefined || f.filter.operator === expectedOperator)
     );
   }
 
-  private addFilterToQuery(query: ElasticsearchQuery, key: string, rawValue: string, negate: boolean): ElasticsearchQuery {
+  private getFilterOperator(key: string, value: string, negate: boolean): string {
     const fieldType = this.fieldTypes[key];
     const isText = fieldType === 'text';
 
-    const value = rawValue;
     const useTermOperator = isText && value !== '' && isSimpleToken(value);
-    const operator = useTermOperator
+    return useTermOperator
       ? (negate ? 'not term' : 'term')
       : (negate ? '!=' : '=');
+  }
+
+  private addFilterToQuery(query: ElasticsearchQuery, key: string, rawValue: string, negate: boolean): ElasticsearchQuery {
+    const operator = this.getFilterOperator(key, rawValue, negate);
+    const filters = query.filters ?? [];
+    const nextFilter = { key, operator, value: rawValue };
 
     // If the user hasn't populated any filter yet, reuse the trailing empty one.
-    const len = query.filters?.length ?? 0;
+    const len = filters.length;
     if (len > 0) {
-      const last = query.filters![len - 1];
+      const last = filters[len - 1];
       if (!isSet(last.filter.key) && !isSet(last.filter.value)) {
-        last.filter.key = key;
-        last.filter.operator = operator;
-        last.filter.value = value;
-        return query;
+        return {
+          ...query,
+          filters: filters.map((filter, index) =>
+            index === len - 1 ? { ...filter, hide: false, filter: nextFilter } : filter
+          ),
+        };
       }
     }
-    query.filters?.push({
-      id: newFilterId(),
-      hide: false,
-      filter: { key, operator, value },
-    });
 
-    return { ...query };
+    return {
+      ...query,
+      filters: [
+        ...filters,
+        {
+          id: newFilterId(),
+          hide: false,
+          filter: nextFilter,
+        },
+      ],
+    };
   }
 
   getDataQueryRequest(queryDef: TermsQuery, range: TimeRange, requestId?: string) {
     let dataQuery = getDataQuery(queryDef, 'getTerms');
+    return this.getRequestForQuery(dataQuery, range, requestId);
+  }
+
+  private getRequestForQuery(query: ElasticsearchQuery, range: TimeRange, requestId?: string) {
     const request: DataQueryRequest = {
       app: CoreApp.Unknown,
       requestId: requestId || getQueryUid.next(),
       interval: '',
       intervalMs: 0,
       range,
-      targets:[dataQuery],
-      timezone:'browser',
-      scopedVars:{},
+      targets: [query],
+      timezone: 'browser',
+      scopedVars: {},
       startTime: Date.now(),
     }
     return request
@@ -294,17 +378,135 @@ export class BaseQuickwitDataSource
    * Get tag keys for adhoc filters
    */
   getTagKeys(options: any = {}) {
-    const fields = this.getFields({aggregatable:true, range: options.timeRange})
-    return lastValueFrom(fields, {defaultValue:[]});
+    const fieldSpec = this.getTagKeyFieldSpec(options);
+    const filters = this.getFilterChain(options.filters);
+    if (!filters?.length) {
+      return lastValueFrom(this.getFields(fieldSpec), { defaultValue: [] }).then((fields) => this.dedupeTagKeys(fields));
+    }
+    if (this.getFilterAutocompleteChainMode() === 'full') {
+      return this.getFullFilteredTagKeys(filters, fieldSpec);
+    }
+    return this.getSampledFilteredTagKeys(filters, fieldSpec);
   }
 
   /**
    * Get tag values for adhoc filters
    */
   getTagValues(options: any) {
-    const query = this.addAdHocFilters('', options.filters);
-    const terms = this.getTerms({ field: options.key, query }, options.timeRange)
-    return lastValueFrom(terms, {defaultValue:[]});
+    const query = this.addAdHocFilters('', this.getFilterChain(options.filters));
+    const terms = this.getTerms({ field: options.key, query, size: this.filterAutocompleteLimit }, options.timeRange);
+    return lastValueFrom(terms, { defaultValue: [] });
+  }
+
+  private getFilterChain(filters?: AdHocVariableFilter[]) {
+    return this.getFilterAutocompleteChainMode() === 'none' ? undefined : filters;
+  }
+
+  private getFilterAutocompleteChainMode() {
+    return parseFilterAutocompleteChainMode(
+      this.filterAutocompleteChainMode,
+      (this as { filterAutocompleteUseFilterChains?: boolean }).filterAutocompleteUseFilterChains
+    );
+  }
+
+  private getTagKeyFieldSpec(options: any = {}): FieldCapsSpec {
+    const spec: FieldCapsSpec = { range: options.timeRange };
+    if (options.aggregatable !== undefined) {
+      spec.aggregatable = options.aggregatable;
+    } else if (options.searchable === undefined) {
+      spec.aggregatable = true;
+    }
+    if (options.searchable !== undefined) {
+      spec.searchable = options.searchable;
+    }
+    if (options.type !== undefined) {
+      spec.type = options.type;
+    }
+    return spec;
+  }
+
+  private dedupeTagKeys(fields: MetricFindValue[]) {
+    const seen = new Set<string>();
+    return fields.filter((field) => {
+      const name = String(field.text);
+      if (seen.has(name)) {
+        return false;
+      }
+      seen.add(name);
+      return true;
+    });
+  }
+
+  private async getSampledFilteredTagKeys(filters: AdHocVariableFilter[], fieldSpec: FieldCapsSpec) {
+    const query = this.addAdHocFilters('', filters);
+    // Field-capabilities are schema-wide. To approximate chained field-key
+    // suggestions, sample matching documents and keep fields present in that
+    // sample. A limit of 0 means "no terms limit" elsewhere, but raw-document
+    // sampling still needs a finite size.
+    const sampleLimit = this.filterAutocompleteLimit > 0 ? this.filterAutocompleteLimit : DEFAULT_FILTER_AUTOCOMPLETE_LIMIT;
+    const target: ElasticsearchQuery = {
+      refId: 'filterKeys',
+      query,
+      metrics: [{ id: 'filterKeys', type: 'raw_data', settings: { size: sampleLimit.toString() } }],
+      bucketAggs: [],
+      filters: [],
+    };
+    const range = fieldSpec.range || getDefaultTimeRange();
+    const [fields, response] = await Promise.all([
+      lastValueFrom(this.getFields(fieldSpec), { defaultValue: [] }),
+      lastValueFrom(this.query(this.getRequestForQuery(target, range, `getFilterKeys-${getQueryUid.next()}`)), {
+        defaultValue: { data: [] },
+      }),
+    ]);
+    const presentFields = new Set<string>();
+    response.data?.forEach((frame: DataFrame) => {
+      frame.fields?.forEach((field: { name?: string }) => {
+        if (field.name && field.name !== 'sort') {
+          presentFields.add(field.name);
+        }
+      });
+    });
+    return this.dedupeTagKeys(fields).filter((field) => presentFields.has(String(field.text)));
+  }
+
+  private async getFullFilteredTagKeys(filters: AdHocVariableFilter[], fieldSpec: FieldCapsSpec) {
+    const query = this.addAdHocFilters('', filters);
+    const range = fieldSpec.range || getDefaultTimeRange();
+    const [fields, presentFields] = await Promise.all([
+      lastValueFrom(this.getFields(fieldSpec), { defaultValue: [] }),
+      this.getAllMatchingFieldNames(query, range),
+    ]);
+    return this.dedupeTagKeys(fields).filter((field) => presentFields.has(String(field.text)));
+  }
+
+  private async getAllMatchingFieldNames(query: string, range: TimeRange) {
+    const presentFields = new Set<string>();
+    let offset = 0;
+    let totalHits: number | undefined;
+
+    do {
+      const response = await this.postResource<QuickwitSearchResponse>(
+        `indexes/${this.index}/search`,
+        {
+          query: query || '*',
+          max_hits: FULL_FILTER_CHAIN_PAGE_SIZE,
+          start_offset: offset,
+          start_timestamp: Math.floor(range.from.valueOf() / SECOND),
+          end_timestamp: Math.ceil(range.to.valueOf() / SECOND),
+        },
+        { requestId: `getFilterKeysFull-${getQueryUid.next()}` }
+      );
+      const hits = response.hits ?? [];
+      totalHits = response.num_hits ?? totalHits ?? hits.length;
+
+      hits.forEach((hit) => collectFieldNames(hit, presentFields));
+      offset += hits.length;
+      if (hits.length === 0) {
+        break;
+      }
+    } while (totalHits === undefined || offset < totalHits);
+
+    return presentFields;
   }
 
   /**
@@ -388,7 +590,9 @@ export class BaseQuickwitDataSource
   }
 
   interpolateLuceneQuery(queryString: string, scopedVars?: ScopedVars) {
-    return this.templateSrv.replace(queryString, scopedVars, formatQuery);
+    return this.templateSrv.replace(queryString, scopedVars, (value: string | string[], variable: any) =>
+      formatQuery(value, variable, queryString)
+    );
   }
 
   interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}, filters?: AdHocVariableFilter[]): ElasticsearchQuery[] {
@@ -475,7 +679,50 @@ export class BaseQuickwitDataSource
     return finalQuery;
   }
 }
-export function formatQuery(value: string | string[], variable: any): string {
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function collectFieldNames(value: unknown, fields: Set<string>, prefix = '') {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectFieldNames(item, fields, prefix));
+    return;
+  }
+  if (!isRecord(value)) {
+    if (prefix) {
+      fields.add(prefix);
+    }
+    return;
+  }
+
+  Object.entries(value).forEach(([key, nested]) => {
+    const fieldName = prefix ? `${prefix}.${key}` : key;
+    collectFieldNames(nested, fields, fieldName);
+  });
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function inferFieldNameFromQuery(queryString: string | undefined, variable: any) {
+  const names = [variable?.id, variable?.name].filter((name): name is string => typeof name === 'string' && name !== '');
+  if (!queryString || names.length === 0) {
+    return undefined;
+  }
+  for (const name of names) {
+    const escapedName = escapeRegExp(name);
+    const pattern = new RegExp(`(?:^|[\\s(])([^\\s:()]+):(\\$\\{${escapedName}\\}|\\$${escapedName}|\\[\\[${escapedName}\\]\\])`);
+    const match = queryString.match(pattern);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+  return undefined;
+}
+
+export function formatQuery(value: string | string[], variable: any, queryString?: string): string {
   if (typeof value === 'string') {
     return luceneEscape(value);
   }
@@ -489,19 +736,17 @@ export function formatQuery(value: string | string[], variable: any): string {
     } catch (e) {
       fieldName = undefined;
     }
+    fieldName = typeof fieldName === 'string' ? fieldName : inferFieldNameFromQuery(queryString, variable);
     const quotedValues =  value.map((val) => '"' + luceneEscape(val) + '"');
     // Quickwit query language does not support fieldName:(value1 OR value2 OR....)
     // like lucene does.
     // When we know the fieldName, we can directly generate a query
     // fieldName:value1 OR fieldName:value2 OR ...
-    // But when we don't know the fieldName, the simplest is to generate a query
-    // with the IN operator. Unfortunately, IN operator does not work on JSON field.
-    // TODO: fix that by using doing a regex on queryString to find the fieldName.
-    // Note that variable.id gives the name of the template variable to interpolate,
-    // so if we have `fieldName:${variable.id}` in the queryString, we can isolate
-    // the fieldName.
+    // If the variable query does not carry a field, infer it from common
+    // `field:$var` query strings. Without a field, fall back to default-search
+    // clauses instead of a bare IN set, which is easy to misread as field-scoped.
     if (typeof fieldName !== 'string') {
-      return 'IN [' + quotedValues.join(' ') + ']';
+      return quotedValues.join(' OR ');
     }
     return quotedValues.join(' OR ' + fieldName + ':');
   } else {

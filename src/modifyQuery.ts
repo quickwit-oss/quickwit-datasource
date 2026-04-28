@@ -1,13 +1,19 @@
 import { escapeFilter, escapeFilterValue, concatenate, LuceneQuery } from 'utils/lucene';
 import { AdHocVariableFilter } from '@grafana/data';
 
-function tryParseJsonArray(value: string): string[] | null {
-  if (!value.startsWith('[')) {
+type FilterArrayElement = string | number | boolean;
+
+function isFilterArrayElement(value: unknown): value is FilterArrayElement {
+  return ['string', 'number', 'boolean'].includes(typeof value);
+}
+
+function tryParseJsonArray(value: string): FilterArrayElement[] | null {
+  if (!value.trimStart().startsWith('[')) {
     return null;
   }
   try {
     const parsed = JSON.parse(value);
-    if (Array.isArray(parsed) && parsed.every((el) => typeof el === 'string')) {
+    if (Array.isArray(parsed) && parsed.every(isFilterArrayElement)) {
       return parsed;
     }
   } catch {
@@ -16,11 +22,26 @@ function tryParseJsonArray(value: string): string[] | null {
   return null;
 }
 
+function formatArrayElement(value: FilterArrayElement) {
+  if (typeof value === 'string') {
+    return `"${escapeFilterValue(value)}"`;
+  }
+  return String(value);
+}
+
+function hasFilterValue(value: unknown) {
+  return value !== undefined && value !== null && String(value) !== '';
+}
+
+function isLiteralValue(value: string) {
+  return /^-?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value) || value === 'true' || value === 'false';
+}
+
 /**
  * Adds a label:"value" expression to the query.
  */
 export function addAddHocFilter(query: string, filter: AdHocVariableFilter): string {
-  const hasValidValue = ['exists', 'not exists'].includes(filter.operator) || !!filter.value
+  const hasValidValue = ['exists', 'not exists'].includes(filter.operator) || hasFilterValue(filter.value)
   if (!filter.key || !hasValidValue) {
     return query;
   }
@@ -33,6 +54,8 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
 
   const equalityFilters = ['=', '!='];
   if (equalityFilters.includes(filter.operator)) {
+    const modifier = filter.operator === '=' ? '' : '-';
+    const key = escapeFilter(filter.key);
     // Grafana stringifies array values (e.g. ["paperclip","stapler"]) before
     // passing them as filter values. Tantivy indexes array elements as
     // individual terms — there's no way to match on array length, order, or
@@ -43,13 +66,14 @@ export function addAddHocFilter(query: string, filter: AdHocVariableFilter): str
       if (arrayElements.length === 0) {
         return query;
       }
-      const modifier = filter.operator === '=' ? '' : '-';
-      const key = escapeFilter(filter.key);
       if (arrayElements.length === 1) {
-        return concatenate(query, `${modifier}${key}:"${escapeFilterValue(arrayElements[0])}"`, 'AND');
+        return concatenate(query, `${modifier}${key}:${formatArrayElement(arrayElements[0])}`, 'AND');
       }
-      const terms = arrayElements.map((el) => `"${escapeFilterValue(el)}"`).join(' ');
+      const terms = arrayElements.map(formatArrayElement).join(' ');
       return concatenate(query, `${modifier}${key}:IN [${terms}]`, 'AND');
+    }
+    if (isLiteralValue(filter.value)) {
+      return concatenate(query, `${modifier}${key}:${filter.value}`, 'AND');
     }
     return LuceneQuery.parse(query).addFilter(filter.key, filter.value, filter.operator === '=' ? '' : '-').toString();
   }
