@@ -58,7 +58,8 @@ export function getDataQuery(queryDef: TermsQuery, refId: string): Elasticsearch
 
   const bucketAggs: BucketAggregation[] = [];
   if (queryDef.field) {
-    bucketAggs.push(getTermsAgg(queryDef.field, 100, 100, orderBy, order))
+    const size = queryDef.size ?? 100;
+    bucketAggs.push(getTermsAgg(queryDef.field, size, size, orderBy, order))
   }
 
   return {

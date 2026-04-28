@@ -74,6 +74,60 @@ describe('addAddHocFilter', () => {
       expect(result).toBe('attributes.tags:IN ["foo bar" "baz qux"]');
     });
 
+    it('handles single-element numeric arrays', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.codes',
+        operator: '=',
+        value: '[200]',
+      });
+      expect(result).toBe('attributes.codes:200');
+    });
+
+    it('handles multi-element numeric arrays with IN set query', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.codes',
+        operator: '=',
+        value: '[200,500]',
+      });
+      expect(result).toBe('attributes.codes:IN [200 500]');
+    });
+
+    it('keeps negative numeric array values unquoted', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.deltas',
+        operator: '=',
+        value: '[-1,2]',
+      });
+      expect(result).toBe('attributes.deltas:IN [-1 2]');
+    });
+
+    it('handles boolean arrays with IN set query', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.flags',
+        operator: '=',
+        value: '[true,false]',
+      });
+      expect(result).toBe('attributes.flags:IN [true false]');
+    });
+
+    it('handles mixed scalar arrays with IN set query', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.values',
+        operator: '=',
+        value: '["paperclip",200,true]',
+      });
+      expect(result).toBe('attributes.values:IN ["paperclip" 200 true]');
+    });
+
+    it('negates numeric arrays with IN set query', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.codes',
+        operator: '!=',
+        value: '[200,500]',
+      });
+      expect(result).toBe('-attributes.codes:IN [200 500]');
+    });
+
     it('handles array values containing double quotes', () => {
       const result = addAddHocFilter('', {
         key: 'attributes.tags',
@@ -128,6 +182,42 @@ describe('addAddHocFilter', () => {
         value: 'BlogController',
       });
       expect(result).toBe('status:200 AND attributes.controller:"BlogController"');
+    });
+
+    it('renders numeric equality filters as unquoted literals', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.status_code',
+        operator: '=',
+        value: '200',
+      });
+      expect(result).toBe('attributes.status_code:200');
+    });
+
+    it('keeps numeric zero as a valid filter value', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.retry_count',
+        operator: '=',
+        value: 0 as any,
+      });
+      expect(result).toBe('attributes.retry_count:0');
+    });
+
+    it('keeps boolean false as a valid filter value', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.cache_hit',
+        operator: '=',
+        value: false as any,
+      });
+      expect(result).toBe('attributes.cache_hit:false');
+    });
+
+    it('renders negated boolean equality filters as unquoted literals', () => {
+      const result = addAddHocFilter('', {
+        key: 'attributes.cache_hit',
+        operator: '!=',
+        value: false as any,
+      });
+      expect(result).toBe('-attributes.cache_hit:false');
     });
 
     it('exists operator', () => {
