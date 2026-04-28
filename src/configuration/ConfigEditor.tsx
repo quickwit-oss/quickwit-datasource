@@ -1,13 +1,19 @@
 import React, { useCallback } from 'react';
-import { DataSourceHttpSettings, Input, InlineField, FieldSet } from '@grafana/ui';
-import { DataSourcePluginOptionsEditorProps, DataSourceSettings } from '@grafana/data';
-import { QuickwitOptions } from '../quickwit';
+import { DataSourceHttpSettings, Input, InlineField, FieldSet, RadioButtonGroup } from '@grafana/ui';
+import { DataSourcePluginOptionsEditorProps, DataSourceSettings, SelectableValue } from '@grafana/data';
+import { FilterAutocompleteChainMode, QuickwitOptions } from '../quickwit';
 import { coerceOptions } from './utils';
 import { Divider } from '../components/Divider';
 import { DataLinks } from './DataLinks';
 import _ from 'lodash';
 
 interface Props extends DataSourcePluginOptionsEditorProps<QuickwitOptions> {}
+
+const filterChainModeOptions: Array<SelectableValue<FilterAutocompleteChainMode>> = [
+  { label: 'No chain', value: 'none' },
+  { label: 'Sample', value: 'sample' },
+  { label: 'Full', value: 'full' },
+];
 
 export const ConfigEditor = (props: Props) => {
   const { options: originalOptions, onOptionsChange } = props;
@@ -101,6 +107,47 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               onChange={(event) => onChange(_.merge(value, {jsonData:{queryEditorConfig:{defaults:{'metricAggregation.logs.settings.limit':event.currentTarget.value}}}}))}
               placeholder="100"
               width={40}
+            />
+          </InlineField>
+          <InlineField
+            label="Filter autocomplete limit"
+            labelWidth={26}
+            tooltip="Maximum number of values returned for filter autocomplete. Use 0 for no terms limit."
+          >
+            <Input
+              id="quickwit_filter_autocomplete_limit"
+              type="number"
+              min={0}
+              value={value.jsonData.filterAutocompleteLimit}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  jsonData: { ...value.jsonData, filterAutocompleteLimit: event.currentTarget.value },
+                })
+              }
+              placeholder="1000"
+              width={40}
+            />
+          </InlineField>
+          <InlineField
+            label="Filter chain mode"
+            labelWidth={26}
+            tooltip="Controls whether earlier filters narrow later autocomplete suggestions. Sample is fast and approximate for field names; Full scans all matching documents and can be slower."
+          >
+            <RadioButtonGroup
+              id="quickwit_filter_autocomplete_chains"
+              options={filterChainModeOptions}
+              value={value.jsonData.filterAutocompleteChainMode}
+              onChange={(mode) =>
+                onChange({
+                  ...value,
+                  jsonData: {
+                    ...value.jsonData,
+                    filterAutocompleteChainMode: mode,
+                    filterAutocompleteUseFilterChains: mode !== 'none',
+                  },
+                })
+              }
             />
           </InlineField>
         </FieldSet>
