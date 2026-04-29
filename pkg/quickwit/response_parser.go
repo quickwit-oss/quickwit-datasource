@@ -151,9 +151,19 @@ func processLogsResponse(res *es.SearchResponse, target *Query, configuredFields
 		// Always set a unique id per row. Grafana's virtualized log panel uses
 		// LogRowModel.uid (derived from the "id" field) as a cache key for
 		// row height measurements. Without unique ids, rows sharing the same
-		// cache key cause an infinite resetAfterIndex loop. The source index
-		// may have an "id" field with non-unique values, so always overwrite.
-		doc["id"] = fmt.Sprintf("%d", hitIdx)
+		// cache key cause an infinite resetAfterIndex loop. Prefer the hit's
+		// own _index/_id when present (matches built-in ES datasource), fall
+		// back to the row index otherwise.
+		hitIndex, _ := hit["_index"].(string)
+		hitID, _ := hit["_id"].(string)
+		switch {
+		case hitIndex != "" && hitID != "":
+			doc["id"] = hitIndex + "#" + hitID
+		case hitID != "":
+			doc["id"] = hitID
+		default:
+			doc["id"] = strconv.Itoa(hitIdx)
+		}
 
 		docs[hitIdx] = doc
 	}
