@@ -244,7 +244,40 @@ export const metricAggregationConfig: MetricsConfiguration = {
     defaults: {
       settings: {
         limit: '1000',
-        sortDirection:'desc' as LogsSortDirection
+        sortDirection: 'desc' as LogsSortDirection,
+      },
+    },
+  },
+  traces: {
+    label: 'Traces',
+    requiresField: false,
+    isPipelineAgg: false,
+    supportsMissing: false,
+    supportsMultipleBucketPaths: false,
+    hasSettings: true,
+    impliedQueryType: 'traces',
+    supportsInlineScript: false,
+    hasMeta: false,
+    defaults: {
+      settings: {
+        limit: '10000',
+      },
+    },
+  },
+  trace_search: {
+    label: 'Trace search',
+    requiresField: false,
+    isPipelineAgg: false,
+    supportsMissing: false,
+    supportsMultipleBucketPaths: false,
+    hasSettings: true,
+    impliedQueryType: 'trace_search',
+    supportsInlineScript: false,
+    hasMeta: false,
+    defaults: {
+      settings: {
+        limit: '20',
+        spanLimit: '5000',
       },
     },
   },

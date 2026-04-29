@@ -20,6 +20,7 @@ func parseQuery(tsdbQuery []backend.DataQuery) ([]*Query, error) {
 		// please do not create a new field with that name, to avoid potential problems with old, persisted queries.
 
 		rawQuery := model.Get("query").MustString()
+		queryType := model.Get("queryType").MustString()
 		bucketAggs, err := parseBucketAggs(model)
 		if err != nil {
 			return nil, err
@@ -35,8 +36,9 @@ func parseQuery(tsdbQuery []backend.DataQuery) ([]*Query, error) {
 		from := q.TimeRange.From.UnixNano() / int64(time.Millisecond)
 		to := q.TimeRange.To.UnixNano() / int64(time.Millisecond)
 
-		queries = append(queries, &Query{
+		query := &Query{
 			RawQuery:      rawQuery,
+			QueryType:     queryType,
 			BucketAggs:    bucketAggs,
 			Metrics:       metrics,
 			Alias:         alias,
@@ -46,7 +48,9 @@ func parseQuery(tsdbQuery []backend.DataQuery) ([]*Query, error) {
 			MaxDataPoints: q.MaxDataPoints,
 			RangeFrom:     from,
 			RangeTo:       to,
-		})
+		}
+		normalizeInternalLinkTraceQuery(query)
+		queries = append(queries, query)
 	}
 
 	return queries, nil

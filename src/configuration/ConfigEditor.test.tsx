@@ -4,6 +4,13 @@ import React from 'react';
 import { ConfigEditor } from './ConfigEditor';
 import { createDefaultConfigOptions } from './mocks';
 
+jest.mock('@grafana/runtime', () => {
+  const React = require('react');
+  return {
+    DataSourcePicker: () => React.createElement('div', { 'data-testid': 'datasource-picker' }),
+  };
+});
+
 describe('ConfigEditor', () => {
   it('should render without error', () => {
     expect(() =>

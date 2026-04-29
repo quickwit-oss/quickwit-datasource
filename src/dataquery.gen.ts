@@ -9,6 +9,7 @@
 // Run 'make gen-cue' from repository root to regenerate.
 
 import { DataQuery } from '@grafana/schema';
+import { AdHocVariableFilter } from '@grafana/data';
 
 export const DataQueryModelVersion = Object.freeze([0, 0]);
 
@@ -120,12 +121,18 @@ export interface GeoHashGridSettings {
 
 export type PipelineMetricAggregationType = ('moving_avg' | 'moving_fn' | 'derivative' | 'serial_diff' | 'cumulative_sum' | 'bucket_script');
 
-export type MetricAggregationType = ('count' | 'avg' | 'sum' | 'min' | 'max' | 'extended_stats' | 'percentiles' | 'cardinality' | 'raw_document' | 'raw_data' | 'logs' | 'rate' | 'top_metrics' | PipelineMetricAggregationType);
+export type MetricAggregationType = ('count' | 'avg' | 'sum' | 'min' | 'max' | 'extended_stats' | 'percentiles' | 'cardinality' | 'raw_document' | 'raw_data' | 'logs' | 'traces' | 'trace_search' | 'rate' | 'top_metrics' | PipelineMetricAggregationType);
 
 export interface BaseMetricAggregation {
   hide?: boolean;
   id: string;
   type: MetricAggregationType;
+}
+
+export interface QueryFilter {
+  hide?: boolean;
+  id: string;
+  filter: AdHocVariableFilter;
 }
 
 export interface PipelineVariable {
@@ -248,6 +255,21 @@ export interface Logs extends BaseMetricAggregation {
     limit?: string;
   };
   type: 'logs';
+}
+
+export interface Traces extends BaseMetricAggregation {
+  settings?: {
+    limit?: string;
+  };
+  type: 'traces';
+}
+
+export interface TraceSearch extends BaseMetricAggregation {
+  settings?: {
+    limit?: string;
+    spanLimit?: string;
+  };
+  type: 'trace_search';
 }
 
 export interface Rate extends MetricAggregationWithField {
@@ -377,7 +399,7 @@ export interface TopMetrics extends BaseMetricAggregation {
 
 export type PipelineMetricAggregation = (MovingAverage | Derivative | CumulativeSum | BucketScript);
 
-export type MetricAggregationWithSettings = (BucketScript | CumulativeSum | Derivative | SerialDiff | RawData | RawDocument | UniqueCount | Percentiles | ExtendedStats | Min | Max | Sum | Average | MovingAverage | MovingFunction | Logs | Rate | TopMetrics);
+export type MetricAggregationWithSettings = (BucketScript | CumulativeSum | Derivative | SerialDiff | RawData | RawDocument | UniqueCount | Percentiles | ExtendedStats | Min | Max | Sum | Average | MovingAverage | MovingFunction | Logs | Traces | TraceSearch | Rate | TopMetrics);
 
 export interface Elasticsearch extends DataQuery {
   /**
@@ -393,6 +415,10 @@ export interface Elasticsearch extends DataQuery {
    */
   metrics?: MetricAggregation[];
   /**
+   * List of filters
+   */
+  filters?: QueryFilter[];
+  /**
    * Lucene query
    */
   query?: string;
@@ -405,4 +431,5 @@ export interface Elasticsearch extends DataQuery {
 export const defaultElasticsearch: Partial<Elasticsearch> = {
   bucketAggs: [],
   metrics: [],
+  filters: [],
 };

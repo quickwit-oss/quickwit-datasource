@@ -4,7 +4,7 @@ import React from 'react';
 import { CoreApp, getDefaultTimeRange } from '@grafana/data';
 
 import { ElasticDatasource } from '@/datasource';
-import { ElasticsearchQuery } from '@/types';
+import { ElasticsearchQuery, MetricAggregation } from '@/types';
 import { ElasticsearchProvider } from '../../ElasticsearchQueryContext';
 
 import { SettingsEditor } from '.';
@@ -27,6 +27,7 @@ describe('Settings Editor', () => {
           },
         ],
         bucketAggs: [],
+        filters: [],
       };
 
       const onChange = jest.fn();
@@ -102,6 +103,7 @@ describe('Settings Editor', () => {
           },
         ],
         bucketAggs: [],
+        filters: [],
       };
 
       const onChange = jest.fn();
@@ -127,6 +129,62 @@ describe('Settings Editor', () => {
 
       expect(unitSelectElement).toBeInTheDocument();
       expect(modeSelectElement).toBeInTheDocument();
+    });
+  });
+
+  describe('Trace search', () => {
+    it('renders structured trace filters and updates duration settings', () => {
+      const metricId = '1';
+      const query: ElasticsearchQuery = {
+        refId: 'A',
+        query: '',
+        metrics: [
+          {
+            id: metricId,
+            type: 'trace_search',
+            settings: {
+              limit: '20',
+              spanLimit: '5000',
+              serviceName: 'checkout',
+            },
+          } as MetricAggregation,
+        ],
+        bucketAggs: [],
+        filters: [],
+      };
+
+      const onChange = jest.fn();
+
+      render(
+        <ElasticsearchProvider
+          query={query}
+          app={CoreApp.Explore}
+          datasource={{} as ElasticDatasource}
+          onChange={onChange}
+          onRunQuery={() => {}}
+          range={getDefaultTimeRange()}
+        >
+          <SettingsEditor metric={query.metrics![0]} previousMetrics={[]} />
+        </ElasticsearchProvider>
+      );
+
+      expect(screen.getByRole('button', { name: /Traces: 20, scan: 5000 spans/i })).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+      expect(screen.getByText('Service name')).toBeInTheDocument();
+      expect(screen.getByText('Span name')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+
+      const minDurationInput = screen.getByLabelText('Min duration');
+      fireEvent.change(minDurationInput, { target: { value: '250ms' } });
+      fireEvent.blur(minDurationInput);
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange.mock.calls[0][0].metrics[0].settings).toMatchObject({
+        serviceName: 'checkout',
+        minDuration: '250ms',
+      });
     });
   });
 });

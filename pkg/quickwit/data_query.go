@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	es "github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/client"
 	"github.com/quickwit-oss/quickwit-datasource/pkg/quickwit/simplejson"
@@ -25,11 +26,22 @@ func buildMSR(queries []*Query, defaultTimeField string) ([]*es.SearchRequest, e
 		b := ms.Search(q.Interval)
 		b.Size(0)
 		filters := b.Query().Bool().Filter()
+		// Always pass Grafana's picker range through. Quickwit's metastore
+		// prunes splits whose timestamps fall outside this window, so even
+		// trace_id lookups go from "scan every split" to "scan a few" — the
+		// same speedup the native Jaeger endpoint gets via auto-derived bounds.
 		filters.AddDateRangeFilter(defaultTimeField, q.RangeTo, q.RangeFrom)
 		filters.AddQueryStringFilter(q.RawQuery, true, "AND")
+		if isTraceSearchQuery(q) {
+			filters.AddQueryStringFilter(traceSearchSettingsQuery(q), true, "AND")
+		}
 
 		if isLogsQuery(q) {
 			processLogsQuery(q, b, q.RangeFrom, q.RangeTo, defaultTimeField)
+		} else if isTraceSearchQuery(q) {
+			processTraceSearchQuery(q, b, defaultTimeField)
+		} else if isTracesQuery(q) {
+			processTracesQuery(q, b, defaultTimeField)
 		} else if isDocumentQuery(q) {
 			processDocumentQuery(q, b, q.RangeFrom, q.RangeTo, defaultTimeField)
 		} else {
@@ -269,8 +281,8 @@ func getPipelineAggField(m *MetricAgg) string {
 
 func isQueryWithError(query *Query) error {
 	if len(query.BucketAggs) == 0 {
-		// If no aggregations, only document and logs queries are valid
-		if len(query.Metrics) == 0 || !(isLogsQuery(query) || isDocumentQuery(query)) {
+		// If no aggregations, only document, logs, and trace queries are valid
+		if len(query.Metrics) == 0 || !(isLogsQuery(query) || isTraceSearchQuery(query) || isTracesQuery(query) || isDocumentQuery(query)) {
 			return fmt.Errorf("invalid query, missing metrics and aggregations")
 		}
 	} else {
@@ -302,7 +314,15 @@ func isQueryWithError(query *Query) error {
 }
 
 func isLogsQuery(query *Query) bool {
-	return query.Metrics[0].Type == logsType
+	return queryMetricType(query) == logsType
+}
+
+func isTracesQuery(query *Query) bool {
+	return queryMetricType(query) == tracesType
+}
+
+func isTraceSearchQuery(query *Query) bool {
+	return queryMetricType(query) == traceSearchType
 }
 
 func isDocumentQuery(query *Query) bool {
@@ -310,11 +330,169 @@ func isDocumentQuery(query *Query) bool {
 }
 
 func isRawDataQuery(query *Query) bool {
-	return query.Metrics[0].Type == rawDataType
+	return queryMetricType(query) == rawDataType
 }
 
 func isRawDocumentQuery(query *Query) bool {
-	return query.Metrics[0].Type == rawDocumentType
+	return queryMetricType(query) == rawDocumentType
+}
+
+var (
+	bareTraceIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{32}$`)
+	durationPattern    = regexp.MustCompile(`(?i)^\s*(\d+(?:\.\d+)?)\s*(ns|us|ms|s|m|h)?\s*$`)
+)
+
+func firstMetricType(query *Query) string {
+	if query == nil || len(query.Metrics) == 0 {
+		return ""
+	}
+	return query.Metrics[0].Type
+}
+
+func queryMetricType(query *Query) string {
+	return firstMetricType(query)
+}
+
+func isBareTraceIDQuery(rawQuery string) bool {
+	return bareTraceIDPattern.MatchString(strings.TrimSpace(rawQuery))
+}
+
+func traceSearchSettingsQuery(query *Query) string {
+	if !isTraceSearchQuery(query) || len(query.Metrics) == 0 || query.Metrics[0].Settings == nil {
+		return ""
+	}
+
+	settings := query.Metrics[0].Settings
+	clauses := []string{}
+
+	if serviceName := strings.TrimSpace(settings.Get("serviceName").MustString()); serviceName != "" {
+		clauses = append(clauses, traceSearchPhraseClause("service_name", serviceName))
+	}
+	if spanName := strings.TrimSpace(settings.Get("spanName").MustString()); spanName != "" {
+		clauses = append(clauses, traceSearchPhraseClause("span_name", spanName))
+	}
+	if statusClause := traceSearchStatusClause(settings.Get("status").MustString()); statusClause != "" {
+		clauses = append(clauses, statusClause)
+	}
+	if minDuration, ok := traceSearchDurationMillis(settings.Get("minDuration").MustString()); ok {
+		clauses = append(clauses, "span_duration_millis:>="+minDuration)
+	}
+	if maxDuration, ok := traceSearchDurationMillis(settings.Get("maxDuration").MustString()); ok {
+		clauses = append(clauses, "span_duration_millis:<="+maxDuration)
+	}
+
+	return strings.Join(clauses, " AND ")
+}
+
+func traceSearchPhraseClause(fieldName, value string) string {
+	escaped := strings.ReplaceAll(value, `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+	return fieldName + `:"` + escaped + `"`
+}
+
+func traceSearchStatusClause(status string) string {
+	// span_status is mapped as `tokenizer: raw`, so matches are exact tokens.
+	// OTel canonical strings are TitleCase ("Error"/"Ok"/"Unset") and the OTLP
+	// wire form is the integer enum (0/1/2) or "STATUS_CODE_*". Some pipelines
+	// lowercase, so cover all variants we've seen.
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "error":
+		return `(span_status.code:Error OR span_status.code:ERROR OR span_status.code:error OR span_status.code:STATUS_CODE_ERROR OR span_status.code:2 OR span_attributes.error:true OR span_attributes.otel.status_code:ERROR)`
+	case "ok":
+		return `(span_status.code:Ok OR span_status.code:OK OR span_status.code:ok OR span_status.code:STATUS_CODE_OK OR span_status.code:1)`
+	case "unset":
+		return `(span_status.code:Unset OR span_status.code:UNSET OR span_status.code:unset OR span_status.code:STATUS_CODE_UNSET OR span_status.code:0)`
+	default:
+		return ""
+	}
+}
+
+func traceSearchDurationMillis(duration string) (string, bool) {
+	matches := durationPattern.FindStringSubmatch(duration)
+	if matches == nil {
+		return "", false
+	}
+
+	value, err := strconv.ParseFloat(matches[1], 64)
+	if err != nil {
+		return "", false
+	}
+
+	switch strings.ToLower(matches[2]) {
+	case "ns":
+		value = value / 1000000
+	case "us":
+		value = value / 1000
+	case "s":
+		value = value * 1000
+	case "m":
+		value = value * 60 * 1000
+	case "h":
+		value = value * 60 * 60 * 1000
+	case "ms", "":
+	default:
+		return "", false
+	}
+
+	return strconv.FormatFloat(value, 'f', -1, 64), true
+}
+
+func canInferTraceLink(query *Query) bool {
+	firstMetricType := firstMetricType(query)
+	return firstMetricType == "" || firstMetricType == logsType || firstMetricType == tracesType
+}
+
+func canTraceQueryTypeNormalize(query *Query) bool {
+	// queryType is a transient hint from internal trace links. Once the request
+	// has an explicit non-log/non-trace metric, the metric type is authoritative.
+	return query.QueryType == tracesType && canInferTraceLink(query)
+}
+
+func normalizeInternalLinkTraceQuery(query *Query) {
+	if query == nil {
+		return
+	}
+
+	if query.QueryType == tracesType && !canInferTraceLink(query) {
+		query.QueryType = ""
+	}
+
+	if !canTraceQueryTypeNormalize(query) &&
+		firstMetricType(query) != tracesType &&
+		!(firstMetricType(query) == "" && isBareTraceIDQuery(query.RawQuery)) {
+		return
+	}
+
+	rawQuery := strings.TrimSpace(query.RawQuery)
+	if isBareTraceIDQuery(rawQuery) {
+		query.RawQuery = "trace_id:" + rawQuery
+	}
+	query.QueryType = tracesType
+	query.BucketAggs = []*BucketAgg{}
+
+	if len(query.Metrics) == 0 {
+		query.Metrics = []*MetricAgg{
+			{
+				ID:       "1",
+				Type:     tracesType,
+				Settings: simplejson.NewFromAny(map[string]interface{}{"limit": "1000"}),
+				Meta:     simplejson.New(),
+			},
+		}
+		return
+	}
+
+	query.Metrics = query.Metrics[:1]
+	query.Metrics[0].Type = tracesType
+	if query.Metrics[0].ID == "" {
+		query.Metrics[0].ID = "1"
+	}
+	if query.Metrics[0].Settings == nil {
+		query.Metrics[0].Settings = simplejson.New()
+	}
+	if query.Metrics[0].Settings.Get("limit").MustString() == "" {
+		query.Metrics[0].Settings.Set("limit", "1000")
+	}
 }
 
 func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {
@@ -335,6 +513,18 @@ func processLogsQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defa
 	for _, value := range searchAfter {
 		b.AddSearchAfter(value)
 	}
+}
+
+func processTracesQuery(q *Query, b *es.SearchRequestBuilder, defaultTimeField string) {
+	metric := q.Metrics[0]
+	b.Sort(es.SortOrderAsc, defaultTimeField, "epoch_nanos_int")
+	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("limit").MustString(), defaultSize))
+}
+
+func processTraceSearchQuery(q *Query, b *es.SearchRequestBuilder, defaultTimeField string) {
+	metric := q.Metrics[0]
+	b.Sort(es.SortOrderDesc, defaultTimeField, "epoch_nanos_int")
+	b.Size(stringToIntWithDefaultValue(metric.Settings.Get("spanLimit").MustString(), 5000))
 }
 
 func processDocumentQuery(q *Query, b *es.SearchRequestBuilder, from, to int64, defaultTimeField string) {

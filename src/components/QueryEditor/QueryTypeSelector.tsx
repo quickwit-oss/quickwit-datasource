@@ -13,12 +13,16 @@ import { metricAggregationConfig } from './MetricAggregationsEditor/utils';
 const OPTIONS: Array<SelectableValue<QueryType>> = [
   { value: 'metrics', label: 'Metrics' },
   { value: 'logs', label: 'Logs' },
+  { value: 'trace_search', label: 'Trace search' },
+  { value: 'traces', label: 'Traces' },
   { value: 'raw_data', label: 'Raw Data' },
 ];
 
 function queryTypeToMetricType(type: QueryType): MetricAggregation['type'] {
   switch (type) {
     case 'logs':
+    case 'trace_search':
+    case 'traces':
     case 'raw_data':
       return type;
     case 'metrics':

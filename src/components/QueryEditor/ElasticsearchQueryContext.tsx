@@ -5,9 +5,11 @@ import { CoreApp, TimeRange } from '@grafana/data';
 import { BaseQuickwitDataSource } from '@/datasource/base';
 import { combineReducers, useStatelessReducer, DispatchContext } from '@/hooks/useStatelessReducer';
 import { ElasticsearchQuery } from '@/types';
+import { stripQueryType } from '@/queryModel';
 
 import { createReducer as createBucketAggsReducer } from './BucketAggregationsEditor/state/reducer';
 import { reducer as metricsReducer } from './MetricAggregationsEditor/state/reducer';
+import { reducer as filtersReducer } from './FilterEditor/state/reducer';
 import { aliasPatternReducer, queryReducer, initQuery, initExploreQuery } from './state';
 import { getHook } from '@/utils/context';
 import { Provider, useDispatch } from "react-redux";
@@ -50,7 +52,7 @@ export const ElasticsearchProvider = withStore(({
   app,
   datasource,
   range,
-}: PropsWithChildren<Props>): JSX.Element => {
+}: PropsWithChildren<Props>): React.JSX.Element => {
 
   const storeDispatch = useDispatch();
   useEffect(()=>{
@@ -59,15 +61,16 @@ export const ElasticsearchProvider = withStore(({
 
   const onStateChange = useCallback(
     (query: ElasticsearchQuery) => {
-      onChange(query);
+      onChange(stripQueryType(query));
     },
     [onChange]
   );
 
-  const reducer = combineReducers<Pick<ElasticsearchQuery, 'query' | 'alias' | 'metrics' | 'bucketAggs'>>({
+  const reducer = combineReducers<Pick<ElasticsearchQuery, 'query' | 'alias' | 'metrics' | 'filters' | 'bucketAggs'>>({
     query: queryReducer,
     alias: aliasPatternReducer,
     metrics: metricsReducer,
+    filters: filtersReducer,
     bucketAggs: createBucketAggsReducer(datasource.timeField),
   });
 
@@ -78,7 +81,7 @@ export const ElasticsearchProvider = withStore(({
     reducer
   );
 
-  const isUninitialized = !query.metrics || !query.bucketAggs || query.query === undefined;
+  const isUninitialized = !query.metrics || !query.filters || !query.bucketAggs || query.query === undefined;
 
   const [shouldRunInit, setShouldRunInit] = useState(isUninitialized);
 

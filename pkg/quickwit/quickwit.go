@@ -67,6 +67,26 @@ func NewQuickwitDatasource(ctx context.Context, settings backend.DataSourceInsta
 		logMessageField = ""
 	}
 
+	logsDatasourceUID, ok := jsonData["logsDatasourceUid"].(string)
+	if !ok {
+		logsDatasourceUID = ""
+	}
+
+	logsDatasourceName, ok := jsonData["logsDatasourceName"].(string)
+	if !ok {
+		logsDatasourceName = ""
+	}
+
+	tracesDatasourceUID, ok := jsonData["tracesDatasourceUid"].(string)
+	if !ok {
+		tracesDatasourceUID = ""
+	}
+
+	tracesDatasourceName, ok := jsonData["tracesDatasourceName"].(string)
+	if !ok {
+		tracesDatasourceName = ""
+	}
+
 	index, ok := jsonData["index"].(string)
 	if !ok {
 		index = ""
@@ -99,6 +119,12 @@ func NewQuickwitDatasource(ctx context.Context, settings backend.DataSourceInsta
 
 	model := es.DatasourceInfo{
 		ID:                         settings.ID,
+		UID:                        settings.UID,
+		Name:                       settings.Name,
+		LogsDatasourceUID:          logsDatasourceUID,
+		LogsDatasourceName:         logsDatasourceName,
+		TracesDatasourceUID:        tracesDatasourceUID,
+		TracesDatasourceName:       tracesDatasourceName,
 		URL:                        settings.URL,
 		HTTPClient:                 httpCli,
 		Database:                   index,

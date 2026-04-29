@@ -24,6 +24,7 @@ describe('Metric Editor', () => {
       query: '',
       metrics: [avg],
       bucketAggs: [defaultBucketAgg('2')],
+      filters: [],
     };
 
     const getFields: ElasticDatasource['getFields'] = jest.fn(() => from([[]]));
@@ -62,6 +63,7 @@ describe('Metric Editor', () => {
       query: '',
       metrics: [count],
       bucketAggs: [],
+      filters: [],
     };
 
     const wrapper = ({ children }: PropsWithChildren<{}>) => (

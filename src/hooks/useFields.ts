@@ -6,6 +6,7 @@ import { isBucketAggregationType } from '../components/QueryEditor/BucketAggrega
 import { useDatasource, useRange } from '../components/QueryEditor/ElasticsearchQueryContext';
 import { isMetricAggregationType } from '../components/QueryEditor/MetricAggregationsEditor/aggregations';
 import { MetricAggregationType, BucketAggregationType } from '../types';
+import { fuzzySearchMatch, fuzzySearchSort } from '@/utils';
 
 type AggregationType = BucketAggregationType | MetricAggregationType;
 
@@ -46,14 +47,17 @@ const toSelectableValue = ({ text }: MetricFindValue): SelectableValue<string> =
   value: text,
 });
 
+type MatchType = 'contains' | 'startsWith' | 'fuzzy'
+
 /**
  * Returns a function to query the configured datasource for autocomplete values for the specified aggregation type or data types.
  * Each aggregation can be run on different types, for example avg only operates on numeric fields, geohash_grid only on geo_point fields.
  * If an aggregation type is provided, the promise will resolve with all fields suitable to be used as a field for the given aggregation.
  * If an array of types is providem the promise will resolve with all the fields matching the provided types.
- * @param aggregationType the type of aggregation to get fields for
+ * @param type the type of aggregation to get fields for
+ * @param matchType the type of matching to use when filtering fields based on the query string. Defaults to 'contains'.
  */
-export const useFields = (type: AggregationType | string[]) => {
+export const useFields = (type: AggregationType | string[], matchType: MatchType = 'contains') => {
   const datasource = useDatasource();
   const range = useRange();
   const filter = Array.isArray(type) ? type : getFilter(type);
@@ -65,6 +69,18 @@ export const useFields = (type: AggregationType | string[]) => {
       rawFields = await lastValueFrom(datasource.getFields({aggregatable:true, type:filter, range:range}));
     }
 
-    return rawFields.filter(({ text }) => q === undefined || text.includes(q)).map(toSelectableValue);
+    const fields = rawFields
+      .filter(({ text }) => {
+        if (q === undefined) {
+          return true;
+        }
+        if (matchType === 'fuzzy') {
+          return fuzzySearchMatch(text, q);
+        }
+        return matchType === 'contains' ? text.includes(q) : text.startsWith(q)
+      });
+
+    return (matchType === 'fuzzy' ? fuzzySearchSort(fields, ({ text }) => text, q) : fields)
+      .map(toSelectableValue);
   };
 };

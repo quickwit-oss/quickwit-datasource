@@ -198,7 +198,7 @@ export class LuceneQuery {
     value = escapeFilterValue(value);
     const filter = `${modifier}${key}:"${value}"`;
 
-    return LuceneQuery.parse(concatenate(this.toString(), filter));
+    return LuceneQuery.parse(concatenate(this.toString(), filter,'AND'));
   }
 
   removeFilter(key: string, value: string, modifier: ModifierType = ''){

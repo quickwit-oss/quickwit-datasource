@@ -31,6 +31,25 @@ Quickwit 0.8 is compatible with 0.4.x and 0.5.x versions.
 
 You can either download the plugin manually and unzip it into the plugin directory or use the env variable `GF_INSTALL_PLUGINS` to install it.
 
+### 0.5.0 (Latest) for Quickwit 0.8 + Grafana 12.1
+
+`GF_INSTALL_PLUGINS` has been deprecated since 12.1. `GF_PLUGINS_PREINSTALL_SYNC` must be used instead
+
+Run `grafana` container with the env variable:
+
+```bash
+docker run -p 3000:3000 -e GF_PLUGINS_PREINSTALL_SYNC="quickwit-quickwit-datasource@0.5.0@https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5.0/quickwit-quickwit-datasource-0.5.0.zip" grafana/grafana run
+```
+
+Or download the plugin manually and start Grafana
+
+```bash
+wget https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.5.0/quickwit-quickwit-datasource-0.5.0.zip
+mkdir -p plugins
+unzip quickwit-quickwit-datasource-0.5.0.zip -d plugins/quickwit-quickwit-datasource-0.5.0
+docker run -p 3000:3000 -e GF_PATHS_PLUGINS=/data/plugins -v ${PWD}/plugins:/data/plugins grafana/grafana run
+```
+
 ### 0.5.0 (Latest) for Quickwit 0.8 + Grafana 11
 
 Run `grafana` container with the env variable:
@@ -102,6 +121,7 @@ To configure the Quickwit datasource, you need to provide the following informat
 - The index name.
 - The log message field name (optional). This is the field displayed in the explorer view.
 - The log level field name (optional). It must be a fast field.
+- The related logs or traces datasource (optional). This enables trace-to-logs and log-to-trace links when logs and traces are stored in separate Quickwit indexes.
   
 ### With Grafana UI
 
@@ -122,6 +142,112 @@ datasources:
       logLevelField: severity_text
 ```
 
+### Logs and traces in separate indexes
+
+When logs and traces are stored in different Quickwit indexes, configure one datasource per index and link them with `logsDatasourceUid` and `tracesDatasourceUid`.
+
+```yaml
+apiVersion: 1
+
+datasources:
+  - name: Quickwit Logs
+    uid: quickwit-logs
+    type: quickwit-quickwit-datasource
+    url: http://localhost:7280/api/v1
+    jsonData:
+      index: 'otel-logs-v0_9'
+      logMessageField: body.message
+      logLevelField: severity_text
+      tracesDatasourceUid: quickwit-traces
+      tracesDatasourceName: Quickwit Traces
+
+  - name: Quickwit Traces
+    uid: quickwit-traces
+    type: quickwit-quickwit-datasource
+    url: http://localhost:7280/api/v1
+    jsonData:
+      index: 'otel-traces-v0_9'
+      logsDatasourceUid: quickwit-logs
+      logsDatasourceName: Quickwit Logs
+```
+
+## Traces
+
+The query editor has two trace query types:
+
+- **Trace search** scans matching spans and returns one row per trace. Use this to find trace IDs by Lucene query, service, operation, status, or attributes.
+- **Traces** returns a full trace frame for Grafana's trace viewer. Use this with a trace ID query such as `trace_id:abc123`.
+
+The trace parser expects Quickwit OpenTelemetry trace fields such as:
+
+- `trace_id`
+- `span_id`
+- `parent_span_id`
+- `service_name`
+- `span_name`
+- `span_start_timestamp_nanos`
+- `span_duration_millis` or `span_end_timestamp_nanos`
+
+It also reads optional fields for richer trace rendering:
+
+- `resource_attributes` for service tags
+- `span_attributes` for span tags, including `service.peer.name` and `peer.service`
+- `span_status` for error status and warnings
+- `events` for span events and exception stack traces
+- `links` for span references
+- `scope_name` and `scope_version` for instrumentation library details
+
+Trace responses include:
+
+- Grafana trace frames for the trace viewer.
+- Node graph frames that summarize service-to-service calls.
+- Span warnings for error status and dropped attributes/events/links.
+- Span event details and exception stack traces.
+- Stable per-service node colors in the node graph.
+
+### Trace/log correlations
+
+Trace-to-logs links are attached to each trace span. They query the configured logs datasource with:
+
+```text
+trace_id:${__span.traceId} AND span_id:${__span.spanId}
+```
+
+Log-to-trace links are attached to log fields named:
+
+- `trace_id`
+- `traceID`
+- `traceId`
+- `attributes.trace_id`
+
+They open the configured traces datasource with:
+
+```text
+trace_id:${__value.raw}
+```
+
+### Local trace fixtures
+
+For local testing, use the fixture script:
+
+```bash
+QUICKWIT_URL=http://127.0.0.1:7280/api/v1 ./scripts/ingest-multi-service-traces.sh
+```
+
+It writes two multi-service traces into `otel-traces-v0_9` and matching correlated logs into `otel-logs-v0_9`.
+
+In **Trace search**, filter the fixture data with:
+
+```text
+span_attributes.fixture:multi-service-trace
+```
+
+In **Traces**, open a returned trace ID with:
+
+```text
+trace_id:<trace id>
+```
+
 ## Features
 
 - Explore view.
@@ -130,6 +256,9 @@ datasources:
 - Adhoc filters.
 - Annotations
 - Explore Log Context.
+- Trace search and trace view.
+- Trace-to-logs and log-to-trace links.
+- Service node graph for trace results.
 - [Alerting](https://grafana.com/docs/grafana/latest/alerting/).
 
 ## FAQ and Limitations
