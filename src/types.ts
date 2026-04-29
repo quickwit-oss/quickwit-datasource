@@ -27,8 +27,8 @@ export enum LogsSortDirection {
 
 export const LogsEnd = {
   [LogsSortDirection.ASC]: 'Head',
-  [LogsSortDirection.DESC]: 'Tail'
-}
+  [LogsSortDirection.DESC]: 'Tail',
+};
 
 type ExtendedLogsSettings = SchemaLogs['settings'] & {
   searchAfter?: unknown[];
@@ -56,7 +56,7 @@ export interface MovingAverage<T extends MovingAverageModel = MovingAverageModel
   settings?: MovingAverageModelSettings<T>;
 }
 
-export type QueryType = 'metrics' | 'logs' | 'raw_data' | 'raw_document';
+export type QueryType = 'metrics' | 'logs' | 'trace_search' | 'traces' | 'raw_data' | 'raw_document';
 
 export type Interval = 'Hourly' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
 
@@ -75,7 +75,7 @@ interface MetricConfiguration<T extends MetricAggregationType> {
   impliedQueryType: QueryType;
   hasSettings: boolean;
   hasMeta: boolean;
-  defaults: Omit<Extract<Exclude<MetricAggregation,SchemaLogs>|Logs, { type: T }>, 'id' | 'type'>;
+  defaults: Omit<Extract<Exclude<MetricAggregation, SchemaLogs> | Logs, { type: T }>, 'id' | 'type'>;
 }
 
 type BucketConfiguration<T extends BucketAggregationType> = {
@@ -126,14 +126,14 @@ export type FieldMapping = {
   // Specific datetime field attributes.
   output_format: string | null;
   field_mappings?: FieldMapping[];
-}
+};
 
 export type IndexMetadata = {
   index_config: IndexConfig;
   checkpoint: object;
   sources: object[] | undefined;
   create_timestamp: number;
-}
+};
 
 export type IndexConfig = {
   version: string;
@@ -143,7 +143,7 @@ export type IndexConfig = {
   indexing_settings: object;
   search_settings: object;
   retention: object;
-}
+};
 
 export type DocMapping = {
   field_mappings: FieldMapping[];
@@ -151,7 +151,7 @@ export type DocMapping = {
   store: boolean;
   dynamic_mapping: boolean;
   timestamp_field: string | null;
-}
+};
 
 export type Field = {
   // Json path (path segments concatenated as a string with dots between segments).
@@ -159,9 +159,20 @@ export type Field = {
   // Json path of the field.
   path_segments: string[];
   field_mapping: FieldMapping;
-}
+};
 
-export type FieldCapabilityType = "long" | "keyword" | "text" | "date" | "date_nanos" | "binary" | "double" | "boolean" | "ip" | "nested" | "object" ;
+export type FieldCapabilityType =
+  | 'long'
+  | 'keyword'
+  | 'text'
+  | 'date'
+  | 'date_nanos'
+  | 'binary'
+  | 'double'
+  | 'boolean'
+  | 'ip'
+  | 'nested'
+  | 'object';
 
 export type FieldCapability = {
   field_name: string; // Field not present in response but added on the front side.
@@ -170,13 +181,13 @@ export type FieldCapability = {
   searchable: boolean;
   aggregatable: boolean;
   indices: String[];
-}
+};
 
 export type FieldCapabilitiesResponse = {
   indices: String[];
   fields: {
     [key: string]: {
       [key in FieldCapabilityType]: FieldCapability;
-    }
+    };
   };
-}
+};

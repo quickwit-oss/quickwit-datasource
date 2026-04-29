@@ -73,6 +73,8 @@ export const METRIC_AGGREGATION_TYPES: MetricAggregationType[] = [
   'raw_document',
   'raw_data',
   'logs',
+  'traces',
+  'trace_search',
   'moving_avg',
   'moving_fn',
   'derivative',

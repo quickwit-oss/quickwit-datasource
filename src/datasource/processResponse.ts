@@ -1,9 +1,12 @@
-import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType } from "@grafana/data";
-import { getDataSourceSrv } from "@grafana/runtime";
+import { DataFrame, DataLink, DataQueryRequest, DataQueryResponse, Field, FieldType } from '@grafana/data';
+import { getDataSourceSrv } from '@grafana/runtime';
 import { BaseQuickwitDataSource } from './base';
-import { DataLinkConfig, ElasticsearchQuery } from "../types";
+import { DataLinkConfig, ElasticsearchQuery } from '../types';
 
-export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, request: DataQueryRequest<ElasticsearchQuery>) {
+export function getQueryResponseProcessor(
+  datasource: BaseQuickwitDataSource,
+  request: DataQueryRequest<ElasticsearchQuery>
+) {
   return {
     processResponse: (response: DataQueryResponse) => {
       response.data.forEach((dataFrame) => {
@@ -13,20 +16,25 @@ export function getQueryResponseProcessor(datasource: BaseQuickwitDataSource, re
         }
       });
       return response;
-    }
+    },
   };
 }
-function getCustomFieldName(fieldname: string) { return `$qw_${fieldname}`; }
+function getCustomFieldName(fieldname: string) {
+  return `$qw_${fieldname}`;
+}
 
 const OTEL_MESSAGE_FIELDS = ['body.message', 'attributes.message'];
+const TRACE_ID_FIELDS = ['trace_id', 'traceID', 'traceId', 'attributes.trace_id'];
+const QUICKWIT_DATASOURCE_TYPE = 'quickwit-quickwit-datasource';
 
 const SKIP_FIELD_PREFIXES = [
-  'attributes.pod_', 'attributes.node_labels.', 'attributes.namespace_labels.',
-  'attributes.container_image', 'attributes.pod_owner',
+  'attributes.pod_',
+  'attributes.node_labels.',
+  'attributes.namespace_labels.',
+  'attributes.container_image',
+  'attributes.pod_owner',
 ];
-const SKIP_FIELD_NAMES = new Set([
-  'sort', 'severity_text', 'body.stream',
-]);
+const SKIP_FIELD_NAMES = new Set(['sort', 'severity_text', 'body.stream']);
 
 function isMetadataField(name: string, timeField: string): boolean {
   if (name === timeField || SKIP_FIELD_NAMES.has(name)) {
@@ -75,7 +83,7 @@ export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFra
     return;
   }
   // Skip empty dataframes
-  if (dataFrame.length===0 || dataFrame.fields.length === 0) {
+  if (dataFrame.length === 0 || dataFrame.fields.length === 0) {
     return;
   }
 
@@ -92,7 +100,7 @@ export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFra
   const displayedMessages = Array(dataFrame.length);
 
   for (let idx = 0; idx < dataFrame.length; idx++) {
-    let displayedMessage = "";
+    let displayedMessage = '';
 
     if (field_idx_list.length === 1) {
       displayedMessage = `${dataFrame.fields[field_idx_list[0]].values[idx] ?? ''}`;
@@ -119,6 +127,8 @@ export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFra
   const [timestamp, ...rest] = dataFrame.fields;
   dataFrame.fields = [timestamp, newField, ...rest];
 
+  addLogToTraceLink(datasource, dataFrame);
+
   if (!datasource.dataLinks.length) {
     return;
   }
@@ -131,22 +141,78 @@ export function processLogsDataFrame(datasource: BaseQuickwitDataSource, dataFra
     }
 
     field.config = field.config || {};
-    field.config.links = [...(field.config.links || [], linksToApply.map(generateDataLink))];
+    appendFieldLinks(field, linksToApply.map(generateDataLink));
   }
 }
+
+function addLogToTraceLink(datasource: BaseQuickwitDataSource, dataFrame: DataFrame) {
+  const traceIDField = dataFrame.fields.find((field) => TRACE_ID_FIELDS.includes(field.name));
+  if (!traceIDField) {
+    return;
+  }
+
+  const datasourceUid = datasource.tracesDatasourceUid || datasource.uid;
+  if (!datasourceUid) {
+    return;
+  }
+
+  const datasourceName = getDatasourceName(
+    datasourceUid,
+    datasource.tracesDatasourceName || datasource.name || 'Quickwit traces'
+  );
+
+  appendFieldLinks(traceIDField, [
+    {
+      title: 'Open trace',
+      url: '',
+      internal: {
+        datasourceUid,
+        datasourceName,
+        query: {
+          refId: 'A',
+          query: 'trace_id:${__value.raw}',
+          queryType: 'traces',
+          datasource: {
+            type: QUICKWIT_DATASOURCE_TYPE,
+            uid: datasourceUid,
+          },
+          bucketAggs: [],
+          filters: [],
+          metrics: [
+            {
+              id: '1',
+              type: 'traces',
+              settings: { limit: '10000' },
+            },
+          ],
+        },
+      },
+    },
+  ]);
+}
+
+function appendFieldLinks(field: Field, links: DataLink[]) {
+  field.config = field.config || {};
+  field.config.links = [...(field.config.links || []), ...links];
+}
+
+function getDatasourceName(datasourceUid: string, fallback: string): string {
+  try {
+    return getDataSourceSrv().getInstanceSettings(datasourceUid)?.name ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function generateDataLink(linkConfig: DataLinkConfig): DataLink {
-  const dataSourceSrv = getDataSourceSrv();
-
   if (linkConfig.datasourceUid) {
-    const dsSettings = dataSourceSrv.getInstanceSettings(linkConfig.datasourceUid);
-
     return {
       title: linkConfig.urlDisplayLabel || '',
       url: '',
       internal: {
         query: { query: linkConfig.url },
         datasourceUid: linkConfig.datasourceUid,
-        datasourceName: dsSettings?.name ?? 'Data source not found',
+        datasourceName: getDatasourceName(linkConfig.datasourceUid, 'Data source not found'),
       },
     };
   } else {

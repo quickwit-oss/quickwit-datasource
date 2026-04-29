@@ -32,6 +32,7 @@ import ElasticsearchLanguageProvider from 'LanguageProvider';
 import { fieldTypeMap, hasWhiteSpace, isSimpleToken } from 'utils';
 import { addAddHocFilter } from 'modifyQuery';
 import { getQueryResponseProcessor } from 'datasource/processResponse';
+import { normalizeInternalLinkQuery } from '@/queryModel';
 
 import { SECOND } from 'utils/time';
 import { GConstructor } from 'utils/mixins';
@@ -39,7 +40,7 @@ import { newFilterId, uidMaker } from '@/utils/uid';
 import { DefaultsConfigOverrides } from 'store/defaults/conf';
 import { isSet } from '@/utils';
 
-export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>
+export type BaseQuickwitDataSourceConstructor = GConstructor<BaseQuickwitDataSource>;
 
 const getQueryUid = uidMaker('query');
 export const DEFAULT_FILTER_AUTOCOMPLETE_LIMIT = 1000;
@@ -71,11 +72,11 @@ export function parseFilterAutocompleteChainMode(
 }
 
 type FieldCapsSpec = {
-  aggregatable?: boolean,
-  searchable?: boolean,
-  type?: string[],
-  range?: TimeRange
-}
+  aggregatable?: boolean;
+  searchable?: boolean;
+  type?: string[];
+  range?: TimeRange;
+};
 
 type QuickwitSearchResponse = {
   num_hits?: number,
@@ -84,16 +85,19 @@ type QuickwitSearchResponse = {
 
 export class BaseQuickwitDataSource
   extends DataSourceWithBackend<ElasticsearchQuery, QuickwitOptions>
-  implements
-    DataSourceWithQueryImportSupport<ElasticsearchQuery>
+  implements DataSourceWithQueryImportSupport<ElasticsearchQuery>
 {
   index: string;
   timeField: string;
   logMessageField?: string;
   logLevelField?: string;
+  logsDatasourceUid?: string;
+  logsDatasourceName?: string;
+  tracesDatasourceUid?: string;
+  tracesDatasourceName?: string;
   dataLinks: DataLinkConfig[];
   queryEditorConfig?: {
-    defaults?: DefaultsConfigOverrides
+    defaults?: DefaultsConfigOverrides;
   };
   filterAutocompleteLimit: number;
   filterAutocompleteChainMode: FilterAutocompleteChainMode;
@@ -106,17 +110,20 @@ export class BaseQuickwitDataSource
     return this.fieldTypes[name];
   }
 
-
   constructor(
     instanceSettings: DataSourceInstanceSettings<QuickwitOptions>,
     private readonly templateSrv: TemplateSrv = getTemplateSrv()
-    ) {
+  ) {
     super(instanceSettings);
     const settingsData = instanceSettings.jsonData || ({} as QuickwitOptions);
     this.index = settingsData.index || '';
-    this.timeField = ''
+    this.timeField = '';
     this.logMessageField = settingsData.logMessageField || '';
     this.logLevelField = settingsData.logLevelField || '';
+    this.logsDatasourceUid = settingsData.logsDatasourceUid || '';
+    this.logsDatasourceName = settingsData.logsDatasourceName || '';
+    this.tracesDatasourceUid = settingsData.tracesDatasourceUid || '';
+    this.tracesDatasourceName = settingsData.tracesDatasourceName || '';
     this.dataLinks = settingsData.dataLinks || [];
     this.queryEditorConfig = settingsData.queryEditorConfig || {};
     this.filterAutocompleteLimit = parseFilterAutocompleteLimit(settingsData.filterAutocompleteLimit);
@@ -135,16 +142,20 @@ export class BaseQuickwitDataSource
   }
 
   query(request: DataQueryRequest<ElasticsearchQuery>): Observable<DataQueryResponse> {
-    const queryProcessor = getQueryResponseProcessor(this, request)
-     return super.query(request) .pipe(map(queryProcessor.processResponse));
+    const normalizedRequest = {
+      ...request,
+      targets: request.targets.map(normalizeInternalLinkQuery),
+    };
+    const queryProcessor = getQueryResponseProcessor(this, normalizedRequest);
+    return super.query(normalizedRequest).pipe(map(queryProcessor.processResponse));
   }
 
-    /**
-     * Checks the plugin health
-     * see public/app/features/datasources/state/actions.ts for what needs to be returned here
-     */
+  /**
+   * Checks the plugin health
+   * see public/app/features/datasources/state/actions.ts for what needs to be returned here
+   */
   async testDatasource() {
-    if (this.index === '' ) {
+    if (this.index === '') {
       return {
         status: 'error',
         message: 'Cannot save datasource, `index` is required',
@@ -154,12 +165,12 @@ export class BaseQuickwitDataSource
       mergeMap((res) => {
         return of({
           status: res.status.toLowerCase(),
-          message: res.message
-        })
+          message: res.message,
+        });
       })
-    )
+    );
 
-    return lastValueFrom(backendCheck)
+    return lastValueFrom(backendCheck);
   }
 
   async importFromAbstractQueries(abstractQueries: AbstractQuery[]): Promise<ElasticsearchQuery[]> {
@@ -299,31 +310,35 @@ export class BaseQuickwitDataSource
       timezone: 'browser',
       scopedVars: {},
       startTime: Date.now(),
-    }
-    return request
+    };
+    return request;
   }
 
   getTerms(queryDef: TermsQuery, range = getDefaultTimeRange(), requestId?: string): Observable<MetricFindValue[]> {
-    const dataquery = this.getDataQueryRequest(queryDef, range, requestId)
+    const dataquery = this.getDataQueryRequest(queryDef, range, requestId);
     return super.query(dataquery).pipe(
-      mergeMap(res=> {
-        return res.data.map((df: DataFrame)=>{
-          if (df.fields.length === 0) { return [] }
-          return df.fields[0].values.map((bucket)=>({
+      mergeMap((res) => {
+        return res.data.map((df: DataFrame) => {
+          if (df.fields.length === 0) {
+            return [];
+          }
+          return df.fields[0].values.map((bucket) => ({
             text: bucket,
             value: bucket,
-          }))
-        })
+          }));
+        });
       })
-    )
+    );
   }
 
-  getFields(spec: FieldCapsSpec={}): Observable<MetricFindValue[]> {
+  getFields(spec: FieldCapsSpec = {}): Observable<MetricFindValue[]> {
     const range = spec.range || getDefaultTimeRange();
-    return from(this.getResource('_elastic/' + this.index + '/_field_caps', {
-      start_timestamp: Math.floor(range.from.valueOf()/SECOND),
-      end_timestamp: Math.ceil(range.to.valueOf()/SECOND),
-    })).pipe(
+    return from(
+      this.getResource('_elastic/' + this.index + '/_field_caps', {
+        start_timestamp: Math.floor(range.from.valueOf() / SECOND),
+        end_timestamp: Math.ceil(range.to.valueOf() / SECOND),
+      })
+    ).pipe(
       map((field_capabilities_response: FieldCapabilitiesResponse) => {
         // Cache field → type on the datasource for modifyQuery to consult.
         // Quickwit routes phrase queries to the text variant first on multi-indexed
@@ -339,36 +354,40 @@ export class BaseQuickwitDataSource
 
         const shouldAddField = (field: any) => {
           if (spec.aggregatable !== undefined && field.aggregatable !== spec.aggregatable) {
-            return false
+            return false;
           }
-          if (spec.searchable !== undefined && field.searchable !== spec.searchable){
-            return false
+          if (spec.searchable !== undefined && field.searchable !== spec.searchable) {
+            return false;
           }
-          if (spec.type && spec.type.length !== 0 && !(spec.type.includes(field.type) || spec.type.includes(fieldTypeMap[field.type]))) {
-            return false
+          if (
+            spec.type &&
+            spec.type.length !== 0 &&
+            !(spec.type.includes(field.type) || spec.type.includes(fieldTypeMap[field.type]))
+          ) {
+            return false;
           }
-          return true
+          return true;
         };
         const fieldCapabilities = Object.entries(field_capabilities_response.fields)
           .flatMap(([field_name, field_capabilities]) => {
-            return Object.values(field_capabilities)
-              .map(field_capability => {
-                field_capability.field_name = field_name;
-                return field_capability;
-              });
+            return Object.values(field_capabilities).map((field_capability) => {
+              field_capability.field_name = field_name;
+              return field_capability;
+            });
           })
           .filter(shouldAddField)
-          .map(field_capability => {
+          .map((field_capability) => {
             return {
               text: field_capability.field_name,
               type: fieldTypeMap[field_capability.type],
-            }
+            };
           });
-        const uniquefieldCapabilities = fieldCapabilities.filter((field_capability, index, self) =>
-          index === self.findIndex((t) => (
-            t.text === field_capability.text && t.type === field_capability.type
-          ))
-        ).sort((a, b) => a.text.localeCompare(b.text));
+        const uniquefieldCapabilities = fieldCapabilities
+          .filter(
+            (field_capability, index, self) =>
+              index === self.findIndex((t) => t.text === field_capability.text && t.type === field_capability.type)
+          )
+          .sort((a, b) => a.text.localeCompare(b.text));
         return uniquefieldCapabilities;
       })
     );
@@ -560,30 +579,41 @@ export class BaseQuickwitDataSource
     return text;
   }
 
-
   /**
    * Returns false if the query should be skipped
    */
   filterQuery(query: ElasticsearchQuery): boolean {
     // XXX : if metrics doesn't exist, the query is uninitialized. Skip
-    if ( query.hide || !query.metrics) {
+    if (query.hide || !query.metrics) {
       return false;
     }
     return true;
   }
 
-  metricFindQuery(query: string, options?: { range: TimeRange, variable?: {name: string} }): Promise<MetricFindValue[]> {
+  metricFindQuery(
+    query: string,
+    options?: { range: TimeRange; variable?: { name: string } }
+  ): Promise<MetricFindValue[]> {
     const range = options?.range;
     const parsedQuery = JSON.parse(query);
     if (query) {
       if (parsedQuery.find === 'fields') {
         parsedQuery.type = this.interpolateLuceneQuery(parsedQuery.type);
-        return lastValueFrom(this.getFields({aggregatable:true, type:parsedQuery.type, range:range}), {defaultValue:[]});
+        return lastValueFrom(this.getFields({ aggregatable: true, type: parsedQuery.type, range: range }), {
+          defaultValue: [],
+        });
       }
       if (parsedQuery.find === 'terms') {
         parsedQuery.field = this.interpolateLuceneQuery(parsedQuery.field);
         parsedQuery.query = this.interpolateLuceneQuery(parsedQuery.query);
-        return lastValueFrom(this.getTerms(parsedQuery, range, options?.variable?.name ? `getVariableTerms-${options?.variable?.name}` : undefined), {defaultValue:[]});
+        return lastValueFrom(
+          this.getTerms(
+            parsedQuery,
+            range,
+            options?.variable?.name ? `getVariableTerms-${options?.variable?.name}` : undefined
+          ),
+          { defaultValue: [] }
+        );
       }
     }
     return Promise.resolve([]);
@@ -595,12 +625,20 @@ export class BaseQuickwitDataSource
     );
   }
 
-  interpolateVariablesInQueries(queries: ElasticsearchQuery[], scopedVars: ScopedVars | {}, filters?: AdHocVariableFilter[]): ElasticsearchQuery[] {
+  interpolateVariablesInQueries(
+    queries: ElasticsearchQuery[],
+    scopedVars: ScopedVars | {},
+    filters?: AdHocVariableFilter[]
+  ): ElasticsearchQuery[] {
     return queries.map((q) => this.applyTemplateVariables(q, scopedVars, filters));
   }
 
   // Used when running queries through backend
-  applyTemplateVariables(query: ElasticsearchQuery, scopedVars: ScopedVars, filters?: AdHocVariableFilter[]): ElasticsearchQuery {
+  applyTemplateVariables(
+    query: ElasticsearchQuery,
+    scopedVars: ScopedVars,
+    filters?: AdHocVariableFilter[]
+  ): ElasticsearchQuery {
     // We need a separate interpolation format for lucene queries, therefore we first interpolate any
     // lucene query string and then everything else
     const interpolateBucketAgg = (bucketAgg: BucketAggregation): BucketAggregation => {
@@ -620,26 +658,32 @@ export class BaseQuickwitDataSource
       return bucketAgg;
     };
 
+    // A single-trace lookup is uniquely keyed by trace_id, so dashboard
+    // ad-hoc filters and per-query filters would only narrow the returned
+    // spans of that trace. Skip them.
+    const isSingleTraceLookup = query.metrics?.[0]?.type === 'traces';
+
     const renderedQuery = (() => {
       let q = this.interpolateLuceneQuery(query.query || '', scopedVars);
+      if (isSingleTraceLookup) {
+        return q;
+      }
       const queryFilters = query.filters
         ?.filter((f) => {
           if (f.hide) {
             return false;
           }
-          const hasValidValue = (
-            ['exists', 'not exists'].includes(f.filter.operator) || isSet(f.filter.value)
-          ) && (
-            !['term', 'not term'].includes(f.filter.operator) || !hasWhiteSpace(f.filter.value)
-          )
+          const hasValidValue =
+            (['exists', 'not exists'].includes(f.filter.operator) || isSet(f.filter.value)) &&
+            (!['term', 'not term'].includes(f.filter.operator) || !hasWhiteSpace(f.filter.value));
 
-          return isSet(f.filter.key) && hasValidValue && isSet(f.filter.operator)
+          return isSet(f.filter.key) && hasValidValue && isSet(f.filter.operator);
         })
         .map((f) => f.filter);
-      q = this.addAdHocFilters(q, queryFilters)
-      q = this.addAdHocFilters(q, filters)
-      return q
-    })()
+      q = this.addAdHocFilters(q, queryFilters);
+      q = this.addAdHocFilters(q, filters);
+      return q;
+    })();
 
     const expandedQuery = {
       ...query,
@@ -649,7 +693,7 @@ export class BaseQuickwitDataSource
     };
 
     const finalQuery = JSON.parse(this.templateSrv.replace(JSON.stringify(expandedQuery), scopedVars));
-    return finalQuery;
+    return normalizeInternalLinkQuery(finalQuery);
   }
 
   addAdHocFilters(query: string, adhocFilters?: AdHocVariableFilter[]) {

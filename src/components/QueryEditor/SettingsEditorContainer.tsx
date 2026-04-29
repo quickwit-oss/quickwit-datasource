@@ -32,10 +32,16 @@ const getStyles = (theme: GrafanaTheme2, hidden: boolean) => {
 interface Props {
   label: string;
   hidden?: boolean;
+  defaultOpen?: boolean;
 }
 
-export const SettingsEditorContainer = ({ label, children, hidden = false }: PropsWithChildren<Props>) => {
-  const [open, setOpen] = useState(false);
+export const SettingsEditorContainer = ({
+  label,
+  children,
+  hidden = false,
+  defaultOpen = false,
+}: PropsWithChildren<Props>) => {
+  const [open, setOpen] = useState(defaultOpen);
 
   const theme = useTheme2();
   const styles = getStyles(theme, hidden);

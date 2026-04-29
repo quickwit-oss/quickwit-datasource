@@ -36,11 +36,23 @@ export const useDescription = (metric: MetricAggregation): string => {
     }
 
     case 'logs': {
-      const config = metricAggregationConfig['logs']
-      const logsmetric: Logs = metric
-      const sort = LogsEnd[logsmetric.settings?.sortDirection || config.defaults.settings!.sortDirection!]
-      const limit = logsmetric.settings?.limit || 100
-      return `${sort} ${limit}`
+      const config = metricAggregationConfig['logs'];
+      const logsmetric: Logs = metric;
+      const sort = LogsEnd[logsmetric.settings?.sortDirection || config.defaults.settings!.sortDirection!];
+      const limit = logsmetric.settings?.limit || 100;
+      return `${sort} ${limit}`;
+    }
+
+    case 'traces': {
+      const limit = metric.settings?.limit || metricAggregationConfig['traces'].defaults.settings!.limit;
+      return `Limit: ${limit}`;
+    }
+
+    case 'trace_search': {
+      const limit = metric.settings?.limit || metricAggregationConfig['trace_search'].defaults.settings!.limit;
+      const spanLimit =
+        metric.settings?.spanLimit || metricAggregationConfig['trace_search'].defaults.settings!.spanLimit;
+      return `Traces: ${limit}, scan: ${spanLimit} spans`;
     }
 
     default:
