@@ -1,10 +1,9 @@
 import React from 'react';
 
-import { MetricFindValue, SelectableValue } from '@grafana/data';
-import { InlineField, Input, SegmentAsync, Select } from '@grafana/ui';
+import { MetricFindValue } from '@grafana/data';
+import { Combobox, ComboboxOption, InlineField, Input } from '@grafana/ui';
 
 import { useDatasource, useRange } from '@/components/QueryEditor/ElasticsearchQueryContext';
-import { segmentStyles } from '@/components/QueryEditor/styles';
 import { useDispatch } from '@/hooks/useStatelessReducer';
 import { MetricAggregation } from '@/types';
 import { fuzzySearchSort } from '@/utils';
@@ -29,14 +28,14 @@ interface Props {
   metric: Extract<MetricAggregation, { type: 'trace_search' }>;
 }
 
-const statusOptions: Array<SelectableValue<TraceSearchStatus>> = [
+const statusOptions: Array<ComboboxOption<TraceSearchStatus>> = [
   { label: 'Any', value: '' },
   { label: 'Error', value: 'error' },
   { label: 'Ok', value: 'ok' },
   { label: 'Unset', value: 'unset' },
 ];
 
-function toFuzzyOptions(values: MetricFindValue[], query?: string): Array<SelectableValue<string>> {
+function toFuzzyOptions(values: MetricFindValue[], query?: string): Array<ComboboxOption<string>> {
   return fuzzySearchSort(
     values.map((value) => String(value.text)),
     (text) => text,
@@ -54,7 +53,7 @@ export const TraceSearchSettingsEditor = ({ metric }: Props) => {
     dispatch(changeMetricSetting({ metric: typedMetric, settingName, newValue: newValue?.trim() || undefined }));
   };
 
-  const loadFieldValues = (field: string) => async (query?: string): Promise<Array<SelectableValue<string>>> => {
+  const loadFieldValues = (field: string) => async (query: string): Promise<Array<ComboboxOption<string>>> => {
     if (!datasource.getTagValues) {
       return [];
     }
@@ -65,28 +64,28 @@ export const TraceSearchSettingsEditor = ({ metric }: Props) => {
   return (
     <>
       <InlineField label="Service name" labelWidth={16}>
-        <SegmentAsync
-          allowCustomValue={true}
-          className={segmentStyles}
-          loadOptions={loadFieldValues('service_name')}
-          onChange={(e) => changeSetting('serviceName', e.value)}
+        <Combobox
+          isClearable
+          createCustomValue
+          options={loadFieldValues('service_name')}
+          onChange={(option) => changeSetting('serviceName', option?.value)}
           placeholder="All services"
-          value={typedMetric.settings?.serviceName}
+          value={typedMetric.settings?.serviceName ?? null}
         />
       </InlineField>
       <InlineField label="Span name" labelWidth={16}>
-        <SegmentAsync
-          allowCustomValue={true}
-          className={segmentStyles}
-          loadOptions={loadFieldValues('span_name')}
-          onChange={(e) => changeSetting('spanName', e.value)}
+        <Combobox
+          isClearable
+          createCustomValue
+          options={loadFieldValues('span_name')}
+          onChange={(option) => changeSetting('spanName', option?.value)}
           placeholder="All spans"
-          value={typedMetric.settings?.spanName}
+          value={typedMetric.settings?.spanName ?? null}
         />
       </InlineField>
       <InlineField label="Status" labelWidth={16}>
-        <Select
-          onChange={(e) => changeSetting('status', e.value)}
+        <Combobox
+          onChange={(option) => changeSetting('status', option.value)}
           options={statusOptions}
           value={typedMetric.settings?.status || ''}
         />
