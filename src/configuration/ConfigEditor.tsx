@@ -109,6 +109,21 @@ export const QuickwitDetails = ({ value, onChange }: DetailsProps) => {
               width={40}
             />
           </InlineField>
+          <InlineField
+            label="Forced query filter"
+            labelWidth={26}
+            tooltip="Lucene filter added to every query. Combined with AND when query is not empty."
+          >
+            <Input
+              id="quickwit_forced_query_filter"
+              value={value.jsonData.forcedQueryFilter}
+              onChange={(event) =>
+                onChange({ ...value, jsonData: { ...value.jsonData, forcedQueryFilter: event.currentTarget.value } })
+              }
+              placeholder="service:frontend"
+              width={40}
+            />
+          </InlineField>
         </FieldSet>
         <FieldSet label="Editor settings">
           <InlineField label="Default logs limit" labelWidth={26} tooltip="The log level field must be a fast field">

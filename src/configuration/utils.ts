@@ -14,6 +14,7 @@ export const coerceOptions = (
       ...options.jsonData,
       logMessageField: options.jsonData.logMessageField || '',
       logLevelField: options.jsonData.logLevelField || '',
+      forcedQueryFilter: options.jsonData.forcedQueryFilter || '',
       filterAutocompleteLimit: options.jsonData.filterAutocompleteLimit ?? '1000',
       filterAutocompleteChainMode,
       filterAutocompleteUseFilterChains: filterAutocompleteChainMode !== 'none',

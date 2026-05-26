@@ -67,6 +67,11 @@ func NewQuickwitDatasource(ctx context.Context, settings backend.DataSourceInsta
 		logMessageField = ""
 	}
 
+	forcedQueryFilter, ok := jsonData["forcedQueryFilter"].(string)
+	if !ok {
+		forcedQueryFilter = ""
+	}
+
 	logsDatasourceUID, ok := jsonData["logsDatasourceUid"].(string)
 	if !ok {
 		logsDatasourceUID = ""
@@ -121,6 +126,7 @@ func NewQuickwitDatasource(ctx context.Context, settings backend.DataSourceInsta
 		ID:                         settings.ID,
 		UID:                        settings.UID,
 		Name:                       settings.Name,
+		ForcedQueryFilter:          forcedQueryFilter,
 		LogsDatasourceUID:          logsDatasourceUID,
 		LogsDatasourceName:         logsDatasourceName,
 		TracesDatasourceUID:        tracesDatasourceUID,

@@ -705,4 +705,5 @@ describe('BaseQuickwitDataSource', () => {
       expect(parseFilterAutocompleteChainMode(undefined, false)).toBe('none');
     });
   });
+
 });

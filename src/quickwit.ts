@@ -9,6 +9,7 @@ export interface QuickwitOptions extends DataSourceJsonData {
     interval?: string;
     logMessageField?: string;
     logLevelField?: string;
+    forcedQueryFilter?: string;
     logsDatasourceUid?: string;
     logsDatasourceName?: string;
     tracesDatasourceUid?: string;

@@ -24,6 +24,7 @@ type DatasourceInfo struct {
 	ID                         int64
 	UID                        string
 	Name                       string
+	ForcedQueryFilter          string
 	LogsDatasourceUID          string
 	LogsDatasourceName         string
 	TracesDatasourceUID        string

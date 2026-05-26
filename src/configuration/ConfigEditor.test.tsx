@@ -26,6 +26,7 @@ describe('ConfigEditor', () => {
 
     // Check ElasticDetails are rendered
     expect(screen.getByText('Index settings')).toBeInTheDocument();
+    expect(screen.getByLabelText('Forced query filter')).toBeInTheDocument();
   });
 
   it('should not apply default if values are set', () => {

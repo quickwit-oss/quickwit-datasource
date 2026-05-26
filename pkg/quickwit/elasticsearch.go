@@ -25,7 +25,7 @@ func queryData(ctx context.Context, dataQueries []backend.DataQuery, dsInfo *es.
 
 	// Create a request
 	// NODE : Params should probably be assembled in a dedicated structure to be reused by parseResponse
-	req, err := buildMSR(queries, dsInfo.ConfiguredFields.TimeField)
+	req, err := buildMSR(queries, dsInfo.ConfiguredFields.TimeField, dsInfo.ForcedQueryFilter)
 	if err != nil {
 		return &backend.QueryDataResponse{}, err
 	}

@@ -14,7 +14,7 @@ const (
 	defaultSize = 100
 )
 
-func buildMSR(queries []*Query, defaultTimeField string) ([]*es.SearchRequest, error) {
+func buildMSR(queries []*Query, defaultTimeField string, forcedQueryFilter string) ([]*es.SearchRequest, error) {
 	ms := es.NewMultiSearchRequestBuilder()
 
 	for _, q := range queries {
@@ -31,7 +31,7 @@ func buildMSR(queries []*Query, defaultTimeField string) ([]*es.SearchRequest, e
 		// trace_id lookups go from "scan every split" to "scan a few" — the
 		// same speedup the native Jaeger endpoint gets via auto-derived bounds.
 		filters.AddDateRangeFilter(defaultTimeField, q.RangeTo, q.RangeFrom)
-		filters.AddQueryStringFilter(q.RawQuery, true, "AND")
+		filters.AddQueryStringFilter(applyForcedQueryFilter(q.RawQuery, forcedQueryFilter), true, "AND")
 		if isTraceSearchQuery(q) {
 			filters.AddQueryStringFilter(traceSearchSettingsQuery(q), true, "AND")
 		}
@@ -51,6 +51,20 @@ func buildMSR(queries []*Query, defaultTimeField string) ([]*es.SearchRequest, e
 	}
 
 	return ms.Build()
+}
+
+func applyForcedQueryFilter(rawQuery string, forcedQueryFilter string) string {
+	query := strings.TrimSpace(rawQuery)
+	forced := strings.TrimSpace(forcedQueryFilter)
+
+	if forced == "" {
+		return query
+	}
+	if query == "" {
+		return forced
+	}
+
+	return query + " AND " + forced
 }
 
 func setFloatPath(settings *simplejson.Json, path ...string) {
