@@ -61,6 +61,13 @@ $ go test -v ./pkg/...
 $ npm run storybook
 ```
 
+## Reset grafana password
+
+```shell
+docker exec -it grafana-quickwit-datasource bash
+grafana-cli admin reset-admin-password <new_password>
+```
+
 ## Release
 
 TODO

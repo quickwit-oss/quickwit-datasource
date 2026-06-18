@@ -24,6 +24,20 @@ func TestQueryTypeHelpersDoNotPanicWithoutMetrics(t *testing.T) {
 	})
 }
 
+func TestApplyForcedQueryFilter(t *testing.T) {
+	t.Run("adds AND when query is not empty", func(t *testing.T) {
+		assert.Equal(t, "service:api AND tenant:acme", applyForcedQueryFilter("service:api", "tenant:acme"))
+	})
+
+	t.Run("uses only forced filter when query is empty", func(t *testing.T) {
+		assert.Equal(t, "tenant:acme", applyForcedQueryFilter("", "tenant:acme"))
+	})
+
+	t.Run("keeps original query when forced filter is empty", func(t *testing.T) {
+		assert.Equal(t, "service:api", applyForcedQueryFilter("service:api", ""))
+	})
+}
+
 func TestExecuteElasticsearchDataQuery(t *testing.T) {
 	from := time.Date(2018, 5, 15, 17, 50, 0, 0, time.UTC)
 	to := time.Date(2018, 5, 15, 17, 55, 0, 0, time.UTC)
@@ -1801,7 +1815,7 @@ func executeElasticsearchDataQuery(c es.Client, body string, from, to time.Time)
 	if err != nil {
 		return nil, err
 	}
-	req, err := buildMSR(queries, configuredFields.TimeField)
+	req, err := buildMSR(queries, configuredFields.TimeField, "")
 	if err != nil {
 		return &backend.QueryDataResponse{}, err
 	}
