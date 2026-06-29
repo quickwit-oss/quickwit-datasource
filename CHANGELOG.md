@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1
+
+### What's Changed
+
+- Add datasource pre-filter
+- Fix editing of trace search fields
+
 ## 0.6.0
 
 ### What's Changed
