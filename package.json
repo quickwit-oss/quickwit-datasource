@@ -20,7 +20,7 @@
   "author": "Quickwit",
   "license": "AGPL-3.0",
   "devDependencies": {
-    "@babel/core": "^7.21.4",
+    "@babel/core": "^8.0.1",
     "@grafana/e2e-selectors": "10.1.9",
     "@grafana/eslint-config": "^6.0.0",
     "@grafana/plugin-e2e": "^3.4.2",
