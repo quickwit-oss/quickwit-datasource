@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2
+
+### What's Changed
+
+- Update Go and npm dependencies to fix security vulnerabilities
+- Sign releases with build provenance attestation
+
 ## 0.6.1
 
 ### What's Changed
