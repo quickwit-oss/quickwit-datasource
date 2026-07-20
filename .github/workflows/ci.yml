@@ -78,7 +78,7 @@ jobs:
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@e2e-version/v1.2.1
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.0.2
         with:
           skip-grafana-react-19-preview-image: false
 
