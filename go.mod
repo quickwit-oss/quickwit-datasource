@@ -53,7 +53,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-plugin v1.8.0 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
-	github.com/itchyny/timefmt-go v0.1.5
+	github.com/itchyny/timefmt-go v0.1.8
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.19.0 // indirect
 	github.com/magefile/mage v1.17.2 // indirect
