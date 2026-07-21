@@ -23,13 +23,15 @@ or you can download the latest version and follow the
 
 ## Version compatibility
 
-We recommend Grafana v12.1+ or v13.
+We recommend Grafana v12.3+ or v13.
+
+v0.6.x requires a Grafana version that provides `react/jsx-runtime` to plugins: 12.3+ and 13, or the patch releases 12.0.10+, 12.1.7+ and 12.2.5+ on older minors. Earlier 12.x patch versions (e.g. 12.0.0) cannot load the plugin.
 
 Quickwit 0.7 is compatible with 0.3.x versions only.
 
 Quickwit 0.8 is compatible with 0.4.x, 0.5.x and 0.6.x versions.
 
-- **v0.6.x** (Latest): Grafana 12.1+ and 13 (React 19)
+- **v0.6.x** (Latest): Grafana 12.0.10+ / 12.1.7+ / 12.2.5+ / 12.3+ and 13 (React 19)
 - **v0.5.x**: Grafana 11.x
 - **v0.4.x**: Grafana 10.x
 - **v0.3.x**: Grafana 9.x / Quickwit 0.7
