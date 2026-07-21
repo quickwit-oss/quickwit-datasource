@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3
+
+### What's Changed
+
+- Fix declared minimum Grafana version: the plugin requires `react/jsx-runtime` from the host, available in Grafana 12.3+ and the 12.0.10 / 12.1.7 / 12.2.5 patch releases
+
 ## 0.6.2
 
 ### What's Changed
