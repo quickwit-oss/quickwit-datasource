@@ -17,7 +17,7 @@ jobs:
     outputs:
       e2e-matrix: ${{ steps.resolve-versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup Node.js environment
         uses: actions/setup-node@v6
         with:
@@ -92,7 +92,7 @@ jobs:
         GRAFANA_IMAGE: ${{ fromJson(needs.build.outputs.e2e-matrix) }}
         QUICKWIT_VERSION: [edge]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download build artifact
         uses: actions/download-artifact@v4
