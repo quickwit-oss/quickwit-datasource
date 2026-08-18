@@ -44,7 +44,7 @@ describe('addAddHocFilter', () => {
         operator: '=',
         value: '["paperclip"]',
       });
-      expect(result).toBe('status:200 AND attributes.tags:"paperclip"');
+      expect(result).toBe('(status:200) AND attributes.tags:"paperclip"');
     });
 
     it('handles single-element array with spaces in value', () => {
@@ -181,7 +181,7 @@ describe('addAddHocFilter', () => {
         operator: '=',
         value: 'BlogController',
       });
-      expect(result).toBe('status:200 AND attributes.controller:"BlogController"');
+      expect(result).toBe('(status:200) AND attributes.controller:"BlogController"');
     });
 
     it('renders numeric equality filters as unquoted literals', () => {
