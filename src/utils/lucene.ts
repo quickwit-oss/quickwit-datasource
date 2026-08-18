@@ -150,7 +150,7 @@ export function concatenate(query: string, filter: string, operator?: 'AND'|'OR'
     return filter;
   }
 
-  return operator ? `${query} ${operator} ${filter}` : `${query} ${filter}`
+  return operator ? `(${query}) ${operator} ${filter}` : `(${query}) ${filter}`
 }
 
 export class LuceneQuery {
