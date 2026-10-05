@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       e2e-matrix: ${{ steps.resolve-versions.outputs.matrix }}
     steps:
@@ -83,7 +83,7 @@ jobs:
           skip-grafana-react-19-preview-image: false
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: build
     strategy:
