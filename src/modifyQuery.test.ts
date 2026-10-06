@@ -44,9 +44,9 @@ describe('addAddHocFilter', () => {
         operator: '=',
         value: '["paperclip"]',
       });
-      expect(result).toBe('status:200 AND attributes.tags:"paperclip"');
+      expect(result).toBe('(status:200) AND attributes.tags:"paperclip"');
     });
-
+    
     it('handles single-element array with spaces in value', () => {
       const result = addAddHocFilter('', {
         key: 'attributes.tags',
@@ -163,6 +163,16 @@ describe('addAddHocFilter', () => {
       });
       expect(result).toBe('-attributes.tags:paperclip');
     });
+        
+    it('wraps an OR query before appending an AND filter', () => {
+      const result = addAddHocFilter('status:200 OR status:201', {
+        key: 'attributes.controller',
+        operator: '=',
+        value: 'BlogController',
+      });
+
+      expect(result).toBe('(status:200 OR status:201) AND attributes.controller:"BlogController"');
+    });
   });
 
   describe('scalar value filters', () => {
@@ -181,7 +191,7 @@ describe('addAddHocFilter', () => {
         operator: '=',
         value: 'BlogController',
       });
-      expect(result).toBe('status:200 AND attributes.controller:"BlogController"');
+      expect(result).toBe('(status:200) AND attributes.controller:"BlogController"');
     });
 
     it('renders numeric equality filters as unquoted literals', () => {
