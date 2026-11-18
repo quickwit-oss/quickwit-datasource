@@ -3,7 +3,7 @@ import { css } from "@emotion/css";
 
 
 import CodeMirror, { Prec, ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { keymap } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
 import { linter, Diagnostic, lintGutter } from "@codemirror/lint"
 import { autocompletion, CompletionContext, startCompletion } from "@codemirror/autocomplete"
 import { LuceneQuery } from "@/utils/lucene";
@@ -87,7 +87,8 @@ export function LuceneQueryEditor(props: LuceneQueryEditorProps){
       queryLinter,
       lintGutter(),
       autocomplete,
-      myKeymap
+      myKeymap,
+      EditorView.lineWrapping
     ]}
     />);
 }

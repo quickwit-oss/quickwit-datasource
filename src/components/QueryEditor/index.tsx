@@ -58,6 +58,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
   queryItem: css`
     flex-grow: 1;
+    min-width: 0;
   `,
 });
 
